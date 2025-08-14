@@ -3,10 +3,10 @@
 
 #include "string.h"
 #include "stdlib.h"
-#include "containers/map.h"
 #include "wync_wrapper.h"
 #include "wync_packets.h"
 #include "macro_types.h"
+#include "containers/map.h"
 
 
 typedef struct {
