@@ -18,6 +18,9 @@ void NeteBuffer_reset_cursor(NeteBuffer *buffer) {
 	buffer->cursor_byte = 0;
 }
 bool NeteBuffer_write_bytes(NeteBuffer *buffer, void *data, uint32_t size) {
+	if (data == NULL || size == 0) {
+		return false;
+	}
 	if (buffer->cursor_byte + size > buffer->size_bytes) {
 		return false;
 	}
@@ -26,6 +29,9 @@ bool NeteBuffer_write_bytes(NeteBuffer *buffer, void *data, uint32_t size) {
 	return true;
 }
 bool NeteBuffer_read_bytes(NeteBuffer *buffer, void *destination, uint32_t size) {
+	if (destination == NULL || size == 0) {
+		return false;
+	}
 	if (buffer->cursor_byte + size > buffer->size_bytes) {
 		return false;
 	}
@@ -36,6 +42,9 @@ bool NeteBuffer_read_bytes(NeteBuffer *buffer, void *destination, uint32_t size)
 bool NeteBuffer_bytes_serialize (
 	bool is_reading, NeteBuffer *buffer, void *other, uint32_t size
 ) {
+	if (other == NULL || size == 0) {
+		return false;
+	}
 	if (buffer->cursor_byte + size > buffer->size_bytes) {
 		return false;
 	}
@@ -57,7 +66,7 @@ bool NeteBuffer_bytes_serialize (
 	do { \
 		if (!NeteBuffer_read_bytes(buffer, dest, size)) { \
 			DEBUG_BREAK; \
-			return false; \
+			return fals|e; \
 		} \
 	} while (0)
 

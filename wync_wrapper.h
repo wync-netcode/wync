@@ -39,11 +39,16 @@ typedef struct {
 	void *data;
 } WyncWrapper_Data;
 
-typedef void* WyncWrapper_UserCtx;
+//typedef void* WyncWrapper_UserCtx;
 
-typedef WyncWrapper_Data (*WyncWrapper_Getter)(void *user_ctx);
+typedef struct {
+	void *ctx;
+	size_t type_size;
+} WyncWrapper_UserCtx;
 
-typedef void (*WyncWrapper_Setter)(void *user_ctx, WyncWrapper_Data data);
+typedef WyncWrapper_Data (*WyncWrapper_Getter)(WyncWrapper_UserCtx ctx);
+
+typedef void (*WyncWrapper_Setter)(WyncWrapper_UserCtx, WyncWrapper_Data data);
 
 typedef WyncWrapper_Data (*WyncWrapper_LerpFunc)
 	(WyncWrapper_Data from, WyncWrapper_Data to, float delta);

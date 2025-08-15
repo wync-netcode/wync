@@ -264,7 +264,7 @@ i32 WyncTrack_prop_get_entity(
 
 	// iterate all entities (slow)
 
-    while (ConMap_iterator_get_next_key(tracked_entities, &it) != OK) {
+    while (ConMap_iterator_get_next_key(tracked_entities, &it) == OK) {
         error = ConMap_get(tracked_entities, it.key, (i32*)&entity_id);
 		if (error != OK) { continue; }
 

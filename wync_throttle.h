@@ -47,7 +47,7 @@ void WyncThrottle_wync_system_fill_entity_sync_queue (WyncCtx *ctx) {
 		u32 entity_id;
 		i32 error;
 
-		while (ConMap_iterator_get_next_key(sees_entities, &map_it) != OK)
+		while (ConMap_iterator_get_next_key(sees_entities, &map_it) == OK)
 		{
 			entity_id = map_it.key;
 
@@ -75,7 +75,7 @@ void WyncThrottle_wync_system_fill_entity_sync_queue (WyncCtx *ctx) {
 
 		map_it = (ConMapIterator) { 0 };
 
-		while (ConMap_iterator_get_next_key(sees_entities, &map_it) != OK)
+		while (ConMap_iterator_get_next_key(sees_entities, &map_it) == OK)
 		{
 			entity_id = map_it.key;
 

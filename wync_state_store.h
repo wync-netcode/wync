@@ -91,7 +91,7 @@ void WyncStore_handle_pkt_prop_snap(
 
 /// Transfer ownership of the data
 ///
-/// @param state Must be preallocated
+/// @param state Must be Pre-allocated
 /// @returns error
 i32 WyncStore_save_confirmed_state(
 	WyncCtx *ctx,
