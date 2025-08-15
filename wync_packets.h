@@ -254,10 +254,22 @@ typedef struct {
    */
 
 typedef struct {
-	i32 prop_id; // -1, inputs to which prop
+	u32 prop_id;
 	u32 amount;
 	Wync_NetTickDataDecorator *inputs;
 } WyncPktInputs;
+
+void WyncPktInputs_free (WyncPktInputs pkt) {
+	Wync_NetTickDataDecorator *input;
+	if (pkt.inputs == NULL) return;
+	for (u32 i = 0; i < pkt.amount; ++i) {
+		input = &pkt.inputs[i];
+		if (input->data != NULL) {
+			free(input->data);
+		}
+	}
+	free(pkt.inputs);
+}
 
 /*
 func duplicate() -> WyncPktInputs:

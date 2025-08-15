@@ -132,12 +132,9 @@ void wync_init_ctx_metrics(WyncCtx *ctx) {
 	co_metrics->low_priority_entity_update_rate_sliding_window = u32_RinBuf_create
 		(co_metrics->low_priority_entity_update_rate_sliding_window_size, 0);
 
-	// amount of props, also 0 is reserved for 'total'
-	u32 log_prop_amount = 20;
-
 	for (u32 i = 0; i < WYNC_PKT_AMOUNT; ++i) {
 		co_metrics->debug_packets_received[i] = calloc
-			(sizeof(u32), log_prop_amount);
+			(sizeof(u32), DEBUG_PACKETS_RECEIVED_MAX);
 	}
 }
 
@@ -206,7 +203,7 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 
 void wync_init_ctx_ticks(WyncCtx *ctx) {
 	ctx->co_ticks.server_tick_offset_collection = 
-		calloc(sizeof(Wync_u32Pair), SERVER_TICK_OFFSET_COLLECTION_SIZE);
+		calloc(sizeof(Wync_i32Pair), SERVER_TICK_OFFSET_COLLECTION_SIZE);
 }
 
 

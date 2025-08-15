@@ -3,7 +3,7 @@
 
 #include "string.h"
 #include "stdlib.h"
-#include "wync_wrapper.h"
+//#include "wync_wrapper.h"
 #include "wync_packets.h"
 #include "macro_types.h"
 #include "containers/map.h"
@@ -31,12 +31,12 @@ Wync_NetTickData Wync_NetTickData_copy_calloc(Wync_NetTickData *self) {
 #define LATENCY_BUFFER_SIZE 20 // 20 size, 2 polls per second -> 10 seconds worth
 
 typedef struct {
-	i32 latency_raw_latest_ms; // Recently polled latency
-	i32 latency_stable_ms;     // Stabilized latency
-	i32 latency_mean_ms; 
-	i32 latency_std_dev_ms;
-	i32 latency_buffer[LATENCY_BUFFER_SIZE];
-	i32 latency_buffer_head;
+	u16 latency_raw_latest_ms; // Recently polled latency
+	u16 latency_stable_ms;     // Stabilized latency
+	u16 latency_mean_ms; 
+	u32 latency_std_dev_ms;
+	u16 latency_buffer[LATENCY_BUFFER_SIZE];
+	u32 latency_buffer_head;
 	float debug_latency_mean_ms;
 } Wync_PeerLatencyInfo;
 
@@ -59,9 +59,9 @@ typedef struct {
 } Wync_PeerPropPair;
 
 typedef struct {
-	u32 a;
-	u32 b;
-} Wync_u32Pair;
+	i32 a;
+	i32 b;
+} Wync_i32Pair;
 
 typedef struct {
 	bool spawn; // wether to spawn or to dispawn
@@ -77,6 +77,10 @@ typedef struct {
 	u32 data_size;
 	void *data;
 } Wync_DummyProp;
+
+void Wync_DummyProp_free (Wync_DummyProp self) {
+	if (self.data != NULL) free(self.data);
+}
 
 // NOTE: Do not confuse with WyncPktEventData.EventData
 // TODO: define data types somewhere + merge with WyncProp
@@ -112,6 +116,20 @@ typedef struct {
 	u32 data_size;
 	void *data;
 } WyncState;
+
+WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
+	WyncState state = { 
+		.data_size = data_size,
+		.data = calloc(1, data_size)
+	};
+	memcpy(state.data, data, data_size);
+	return state;
+}
+void WyncState_free (WyncState state) {
+	if (state.data != NULL) {
+		free(state.data);
+	}
+}
 
 typedef struct {
 	u32 prop_start;
@@ -264,16 +282,16 @@ typedef struct {
 	// RingBuffer<int, Variant>
 	WyncState_RinBuf saved_states;
 	// RingBuffer<int, int>
-	i32_RinBuf state_id_to_tick;
+	u32_RinBuf state_id_to_tick;
 	// RingBuffer<int, int>
-	i32_RinBuf tick_to_state_id;
+	u32_RinBuf tick_to_state_id;
 	// RingBuffer<int, int> (only for lerping)
-	i32_RinBuf state_id_to_local_tick;
+	u32_RinBuf state_id_to_local_tick;
 	
 	// Note. On predicted entities only the latest value is valid
 	// Last-In-First-Out (LIFO)
 	// LIFO Queue <arrival_order: int, server_tick: int>
-	i32_RinBuf last_ticks_received;
+	u32_RinBuf last_ticks_received;
 } WyncProp_StateBuffer;
 
 
@@ -420,12 +438,14 @@ typedef struct {
 #define MAX_CHANNELS 8
 
 
+struct WyncWrapperCtx;
+
 typedef struct {
 	u32 ticks;
 
 	// for a "debug_tick_offset" equivalent just set ctx.co_ticks.common.ticks
 	// to any value
-	u32 debug_time_offset_ms;
+	i32 debug_time_offset_ms;
 
 	// --------------------------------------------------------
 	// Wrapper
@@ -434,7 +454,7 @@ typedef struct {
 	// a separate wrapper.
 
 
-	WyncWrapperCtx wrapper;
+	//WyncWrapperCtx wrapper;
 
 
 	// --------------------------------------------------------
@@ -742,7 +762,7 @@ typedef struct {
 	
 	// List<Tuple<int, int>>
 	// Array[Array[Variant]]
-	Wync_u32Pair *server_tick_offset_collection;
+	Wync_i32Pair *server_tick_offset_collection;
 	i32 server_tick_offset;
 
 	// TODO: Move this elsewhere
@@ -764,7 +784,7 @@ typedef struct {
 	i32 tick_offset;
 	i32 tick_offset_prev;
 	i32 tick_offset_desired;
-	i32 target_tick; // co_ticks.common.ticks + tick_offset
+	u32 target_tick; // co_ticks.common.ticks + tick_offset
 	// fixed timestamp for current tick
 	// It's the point of reference for other common.ticks
 	float current_tick_timestamp;
@@ -807,8 +827,8 @@ typedef struct {
 	// or continue (this implies not getting packets)
 	// TODO: rename
 	
-	i32 last_tick_received_at_tick;
-	i32 last_tick_received_at_tick_prev;
+	u32 last_tick_received_at_tick;
+	u32 last_tick_received_at_tick_prev;
 	
 	
 	ConMap entity_last_predicted_tick; // Dictionary[int, int] = {}
@@ -845,6 +865,9 @@ typedef struct {
 	float minimum_lerp_fraction_accumulated_ms;
 } CoLerp;
 
+
+// amount of props, also 0 is reserved for 'total'
+#define DEBUG_PACKETS_RECEIVED_MAX 20
 
 typedef struct {
 	// : Array <packet_id:int, Array <prop_id:int, amount: int> >
@@ -883,10 +906,9 @@ typedef struct {
 	i32 PROP_ID_PROB;
 } CoMetrics;
 
-
 typedef struct {
 	Wync_CoCommon common;
-	WyncWrapperCtx wrapper;
+	struct WyncWrapperCtx *wrapper;
 
 	CoStateTrackingCommon co_track;
 	CoEvents co_events;

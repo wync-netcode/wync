@@ -204,7 +204,7 @@ WyncProp *WyncTrack_entity_get_prop(
 
 		prop = WyncTrack_get_prop(ctx, prop_id);
 		if (prop == NULL) { continue; }
-		if (strcmp(prop->name_id, prop_name_id)) {
+		if (strcmp(prop->name_id, prop_name_id) == OK) {
 			return prop;
 		}
 	}
@@ -239,7 +239,7 @@ i32 WyncTrack_entity_get_prop_id(
 
 		prop = WyncTrack_get_prop(ctx, prop_id);
 		if (prop == NULL) { continue; }
-		if (strcmp(prop->name_id, prop_name_id)) {
+		if (strcmp(prop->name_id, prop_name_id) == OK) {
 			*out_prop_id = prop_id;
 			return OK;
 		}

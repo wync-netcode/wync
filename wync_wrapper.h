@@ -4,7 +4,7 @@
 // TODO: Need generic value MAP<int, Any>
 #include "containers/map.h"
 #include "src/macro_types.h" // TODO: Rewrite
-//#include "wync_typedef.h"
+#include "wync_typedef.h"
 
 
 typedef struct{
@@ -51,13 +51,14 @@ typedef WyncWrapper_Data (*WyncWrapper_LerpFunc)
 // ^^^ FUTURE: A method with less indirections using void* with cached size
 
 
-typedef struct{
-	WyncWrapper_UserCtx prop_user_ctx[WYNC_MAX_USER_TYPES];
-	WyncWrapper_Getter prop_getter[WYNC_MAX_USER_TYPES];
-	WyncWrapper_Setter prop_setter[WYNC_MAX_USER_TYPES]; // Maybe use a b-tree set?
+typedef struct WyncWrapperCtx{
+	WyncWrapper_UserCtx prop_user_ctx[MAX_PROPS];
+	WyncWrapper_Getter prop_getter[MAX_PROPS];
+	WyncWrapper_Setter prop_setter[MAX_PROPS]; // Maybe use a b-tree set?
 
 	// Array<user_type_id: int, Any>
-	u16 lerp_type_to_lerp_function[WYNC_MAX_USER_TYPES];
+	// use lerp_function[index] directly
+	//u16 lerp_type_to_lerp_function[WYNC_MAX_USER_TYPES];
 	WyncWrapper_LerpFunc lerp_function[WYNC_MAX_USER_TYPES];
 
 	// Array<delta_blueprint_id: int, Blueprint>
@@ -71,6 +72,5 @@ typedef struct{
 	//// Array<sim_fun_id: int, Callable>
 	//var integration_functions: Array[Callable]
 } WyncWrapperCtx;
-
 
 #endif // !WYNC_WRAPPER_H

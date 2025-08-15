@@ -62,6 +62,36 @@ void PRE(RinBuf_insert_at) (PRE(RinBuf) *r, size_t index, TYPE item) {
 }
 
 
+/// Adds item to the head overwritting the tail if necessary
+///
+/// @param[out] index (Optional) Position for new element
+/// @param[out] old_item (Optional) Pointer to previous item if any
+/// @returns error
+int PRE(RinBuf_push) (PRE(RinBuf) *r, TYPE item, size_t *index, TYPE *old_item) {
+    if (r->size == 0) return -1;
+    r->head_pointer = (r->head_pointer + 1) % r->size;
+
+    if (old_item != NULL) {
+        *old_item = r->buffer[r->head_pointer];
+    }
+
+    r->buffer[r->head_pointer] = item;
+
+    if (index != NULL) {
+        *index = r->head_pointer;
+    }
+    return OK;
+}
+
+
+/// Returns the item in position relative to head
+/// e.g. get(0) will return head, but get(-1) will return the item before head
+TYPE *PRE(RinBuf_get_relative) (PRE(RinBuf) *r, size_t position) {
+    if (r->size == 0) return NULL;
+    return &r->buffer[FAST_MODULUS(r->head_pointer + position, r->size)];
+}
+
+
 TYPE *PRE(RinBuf_get_absolute) (PRE(RinBuf) *r, size_t index) {
     if (r->size == 0) return NULL;
     return &r->buffer[index];
@@ -71,6 +101,10 @@ TYPE *PRE(RinBuf_get_absolute) (PRE(RinBuf) *r, size_t index) {
 TYPE *PRE(RinBuf_get_at) (PRE(RinBuf) *r, size_t position) {
     if (r->size == 0) return NULL;
     return &r->buffer[FAST_MODULUS(position, r->size)];
+}
+
+size_t PRE(RinBuf_get_size) (PRE(RinBuf) *r) {
+    return r->size;
 }
 
 

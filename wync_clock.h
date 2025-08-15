@@ -267,7 +267,7 @@ void WyncClock_advance_ticks (WyncCtx *ctx) {
 
 // set the latency this peer is experimenting (get it from your transport)
 // @argument latency_ms: int. Latency in milliseconds
-void wync_peer_set_current_latency (WyncCtx *ctx, u16 peer_id, u16 latency_ms){
+void WyncClock_peer_set_current_latency (WyncCtx *ctx, u16 peer_id, u16 latency_ms){
 	ctx->common.peer_latency_info[peer_id].latency_raw_latest_ms = latency_ms;
 }
 
@@ -275,7 +275,7 @@ void WyncClock_wync_client_set_physics_ticks_per_second (WyncCtx *ctx, u16 tps){
 	ctx->common.physic_ticks_per_second = tps;
 }
 
-void clock_set_debug_time_offset(WyncCtx *ctx, i32 time_offset_ms){
+void WyncClock_set_debug_time_offset(WyncCtx *ctx, i32 time_offset_ms){
 	ctx->common.debug_time_offset_ms = time_offset_ms;
 }
 
