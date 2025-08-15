@@ -13,10 +13,11 @@ bool WyncPacket_type_exists(u16 packet_type_id) {
 }
 
 
-// Wraps a valid packet in a WyncPacket in a WyncPacketOut for delivery
-//
-// @param[out] *out_packet
-// @returns error
+/// * Wraps data in a WyncPacket in a WyncPacketOut for delivery
+/// * Will copy from 'data' and allocate into 'out_packet'
+///
+/// @param[out] *out_packet Must point to instance
+/// @returns error
 i32 WyncPacket_wrap_packet_out (
 	WyncCtx *ctx,
 	u16 to_wync_peer_id,
