@@ -66,7 +66,7 @@ bool NeteBuffer_bytes_serialize (
 	do { \
 		if (!NeteBuffer_read_bytes(buffer, dest, size)) { \
 			DEBUG_BREAK; \
-			return fals|e; \
+			return false; \
 		} \
 	} while (0)
 

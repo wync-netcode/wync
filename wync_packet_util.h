@@ -12,7 +12,7 @@ bool WyncPacket_type_exists(u16 packet_type_id);
 //
 // @param[out] *out_packet
 // @returns error
-i32 WyncPacket_wrap_packet_out (
+i32 WyncPacket_wrap_packet_out_alloc (
 	WyncCtx *ctx,
 	u16 to_wync_peer_id,
 	u16 packet_type_id,

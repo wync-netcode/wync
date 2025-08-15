@@ -3,7 +3,6 @@
 
 #include "wync/wync_join.h"
 #include "wync/wync_packet_util.h"
-#include "wync/wync_packets.h"
 #include "wync/wync_tick_collection.h"
 #include "wync_typedef.h"
 #include <math.h>
@@ -38,7 +37,7 @@ void WyncClock_wync_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	//   Resistant to sudden lag spikes. Look into 'Trimmed mean'
 
 	i32_RinBuf_push(
-		&co_pred->clock_offset_sliding_window, curr_clock_offset, NULL);
+		&co_pred->clock_offset_sliding_window, curr_clock_offset, NULL, NULL);
 
 	u32 window_size =
 		(u32)i32_RinBuf_get_size(&co_pred->clock_offset_sliding_window);
@@ -194,65 +193,103 @@ i32 WyncClock_server_handle_clock_req (
 	WyncPktClock pkt,
 	u16 from_nete_peer_id
 ) {
-	u16 wync_peer_id;
-	i32 error = WyncJoin_is_peer_registered(
-		ctx, from_nete_peer_id, &wync_peer_id);
-	if (error != OK) {
-		LOG_ERR_C(ctx, "client %hu is not registered", from_nete_peer_id);
-		return -1;
-	}
-
-	// prepare packet back
-
-	WyncPktClock packet_clock = {
-		.time_og = pkt.time_og,
-		.tick_og = pkt.tick_og,
-		.tick = ctx->common.ticks,
-		.time = (u32) WyncClock_get_ms(ctx)
-	};
+	i32 return_error = OK;
 	WyncPacketOut packet_out = { 0 };
 
-	error = WyncPacket_wrap_packet_out(
-		ctx,
-		wync_peer_id,
-		WYNC_PKT_CLOCK,
-		sizeof(packet_clock),
-		&packet_clock,
-		&packet_out
-	);
-	if (error != OK) {
-		LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
-		return -2;
-	}
+	do {
+		u16 wync_peer_id;
+		i32 error = WyncJoin_is_peer_registered(
+			ctx, from_nete_peer_id, &wync_peer_id);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "client %hu is not registered", from_nete_peer_id);
+			return_error = -1;
+			break;
+		}
 
-	return OK;
+		// prepare packet back
+
+		WyncPktClock packet_clock = {
+			.time_og = pkt.time_og,
+			.tick_og = pkt.tick_og,
+			.tick = ctx->common.ticks,
+			.time = (u32) WyncClock_get_ms(ctx)
+		};
+
+		error = WyncPacket_wrap_packet_out_alloc(
+			ctx,
+			wync_peer_id,
+			WYNC_PKT_CLOCK,
+			sizeof(packet_clock),
+			&packet_clock,
+			&packet_out
+		);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
+			return_error = -2;
+			break;
+		}
+
+		error = WyncPacket_try_to_queue_out_packet(
+			ctx,
+			packet_out,
+			UNRELIABLE,
+			false, false
+		);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "couldn't queue packet");
+			return_error = -3;
+			break;
+		}
+	} while (0);
+
+	WyncPacketOut_free(&packet_out);
+
+	return return_error;
 }
 
 /// @returns error
 i32 WyncClock_client_ask_for_clock(WyncCtx *ctx) {
 	if (FAST_MODULUS(ctx->common.ticks, 16) != 0) return -1;
 
-	WyncPktClock packet_clock = {
-		.time_og = (u32)WyncClock_get_ms(ctx),
-		.tick_og = ctx->common.ticks
-	};
-
+	i32 return_error = OK;
 	WyncPacketOut packet_out = { 0 };
 
-	i32 error = WyncPacket_wrap_packet_out(
-		ctx,
-		SERVER_PEER_ID,
-		WYNC_PKT_CLOCK,
-		sizeof(packet_clock),
-		&packet_clock,
-		&packet_out
-	);
-	if (error != OK) {
-		LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
-		return -2;
-	}
+	do{
+		WyncPktClock packet_clock = {
+			.time_og = (u32)WyncClock_get_ms(ctx),
+			.tick_og = ctx->common.ticks
+		};
 
-	return OK;
+		i32 error = WyncPacket_wrap_packet_out_alloc(
+			ctx,
+			SERVER_PEER_ID,
+			WYNC_PKT_CLOCK,
+			sizeof(packet_clock),
+			&packet_clock,
+			&packet_out
+		);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
+			return_error = -2;
+			break;
+		}
+
+		error = WyncPacket_try_to_queue_out_packet(
+			ctx,
+			packet_out,
+			UNRELIABLE,
+			false, false
+		);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "couldn't queue packet");
+			return_error = -3;
+			break;
+		}
+	} while (0);
+
+	WyncPacketOut_free(&packet_out);
+
+	return return_error;
 }
 
 // ==================================================

@@ -10,7 +10,7 @@
 
 // TODO: rename
 
-void WyncThrottle__wync_remove_entity_from_sync_queue (
+void WyncThrottle__remove_entity_from_sync_queue (
 	WyncCtx *ctx,
 	u16 peer_id,
 	u32 entity_id
@@ -27,7 +27,7 @@ void WyncThrottle__wync_remove_entity_from_sync_queue (
 
 /// Just appends entity_id's into the queue
 ///
-void WyncThrottle_wync_system_fill_entity_sync_queue (WyncCtx *ctx) {
+void WyncThrottle_system_fill_entity_sync_queue (WyncCtx *ctx) {
 
 	i32_DynArrIterator it = { 0 };
 	while(i32_DynArr_iterator_get_next(&ctx->common.peers, &it) == OK) {

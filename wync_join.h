@@ -118,7 +118,7 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 	WyncPacketOut packet_out = { 0 };
 	WyncPktJoinReq packet_join = { 0xDEADBEEF };
 
-	error = WyncPacket_wrap_packet_out (
+	error = WyncPacket_wrap_packet_out_alloc (
 		ctx,
 		SERVER_PEER_ID,
 		WYNC_PKT_JOIN_REQ,
@@ -127,12 +127,18 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 		&packet_out
 	);
 	if (error == OK) {
-		WyncPacket_try_to_queue_out_packet(
+		error = WyncPacket_try_to_queue_out_packet(
 			ctx,
 			packet_out,
 			RELIABLE, true, false
 		);
-	}
+		if (error != OK) {
+			LOG_ERR_C(ctx, "Couldn't queue packet");
+		}
+	} else { LOG_ERR_C(ctx, "Couldn't wrap packet"); }
+
+	WyncPacketOut_free(&packet_out);
+
 
 	// TODO: Set lerpms could be moved somewhere else, could be sent anytime
 
@@ -140,7 +146,7 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 	WyncPktClientSetLerpMS packet_lerp = { 0 };
 	packet_lerp.lerp_ms = ctx->co_lerp.lerp_ms;
 
-	i32 lerp_error = WyncPacket_wrap_packet_out (
+	i32 lerp_error = WyncPacket_wrap_packet_out_alloc (
 		ctx,
 		SERVER_PEER_ID,
 		WYNC_PKT_CLIENT_SET_LERP_MS,
@@ -149,12 +155,17 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 		&packet_out
 	);
 	if (lerp_error == OK) {
-		WyncPacket_try_to_queue_out_packet(
+		lerp_error = WyncPacket_try_to_queue_out_packet(
 			ctx,
 			packet_out,
 			RELIABLE, true, false
 		);
-	}
+		if (lerp_error != OK) {
+			LOG_ERR_C(ctx, "Couldn't queue packet");
+		}
+	} else { LOG_ERR_C(ctx, "Couldn't wrap packet"); }
+
+	WyncPacketOut_free(&packet_out);
 
 	return error;
 }
@@ -210,7 +221,7 @@ i32 WyncJoin_handle_pkt_join_req (
 	packet_res.approved = true;
 	packet_res.wync_client_id = wync_client_id;
 
-	err = WyncPacket_wrap_packet_out (
+	err = WyncPacket_wrap_packet_out_alloc (
 		ctx,
 		wync_client_id,
 		WYNC_PKT_JOIN_RES,
@@ -219,12 +230,17 @@ i32 WyncJoin_handle_pkt_join_req (
 		&packet_out
 	);
 	if (err == OK) {
-		WyncPacket_try_to_queue_out_packet(
+		err = WyncPacket_try_to_queue_out_packet(
 			ctx,
 			packet_out,
 			RELIABLE, true, false
 		);
-	}
+		if (err != OK) {
+			LOG_ERR_C(ctx, "Couldn't queue packet");
+		}
+	} else { LOG_ERR_C(ctx, "Couldn't wrap packet"); }
+
+	WyncPacketOut_free(&packet_out);
 
 	// let client own it's own global events
 	// Note: Maybe move this where all channel are defined

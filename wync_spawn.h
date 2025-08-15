@@ -270,7 +270,8 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 			_wync_confirm_client_can_see_entity(ctx, client_id, entity_id);
 		}
 
-		// truncate packet
+		// serialize packet
+
 		u16 truncated_entity_amount = entity_amount;
 		if ((i + 1) != entity_amount) {
 			truncated_entity_amount = (u16)i + 1;
@@ -284,32 +285,36 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 		}
 		buffer.cursor_byte = 0;
 
-		// queue
-
 		if (!WyncPktSpawn_serialize(
 				false, &buffer, &packet, truncated_entity_amount)) {
 			LOG_ERR_C(ctx, "Couldn't serialize WyncPktSpawn");
 			continue;
 		}
 
+		// wrap and queue
+
 		WyncPacketOut packet_out = { 0 };
-		if (WyncPacket_wrap_packet_out(
+		error = WyncPacket_wrap_packet_out_alloc(
 			ctx,
 			client_id,
 			WYNC_PKT_SPAWN,
 			buffer.cursor_byte,
 			buffer.data,
-			&packet_out) != OK)
-		{
+			&packet_out);
+		if (error == OK) {
+			error = WyncPacket_try_to_queue_out_packet(
+				ctx,
+				packet_out,
+				RELIABLE, true, false
+			);
+			if (error != OK) {
+				LOG_ERR_C(ctx, "Couldn't wrap packet");
+			}
+		} else {
 			LOG_ERR_C(ctx, "Couldn't wrap packet");
 			continue;
 		}
-
-		WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
-			RELIABLE, true, false
-		);
+		WyncPacketOut_free(&packet_out);
 
 		// data limit
 
@@ -324,7 +329,7 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 
 
 /// This system is not throttled
-void WyncSpawn_send_entities_to_despawn(WyncCtx *ctx) {
+void WyncSpawn_system_send_entities_to_despawn(WyncCtx *ctx) {
 
 	static u32_DynArr entity_id_list = { 0 };
 	static NeteBuffer buffer = { 0 };
@@ -384,35 +389,37 @@ void WyncSpawn_send_entities_to_despawn(WyncCtx *ctx) {
 
 		error = WyncPktDespawn_serialize(false, &buffer, &packet_despawn);
 		if (error != true) {
+			LOG_ERR_C(ctx, "Couldn't serialize packet");
 			goto WyncSpawn_send_entities_to_despawn__defer;
 		}
 
 		// queue
 
-		error = WyncPacket_wrap_packet_out(
+		error = WyncPacket_wrap_packet_out_alloc(
 			ctx,
 			client_id,
 			WYNC_PKT_SPAWN,
 			buffer.cursor_byte,
 			buffer.data,
 			&packet_out);
-		if (error != OK) {
+		if (error == OK) {
+			error = WyncPacket_try_to_queue_out_packet(
+				ctx,
+				packet_out,
+				RELIABLE, true, false
+			);
+			if (error != OK) {
+				LOG_ERR_C(ctx, "Couldn't queue packet");
+			}
+		} else {
 			LOG_ERR_C(ctx, "Couldn't wrap packet");
-			goto WyncSpawn_send_entities_to_despawn__defer;
-		}
-
-		error = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
-			RELIABLE, true, false);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "Couldn't queue packet");
 		}
 
 		// free
 
 		WyncSpawn_send_entities_to_despawn__defer:
 
+		WyncPacketOut_free(&packet_out);
 		WyncPktDespawn_free(&packet_despawn);
 	}
 }

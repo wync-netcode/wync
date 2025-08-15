@@ -539,9 +539,18 @@ func duplicate() -> WyncPacketReqClientInfo:
 typedef struct {
 	u16 peer_id;
 	//var entity_id: int # to validate the entity id exists, unused?
-	u16 prop_id;
+	u32 prop_id;
 } WyncPktResClientInfo; // TODO: Rename
 
+bool WyncPktResClientInfo_serialize(
+	bool is_reading,
+	NeteBuffer *buffer,
+	WyncPktResClientInfo *pkt
+) {
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->peer_id, sizeof(u16));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->prop_id, sizeof(u32));
+	return OK;
+}
 /*
 func duplicate() -> WyncPktResClientInfo:
 	var i = WyncPktResClientInfo.new()

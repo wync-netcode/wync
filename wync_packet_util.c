@@ -3,6 +3,7 @@
 #include "wync_join.h"
 #include "wync/lib/log.h"
 #include "wync/buffer.h"
+#include <stdlib.h>
 #include <string.h>
 
 #include "wync_packet_util.h"
@@ -14,11 +15,11 @@ bool WyncPacket_type_exists(u16 packet_type_id) {
 
 
 /// * Wraps data in a WyncPacket in a WyncPacketOut for delivery
-/// * Will copy from 'data' and allocate into 'out_packet'
+/// * Will allocate and give you back WyncPacketOut, don't forget to free!
 ///
 /// @param[out] *out_packet Must point to instance
 /// @returns error
-i32 WyncPacket_wrap_packet_out (
+i32 WyncPacket_wrap_packet_out_alloc (
 	WyncCtx *ctx,
 	u16 to_wync_peer_id,
 	u16 packet_type_id,
@@ -63,9 +64,9 @@ i32 WyncPacket_wrap_packet_out (
 	wync_pkt_out.data = calloc(sizeof(char), wync_pkt_out.data_size);
 
 	memcpy(wync_pkt_out.data, buffer.data, wync_pkt_out.data_size);
+
 	*out_packet = wync_pkt_out;
 	error = OK;
-
 	WyncPacket_wrap_packet_out__defer:
 	if (buffer.data != NULL) free(buffer.data);
 
@@ -73,25 +74,36 @@ i32 WyncPacket_wrap_packet_out (
 }
 
 
-/// Takes ownership of WyncPacketOut (out_packet)
+/// Keeps a copy of out_packet, don't forget to free your copy
 ///
 /// @returns error
 i32 WyncPacket_try_to_queue_out_packet (
 	WyncCtx *ctx,
-	WyncPacketOut out_packet,
+	WyncPacketOut p_out_packet,
 	bool reliable,
 	bool already_commited,
 	bool dont_ocuppy       // default false
 ) {
+	if (p_out_packet.data_size == 0 || p_out_packet.data == NULL) {
+		return -2;
+	}
+
+	WyncPacketOut out_packet = {
+		.to_nete_peer_id = p_out_packet.to_nete_peer_id,
+		.data_size = p_out_packet.data_size,
+	};
+	out_packet.data = malloc(out_packet.data_size);
+	memcpy(out_packet.data, p_out_packet.data, out_packet.data_size);
+
 	u32 packet_size = out_packet.data_size;
 	if (packet_size >= ctx->common.out_packets_size_remaining_chars) {
 		if (already_commited) {
 			//pass
 		} else {
 			LOG_ERR_C(ctx, "DROPPED, Packet too big (%u), remaining data (%u), d(%u)",
-			packet_size,
-			ctx->common.out_packets_size_remaining_chars,
-			packet_size-ctx->common.out_packets_size_remaining_chars);
+				packet_size,
+				ctx->common.out_packets_size_remaining_chars,
+				packet_size-ctx->common.out_packets_size_remaining_chars);
 
 			WyncPacketOut_free(&out_packet);
 			return -1;
