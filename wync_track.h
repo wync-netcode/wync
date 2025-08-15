@@ -198,7 +198,7 @@ WyncProp *WyncTrack_entity_get_prop(
 	}
 
 	WyncProp *prop;
-	u32_DynArrIterator it = u32_DynArr_make_iterator();
+	u32_DynArrIterator it = { 0 };
 	while (u32_DynArr_iterator_get_next(entity_props, &it) == OK) {
 		u32 prop_id = *it.item;
 
@@ -233,7 +233,7 @@ i32 WyncTrack_entity_get_prop_id(
 	}
 
 	WyncProp *prop;
-	u32_DynArrIterator it = u32_DynArr_make_iterator();
+	u32_DynArrIterator it = { 0 };
 	while (u32_DynArr_iterator_get_next(entity_props, &it) == OK) {
 		u32 prop_id = *it.item;
 
@@ -258,14 +258,14 @@ i32 WyncTrack_prop_get_entity(
 	u32 *out_entity_id
 ) {
 	ConMap *tracked_entities = &ctx->co_track.tracked_entities;
-    ConMapIterator it = ConMap_make_iterator();
-    u32 key, entity_id;
+    ConMapIterator it = { 0 };
+    u32 entity_id;
 	i32 error;
 
 	// iterate all entities (slow)
 
-    while (ConMap_iterator_get_next_key(tracked_entities, &it, &key) != OK) {
-        error = ConMap_get(tracked_entities, key, (i32*)&entity_id);
+    while (ConMap_iterator_get_next_key(tracked_entities, &it) != OK) {
+        error = ConMap_get(tracked_entities, it.key, (i32*)&entity_id);
 		if (error != OK) { continue; }
 
 		u32_DynArr *entity_props = NULL;
@@ -274,7 +274,7 @@ i32 WyncTrack_prop_get_entity(
 
 		// iterate entity props
 
-		u32_DynArrIterator dyna_it = u32_DynArr_make_iterator();
+		u32_DynArrIterator dyna_it = { 0 };
 		while (u32_DynArr_iterator_get_next(entity_props, &dyna_it) == OK) {
 			u32 here_prop_id = *dyna_it.item;
 

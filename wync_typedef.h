@@ -140,6 +140,12 @@ typedef struct {
 #undef DYN_ARR_TYPE
 #undef DYN_ARR_PREFIX
 
+#define DYN_ARR_TYPE Wync_PeerEntityPair
+#undef  DYN_ARR_PREFIX
+#include "containers/da.h"
+#undef DYN_ARR_TYPE
+#undef DYN_ARR_PREFIX
+
 #define DYN_ARR_TYPE WyncPacket
 #undef  DYN_ARR_PREFIX
 #include "containers/da.h"
@@ -216,6 +222,7 @@ typedef struct {
 
 #define FIFORING_TYPE Wync_EntitySpawnEvent
 #define FIFORING_PREFIX SpawnEvent_
+#define FIFORING_DISABLE_COMPARISONS
 #include "containers/fiforing.h"
 #undef FIFORING_TYPE
 #undef FIFORING_PREFIX
@@ -654,7 +661,7 @@ typedef struct {
 	// * TODO: Use FIFORing and preallocate all instances (pooling)
 	// * TODO: Use DynArr
 	// FIFORing < PeerEntityPair[peer: int, entity: int] > [100]
-	Wync_PeerEntityPair *queue_entity_pairs_to_sync; // og-type: Array[PeerEntityPair]
+	Wync_PeerEntityPair_DynArr queue_entity_pairs_to_sync;
 	
 	// * Used to reduce state extraction to only the co_track.props requested
 	// Simple dynamic array list

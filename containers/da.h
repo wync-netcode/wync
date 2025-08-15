@@ -102,12 +102,6 @@ typedef struct {
 } PRE(DynArrIterator);
 
 
-PRE(DynArrIterator) PRE(DynArr_make_iterator) (void) {
-    PRE(DynArrIterator) it = { 0 };
-    return it;
-}
-
-
 /// @param[out] it iterator
 /// @retval  0 OK
 /// @retval -1 End reached

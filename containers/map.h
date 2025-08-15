@@ -121,6 +121,10 @@ i32 ConMapNode_remove_by_key (ConMapNode *node, u32 key)
     return OK;
 }
 
+void ConMapNode_clear_preserve_capacity (ConMapNode *node) {
+    node->size = 0;
+}
+
 
 typedef struct {
     u32 pair_count;
@@ -245,55 +249,57 @@ int ConMap_remove_by_key (ConMap *map, u32 key) {
 }
 
 
+void ConMap_clear_preserve_capacity (ConMap *map) {
+    map->pair_count = 0;
+    for (u32 i = 0; i < map->size; ++i) {
+        ConMapNode_clear_preserve_capacity(&map->nodes[i]);
+    }
+}
+
+
 typedef struct {
-    u32 node_idx;
-    u32 pair_idx; // inside the node
+    u32 __node_idx;
+    u32 __pair_idx; // inside the node
+    u32 key;
 } ConMapIterator;
 
-ConMapIterator ConMap_make_iterator (void)
-{
-    ConMapIterator it = { 0 };
-    it.node_idx = 0;
-    it.pair_idx = 0;
-    return it;
-}
 
 /// @param[out] key No longer valid once end is reached
 /// @retval       0 OK
 /// @retval      -1 End reached
-i32 ConMap_iterator_get_next_key (ConMap *map, ConMapIterator *it, u32 *key)
+i32 ConMap_iterator_get_next_key (ConMap *map, ConMapIterator *it)
 {
     // check correctness
 
-    if (it->node_idx < 0 || it->node_idx >= map->size) { return -1; }
+    if (it->__node_idx < 0 || it->__node_idx >= map->size) { return -1; }
 
-    ConMapNode *node = &map->nodes[it->node_idx];
+    ConMapNode *node = &map->nodes[it->__node_idx];
 
-    if (it->pair_idx < 0) { return -1; }
+    if (it->__pair_idx < 0) { return -1; }
 
-    if (it->pair_idx >= node->size) {
+    if (it->__pair_idx >= node->size) {
 
         // skip empty nodes
 
-        while (it->node_idx < map->size) {
-            node = &map->nodes[it->node_idx];
+        while (it->__node_idx < map->size) {
+            node = &map->nodes[it->__node_idx];
             if (node->size > 0) break;
-            ++it->node_idx;
+            ++it->__node_idx;
         }
 
-        it->pair_idx = 0;
+        it->__pair_idx = 0;
         
-        if (it->node_idx >= map->size) { return -1; }
+        if (it->__node_idx >= map->size) { return -1; }
     }
 
     // increment iterator, return key
 
-    *key = node->keys[it->pair_idx];
+    it->key = node->keys[it->__pair_idx];
 
-    ++it->pair_idx;
-    if (it->pair_idx >= node->size) {
-        ++it->node_idx;
-        it->pair_idx = 0;
+    ++it->__pair_idx;
+    if (it->__pair_idx >= node->size) {
+        ++it->__node_idx;
+        it->__pair_idx = 0;
     }
 
     return OK;

@@ -5,6 +5,7 @@
 #include "wync_packets.h"
 #include "wync_typedef.h"
 #include "wync_init.h"
+#include "wync_clock.h"
 #include "math.h"
 
 // ==================================================
@@ -257,7 +258,7 @@ void wync_flow_setup_context(WyncCtx *ctx) {
 
 void wync_flow_wync_server_tick_start(WyncCtx *ctx) {
 
-	//WyncClock.wync_advance_ticks(ctx)
+	WyncClock_advance_ticks(ctx);
 
 	//WyncActions.module_events_consumed_advance_tick(ctx)
 

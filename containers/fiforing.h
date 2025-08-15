@@ -8,6 +8,7 @@
 // Usage example:
 // #define FIFORING_TYPE double
 // #define FIFORING_PREFIX CustomName  (optional)
+// #define FIFORING_DISABLE_COMPARISONS (optional)
 // #include "fiforing.h"
 // double_FIFORing myfifo = double_FIFORing_create();
 
@@ -117,6 +118,10 @@ TYPE *PRE(FIFORing_get_tail) (FIFORING *ring) {
 	return &ring->buffer[ring->tail];
 }
 
+u32 PRE(FIFORing_get_size) (FIFORING *ring) {
+	return ring->size;
+}
+
 void PRE(FIFORing_clear) (FIFORING *ring) {
     ring->tail = 0;
     ring->head = 0;
@@ -151,9 +156,34 @@ i32 PRE(FIFORing_remove_relative_to_tail) (FIFORING *ring, u32 pos) {
 	return OK;
 }
 
+#ifndef FIFORING_DISABLE_COMPARISONS
+
+bool PRE(FIFORing_has_item) (FIFORING *ring, TYPE item) {
+	u32 tail = ring->tail, head = ring->head;
+
+	if (ring->size == 0) return false;
+	if (tail < head) {
+		for (u32 i = tail; i <= head; ++i) {
+			if (ring->buffer[i] == item) return true;
+		}
+	}
+	if (tail > head) {
+		for (u32 i = tail; i < ring->capacity; ++i) {
+			if (ring->buffer[i] == item) return true;
+		}
+		for (u32 i = 0; i <= head; ++i) {
+			if (ring->buffer[i] == item) return true;
+		}
+	}
+	return false;
+}
+
+#endif // FIFORING_DISABLE_COMPARISONS
+
 #undef PRE
-#undef FIFORING_TYPE
-#undef FIFORING_PREFIX
 #undef TYPE
-#undef FIFORING
+#undef FIFORING_DISABLE_COMPARISONS
+//#undef FIFORING_TYPE
+//#undef FIFORING_PREFIX
+//#undef FIFORING
 

@@ -64,18 +64,6 @@ inline static i32 ConMap_buffer_find_val (i32 *array, u32 size, i32 value, u32 *
 
 
 typedef struct {
-    u32 node_idx;
-    u32 pair_idx; // inside the node
-} CONMAP_IT;
-
-CONMAP_IT PRE(ConMap_make_iterator) (void)
-{
-    CONMAP_IT it = { 0, 0 };
-    return it;
-}
-
-
-typedef struct {
     u32   size;
     u32   capacity;
     u32  *keys;     // negative keys are OK, casted to u32
@@ -266,10 +254,18 @@ int PRE(ConMap_remove_by_key) (CONMAP *map, u32 key) {
     return err;
 }
 
+
+typedef struct {
+    u32 node_idx;
+    u32 pair_idx; // inside the node
+    u32 key;
+} CONMAP_IT;
+
+
 /// @param[out] key No longer valid once end is reached
 /// @retval       0 OK
 /// @retval      -1 End reached
-i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it, u32 *key)
+i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
 {
     // check correctness
 
@@ -296,7 +292,7 @@ i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it, u32 *key)
 
     // increment iterator, return key
 
-    *key = node->keys[it->pair_idx];
+    it->key = node->keys[it->pair_idx];
 
     ++it->pair_idx;
     if (it->pair_idx >= node->size) {
