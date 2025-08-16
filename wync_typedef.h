@@ -32,9 +32,9 @@ WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
 	memcpy(state.data, data, data_size);
 	return state;
 }
-void WyncState_free (WyncState state) {
-	free(state.data);
-	state.data = NULL;
+void WyncState_free (WyncState *state) {
+	free(state->data);
+	state->data = NULL;
 }
 bool WyncState_serialize (
 	bool is_reading,
@@ -120,8 +120,8 @@ typedef struct {
 	WyncState data;
 } Wync_DummyProp;
 
-void Wync_DummyProp_free (Wync_DummyProp self) {
-	WyncState_free(self.data);
+void Wync_DummyProp_free (Wync_DummyProp *self) {
+	WyncState_free(&self->data);
 }
 
 // NOTE: Do not confuse with WyncPktEventData.EventData
@@ -218,28 +218,8 @@ bool WyncPacket_serialize(
 }
 
 void WyncPacket_free(WyncPacket *pkt) {
-	WyncState_free(pkt->data);
+	WyncState_free(&pkt->data);
 }
-
-//bool WyncPacket_write(NeteBuffer *buffer, WyncPacket *pkt) {
-	//NETEBUFFER_WRITE_BYTES(buffer, &pkt->packet_type_id, sizeof(u16));
-	//NETEBUFFER_WRITE_BYTES(buffer, &pkt->data_size, sizeof(u32));
-	//NETEBUFFER_WRITE_BYTES(buffer, pkt->data, pkt->data_size);
-	//return true;
-//}
-//bool WyncPacket_read(NeteBuffer *buffer, WyncPacket *pkt) {
-	//NETEBUFFER_READ_BYTES
-		//(buffer, &pkt->packet_type_id, sizeof(pkt->packet_type_id));
-	//NETEBUFFER_READ_BYTES
-		//(buffer, &pkt->data_size, sizeof(pkt->data_size));
-
-	//// TODO: must set a limit on the size
-	//pkt->data = calloc(sizeof(char), pkt->data_size);
-
-	//NETEBUFFER_READ_BYTES(buffer, pkt->data, pkt->data_size);
-	//return true;
-//}
-
 
 // Packets handed to you for sending through the network
 // it includes the destination nete peer
@@ -280,12 +260,9 @@ typedef struct {
 // what happens if it's expensive to know the size?
 
 bool WyncPktClientSetLerpMS_serialize (
-	bool is_reading, NeteBuffer *buffer, WyncPktClientSetLerpMS i
+	bool is_reading, NeteBuffer *buffer, WyncPktClientSetLerpMS *pkt
 ) {
-	if (!NeteBuffer_bytes_serialize
-		(is_reading, buffer, &i.lerp_ms, sizeof(i.lerp_ms)))
-		{ return false; }
-
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->lerp_ms, sizeof(i32));
 	return true;
 }
 
@@ -297,20 +274,12 @@ typedef struct {
 } WyncPktClock;
 
 bool WyncPktClock_serialize (
-	bool is_reading, NeteBuffer *buffer, WyncPktClock i
+	bool is_reading, NeteBuffer *buffer, WyncPktClock *pkt
 ) {
-	if (!NeteBuffer_bytes_serialize
-		(is_reading, buffer, &i.tick, sizeof(i.tick)))
-		{ return false; }
-	if (!NeteBuffer_bytes_serialize
-		(is_reading, buffer, &i.time, sizeof(i.time)))
-		{ return false; }
-	if (!NeteBuffer_bytes_serialize
-		(is_reading, buffer, &i.tick_og, sizeof(i.tick_og)))
-		{ return false; }
-	if (!NeteBuffer_bytes_serialize
-		(is_reading, buffer, &i.time_og, sizeof(i.time_og)))
-		{ return false; }
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->tick, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->tick_og, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time_og, sizeof(u32));
 	return true;
 }
 
@@ -326,47 +295,25 @@ typedef struct {
 } WyncPktDeltaPropAck;
 
 bool WyncPktDeltaPropAck_serialize (
-	bool is_reading, NeteBuffer *buffer, WyncPktDeltaPropAck i
+	bool is_reading, NeteBuffer *buffer, WyncPktDeltaPropAck *pkt
 ) {
-	if (!NeteBuffer_bytes_serialize
-		(is_reading, buffer, &i.prop_amount, sizeof(i.prop_amount)))
-		{ return false; }
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->prop_amount, sizeof(u32));
 
 	if (is_reading) {
-		i.delta_prop_ids = (u32*)calloc(sizeof(*i.delta_prop_ids), i.prop_amount);
-		i.last_tick_received = (u32*)calloc(sizeof(*i.delta_prop_ids), i.prop_amount);
+		pkt->delta_prop_ids = (u32*)calloc(sizeof(u32), pkt->prop_amount);
+		pkt->last_tick_received = (u32*)calloc(sizeof(u32), pkt->prop_amount);
 	}
 
-	for (u32 k = 0; k < i.prop_amount; ++k) {
-		if (!NeteBuffer_bytes_serialize
-			(is_reading, buffer, i.delta_prop_ids + k, sizeof(*i.delta_prop_ids)))
-			{ goto WyncPktDeltaPropAck_defer; }
+	for (u32 k = 0; k < pkt->prop_amount; ++k) {
+		NETEBUFFER_BYTES_SERIALIZE(
+			is_reading, buffer, &pkt->delta_prop_ids[k], sizeof(u32));
 	}
-	for (u16 k = 0; k < i.prop_amount; ++k) {
-		if (!NeteBuffer_bytes_serialize
-			(is_reading, buffer, i.last_tick_received + k, sizeof(*i.last_tick_received)))
-			{ goto WyncPktDeltaPropAck_defer; }
+	for (u32 k = 0; k < pkt->prop_amount; ++k) {
+		NETEBUFFER_BYTES_SERIALIZE(
+			is_reading, buffer, &pkt->last_tick_received[k], sizeof(u32));
 	}
 	return true;
-
-	WyncPktDeltaPropAck_defer:
-	if (is_reading) {
-		free(i.delta_prop_ids);
-		free(i.last_tick_received);
-		i.delta_prop_ids = NULL;
-		i.last_tick_received = NULL;
-	}
-	return false;
 }
-
-/*
-func duplicate() -> WyncPktDeltaPropAck:
-	var i = WyncPktDeltaPropAck.new()
-	i.prop_amount = prop_amount
-	i.delta_prop_ids = delta_prop_ids.duplicate(true)
-	i.last_tick_received = last_tick_received.duplicate(true)
-	return i
-   */
 
 typedef struct {
 	u32 entity_amount;
@@ -400,18 +347,6 @@ bool WyncPktDespawn_serialize(
 	return true;
 }
 
-/*
-func _init(size) -> void:
-	entity_amount = size
-	entity_ids.resize(size)
-
-func duplicate() -> WyncPktDespawn:
-	var i = WyncPktDespawn.new(entity_amount)
-	i.entity_amount = entity_amount
-	i.entity_ids = entity_ids.duplicate(true)
-	return i
-   */
-
 // NOTE: EventData is different from WyncEvent in that this one is sent
 // over the network, so it has an extra property: event_id: int
 typedef struct {
@@ -421,41 +356,15 @@ typedef struct {
 	void *event_data;
 } WyncPktEventData_EventData;
 
-/*
-	func duplicate() -> EventData:
-		var newi = EventData.new()
-		newi.event_id = event_id
-		newi.event_type_id = event_type_id
-		newi.event_data = WyncMisc.duplicate_any(event_data)
-		return newi
-   */
-
 typedef struct {
 	u32 events_amount;
 	WyncPktEventData_EventData *events;
 } WyncPktEventData;
 
-/*
-func duplicate() -> WyncPktEventData:
-	var newi = WyncPktEventData.new()
-	newi.events = [] as Array[EventData]
-	for event in self.events:
-		newi.events.append(event.duplicate())
-	return newi
-   */
-
 typedef struct {
 	u32 tick;
 	WyncState state;
 } WyncTickDecorator;
-
-/*
-	func duplicate() -> NetTickDataDecorator:
-		var newi = NetTickDataDecorator.new()
-		newi.tick = tick
-		newi.data = WyncMisc.duplicate_any(data)
-		return newi
-   */
 
 typedef struct {
 	u32 prop_id;
@@ -463,33 +372,33 @@ typedef struct {
 	WyncTickDecorator *inputs;
 } WyncPktInputs;
 
-void WyncPktInputs_free (WyncPktInputs pkt) {
+void WyncPktInputs_free (WyncPktInputs *pkt) {
 	WyncTickDecorator *input;
-	if (pkt.inputs == NULL) return;
-	for (u32 i = 0; i < pkt.amount; ++i) {
-		input = &pkt.inputs[i];
-		WyncState_free(input->state);
+	if (pkt->inputs == NULL) return;
+	for (u32 i = 0; i < pkt->amount; ++i) {
+		input = &pkt->inputs[i];
+		WyncState_free(&input->state);
 	}
-	free(pkt.inputs);
-	pkt.inputs = NULL;
-	pkt.amount = 0;
+	free(pkt->inputs);
+	pkt->inputs = NULL;
+	pkt->amount = 0;
 }
 
 bool WyncPktInputs_serialize (
 	bool is_reading,
 	NeteBuffer *buff,
-	WyncPktInputs pkt
+	WyncPktInputs *pkt
 ) {
-	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt.prop_id, sizeof(u32));
-	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt.amount, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt->prop_id, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt->amount, sizeof(u32));
 
 	if (is_reading) {
-		pkt.inputs = calloc(sizeof(WyncTickDecorator), pkt.amount);
+		pkt->inputs = calloc(sizeof(WyncTickDecorator), pkt->amount);
 	}
 
 	WyncTickDecorator *input;
-	for (u32 i = 0; i < pkt.amount; ++i) {
-		input = &pkt.inputs[i];
+	for (u32 i = 0; i < pkt->amount; ++i) {
+		input = &pkt->inputs[i];
 
 		NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &input->tick, sizeof(u32));
 		if (!WyncState_serialize(is_reading, buff, &input->state))
@@ -497,17 +406,6 @@ bool WyncPktInputs_serialize (
 	}
 	return true;
 }
-
-/*
-func duplicate() -> WyncPktInputs:
-	var newi = WyncPktInputs.new()
-	newi.prop_id = prop_id
-	newi.amount = amount
-	newi.inputs = [] as Array[NetTickDataDecorator]
-	for input: NetTickDataDecorator in self.inputs:
-		newi.inputs.append(input.duplicate())
-	return newi
-   */
 
 typedef struct {
 	u32 dummy;
@@ -521,23 +419,6 @@ bool WyncPktJoinReq_serialize (
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->dummy, sizeof(u32));
 	return true;
 }
-
-	//bool is_reading, NeteBuffer *buffer, WyncPktClock i
-
-//bool WyncPktJoinReq_write(NeteBuffer *buffer, WyncPktJoinReq *pkt) {
-	//NETEBUFFER_WRITE_BYTES(buffer, &pkt->dummy, sizeof(pkt->dummy));
-	//return true;
-//}
-//bool WyncPktJoinReq_read(NeteBuffer *buffer, WyncPktJoinReq *pkt) {
-	//NETEBUFFER_READ_BYTES(buffer, &pkt->dummy, sizeof(pkt->dummy));
-	//return true;
-//}
-
-/*
-func duplicate() -> WyncPktJoinReq:
-	var i = WyncPktJoinReq.new()
-	return i
-   */
 
 typedef struct {
 	bool approved;
@@ -554,23 +435,9 @@ bool WyncPktJoinRes_serialize (
 	return true;
 }
 
-/*
-func duplicate() -> WyncPktJoinRes:
-	var i = WyncPktJoinRes.new()
-	i.approved = approved
-	i.wync_client_id = wync_client_id
-	return i
-   */
-
 typedef struct {
 	u32 dummy;
 } WyncPacketReqClientInfo;
-
-/*
-func duplicate() -> WyncPacketReqClientInfo:
-	var i = WyncPacketReqClientInfo.new()
-	return i
-   */
 
 typedef struct {
 	u16 peer_id;
@@ -587,18 +454,10 @@ bool WyncPktResClientInfo_serialize(
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->prop_id, sizeof(u32));
 	return true;
 }
-/*
-func duplicate() -> WyncPktResClientInfo:
-	var i = WyncPktResClientInfo.new()
-	i.peer_id = peer_id
-	#i.entity_id = entity_id
-	i.prop_id = prop_id
-	return i
-   */
 
 typedef struct {
 	u32 prop_id;
-	WyncState state;
+	WyncState data;
 } WyncSnap;
 
 bool WyncSnap_serialize(
@@ -607,24 +466,13 @@ bool WyncSnap_serialize(
 	WyncSnap *snap
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &snap->prop_id, sizeof(u32));
-	if (!WyncState_serialize(is_reading, buffer, &snap->state))
+	if (!WyncState_serialize(is_reading, buffer, &snap->data))
 		{ return false; }
 	return true;
 }
 void WyncSnap_free(WyncSnap *snap) {
-	WyncState_free(snap->state);
+	WyncState_free(&snap->data);
 }
-
-/*
-## NOTE: Build an optimized packet format exclusive for positional data
-class SnapProp:
-	func duplicate () -> SnapProp:
-		var i = SnapProp.new()
-		i.prop_id = self.prop_id
-		i.state_size = self.state_size
-		i.state = self.state
-		return i
-*/
 
 typedef struct {
 	u32 tick;
@@ -658,21 +506,6 @@ void WyncPktSnap_free(WyncPktSnap *pkt) {
 	}
 }
 
-/*
-func duplicate() -> WyncPktSnap:
-	var i = WyncPktSnap.new()
-	i.tick = self.tick
-		
-	for prop in self.snaps:
-		var new_prop = SnapProp.new()
-		new_prop.prop_id = prop.prop_id
-		new_prop.state_size = prop.state_size
-		new_prop.state = prop.state
-		i.snaps.append(prop)
-			
-	return i
-   */
-
 typedef struct {
 	u16 entity_amount;
 
@@ -701,7 +534,7 @@ void WyncPktSpawn_free(WyncPktSpawn *pkt) {
 
 	for (u32 i = 0; i < pkt->entity_amount; ++i) {
 		WyncState data = pkt->entity_spawn_data[i];
-		WyncState_free(data);
+		WyncState_free(&data);
 	}
 
 	if (pkt->entity_spawn_data != NULL) free(pkt->entity_spawn_data);
@@ -755,37 +588,6 @@ bool WyncPktSpawn_serialize(
 
 	return true;
 }
-
-
-/*
-
-func _init(size) -> void:
-	resize(size)
-
-
-func resize(size):
-	entity_amount = size
-	entity_ids.resize(size)
-	entity_type_ids.resize(size)
-	entity_prop_id_start.resize(size)
-	entity_prop_id_end.resize(size)
-	entity_spawn_data_sizes.resize(size)
-	entity_spawn_data.resize(size)
-
-
-func duplicate() -> WyncPktSpawn:
-	var i = WyncPktSpawn.new(entity_amount)
-	i.entity_amount = entity_amount
-	i.entity_ids = entity_ids.duplicate(true)
-	i.entity_type_ids = entity_type_ids.duplicate(true)
-	i.entity_prop_id_start = entity_prop_id_start.duplicate(true)
-	i.entity_prop_id_end = entity_prop_id_end.duplicate(true)
-	i.entity_spawn_data_sizes = entity_spawn_data_sizes.duplicate(true)
-	for j in range(entity_amount):
-		i.entity_spawn_data.append(entity_spawn_data[j])
-	return i
-   */
-
 
 
 // ============================================================
@@ -950,16 +752,16 @@ typedef struct {
 	// RingBuffer<int, Variant>
 	WyncState_RinBuf saved_states;
 	// RingBuffer<int, int>
-	u32_RinBuf state_id_to_tick;
+	i32_RinBuf state_id_to_tick;
 	// RingBuffer<int, int>
-	u32_RinBuf tick_to_state_id;
+	i32_RinBuf tick_to_state_id;
 	// RingBuffer<int, int> (only for lerping)
-	u32_RinBuf state_id_to_local_tick;
+	i32_RinBuf state_id_to_local_tick;
 	
 	// Note. On predicted entities only the latest value is valid
 	// Last-In-First-Out (LIFO)
 	// LIFO Queue <arrival_order: int, server_tick: int>
-	u32_RinBuf last_ticks_received;
+	i32_RinBuf last_ticks_received;
 } WyncProp_StateBuffer;
 
 
