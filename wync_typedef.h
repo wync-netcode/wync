@@ -48,7 +48,7 @@ bool WyncState_serialize (
 		state->data = calloc(1, state->data_size);
 	}
 	NETEBUFFER_BYTES_SERIALIZE(
-		is_reading, buffer, &state->data, state->data_size);
+		is_reading, buffer, state->data, state->data_size);
 	return true;
 }
 
@@ -109,7 +109,7 @@ typedef struct {
 
 typedef struct {
 	bool spawn; // wether to spawn or to dispawn
-	bool already_spawned;
+	//bool already_spawned;
 	u32 entity_id;
 	u32 entity_type_id;
 	WyncState spawn_data;
@@ -212,7 +212,7 @@ bool WyncPacket_serialize(
 	NeteBuffer *buffer,
 	WyncPacket *pkt
 ) {
-	NETEBUFFER_WRITE_BYTES(buffer, &pkt->packet_type_id, sizeof(u16));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->packet_type_id, sizeof(u16));
 	if (!WyncState_serialize(is_reading, buffer, &pkt->data)) { return false; }
 	return true;
 }
@@ -1105,7 +1105,7 @@ typedef struct {
 	
 	// User must call get_next_entity
 	// Cleared each tick
-	//Wync_EntitySpawnEvent next_entity_to_spawn;
+	//Wync_EntitySpawnEvent *next_entity_to_spawn;
 	
 	// Internal list
 	// Map <entity_id: int, Tripla[prop_start: int, prop_end: int, curr: int]

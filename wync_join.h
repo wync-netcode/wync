@@ -118,12 +118,20 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 	WyncPacketOut packet_out = { 0 };
 	WyncPktJoinReq packet_join = { 0xDEADBEEF };
 
+	static NeteBuffer buffer = { 0 };
+	if (buffer.size_bytes == 0) {
+		buffer.size_bytes = MAX(sizeof(WyncPktJoinReq), sizeof(WyncPktClientSetLerpMS));
+		buffer.data = calloc(1, buffer.size_bytes);
+	}
+	buffer.cursor_byte = 0;
+	WyncPktJoinReq_serialize(false, &buffer, &packet_join);
+
 	error = WyncPacket_wrap_packet_out_alloc (
 		ctx,
 		SERVER_PEER_ID,
 		WYNC_PKT_JOIN_REQ,
-		sizeof(packet_join),
-		&packet_join,
+		buffer.cursor_byte,
+		buffer.data,
 		&packet_out
 	);
 	if (error == OK) {
@@ -146,12 +154,15 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 	WyncPktClientSetLerpMS packet_lerp = { 0 };
 	packet_lerp.lerp_ms = ctx->co_lerp.lerp_ms;
 
+	buffer.cursor_byte = 0;
+	WyncPktClientSetLerpMS_serialize(false, &buffer, &packet_lerp);
+
 	i32 lerp_error = WyncPacket_wrap_packet_out_alloc (
 		ctx,
 		SERVER_PEER_ID,
 		WYNC_PKT_CLIENT_SET_LERP_MS,
-		sizeof(packet_lerp),
-		&packet_lerp,
+		buffer.cursor_byte,
+		buffer.data,
 		&packet_out
 	);
 	if (lerp_error == OK) {
@@ -206,7 +217,8 @@ i32 WyncJoin_handle_pkt_join_req (
 	u16 wync_client_id;
 	i32 err;
 	err = WyncJoin_is_peer_registered(ctx, from_nete_peer_id, &wync_client_id);
-	if (err == OK) {
+	printf("Value %d %d\n", OK, err == OK);
+	if (err == OK) { // OK == already registered
 		LOG_OUT_C(ctx, "Client %hu already setup in Wync as %hu",
 			from_nete_peer_id, wync_client_id);
 		return -1;
@@ -221,12 +233,20 @@ i32 WyncJoin_handle_pkt_join_req (
 	packet_res.approved = true;
 	packet_res.wync_client_id = wync_client_id;
 
+	static NeteBuffer buffer = { 0 };
+	if (buffer.size_bytes == 0) {
+		buffer.size_bytes = sizeof(WyncPktJoinRes);
+		buffer.data = calloc(1, buffer.size_bytes);
+	}
+	buffer.cursor_byte = 0;
+	WyncPktJoinRes_serialize(false, &buffer, &packet_res);
+
 	err = WyncPacket_wrap_packet_out_alloc (
 		ctx,
 		wync_client_id,
 		WYNC_PKT_JOIN_RES,
-		sizeof(packet_res),
-		&packet_res,
+		buffer.cursor_byte,
+		buffer.data,
 		&packet_out
 	);
 	if (err == OK) {

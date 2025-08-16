@@ -39,7 +39,6 @@ void WyncSpawn_handle_pkt_spawn(WyncCtx *ctx, WyncPktSpawn pkt) {
 		// queue it to user face variable
 		Wync_EntitySpawnEvent spawn_event = { 
 			.spawn = true,
-			.already_spawned = false,
 			.entity_id = entity_id,
 			.entity_type_id = entity_type_id,
 			.spawn_data = spawn_data
