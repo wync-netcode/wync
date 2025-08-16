@@ -22,7 +22,7 @@ i32 WyncSend__wync_sync_regular_prop(
 	}
 
 	out_snap->prop_id = prop_id;
-	out_snap->state = state;
+	out_snap->data = state;
 	return OK;
 }
 
@@ -128,7 +128,7 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 				}
 
 				WyncSnap_DynArr_insert(unreliable, snap_prop);
-				data_used += snap_prop.state.data_size + sizeof(u32) * 2;
+				data_used += snap_prop.data.data_size + sizeof(u32) * 2;
 				continue;
 			}
 
@@ -359,7 +359,7 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 
 		// dump collection into packet
 
-		WyncPktInputs_free(pkt_inputs);
+		WyncPktInputs_free(&pkt_inputs);
 		pkt_inputs = (WyncPktInputs) { 0 };
 		pkt_inputs.prop_id = prop_id;
 		pkt_inputs.amount = (u32)WyncTickDecorator_DynArr_get_size(&input_list);
@@ -375,7 +375,7 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 		// wrap and queue
 
 		buffer.cursor_byte = 0;
-		i32 err = WyncPktInputs_serialize(false, &buffer, pkt_inputs);
+		i32 err = WyncPktInputs_serialize(false, &buffer, &pkt_inputs);
 		if (err != OK) {
 			LOG_ERR_C(ctx, "Couldn't queue packet");
 			continue;

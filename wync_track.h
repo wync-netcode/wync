@@ -338,9 +338,9 @@ i32 WyncTrack_prop_register_update_dummy (
 	}
 
 	dummy->last_tick = last_tick;
-	dummy->data_size = data_size;
-	dummy->data = calloc(sizeof(char), data_size);
-	memcpy(dummy->data, data, data_size);
+	dummy->data.data_size = data_size;
+	dummy->data.data = calloc(sizeof(char), data_size);
+	memcpy(dummy->data.data, data, data_size);
 	
 	return OK;
 }

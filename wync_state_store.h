@@ -8,12 +8,14 @@
 
 
 void WyncStore_prop_state_buffer_insert(
+	WyncCtx *ctx,
 	WyncProp *prop,
 	u32 tick,
 	WyncState state
 );
 
 void WyncStore_prop_state_buffer_insert_in_place(
+	WyncCtx *ctx,
 	WyncProp *prop,
 	u32 tick,
 	WyncState state
@@ -51,8 +53,8 @@ void WyncStore_handle_pkt_prop_snap(
 				ctx,
 				snap->prop_id,
 				pkt.tick,
-				snap->state_size,
-				snap->state
+				snap->data.data_size,
+				snap->data.data
 			);
 			continue;
 		}
@@ -69,13 +71,13 @@ void WyncStore_handle_pkt_prop_snap(
 		}
 
 		WyncState state_copy = WyncState_copy_from_buffer(
-				snap->state_size, snap->state);
+				snap->data.data_size, snap->data.data);
 
 		i32 err = WyncStore_save_confirmed_state(
 			ctx, snap->prop_id, pkt.tick, state_copy);
 
 		if (err != OK) {
-			WyncState_free(state_copy);
+			WyncState_free(&state_copy);
 			continue;
 		}
 
@@ -115,7 +117,7 @@ i32 WyncStore_save_confirmed_state(
 		ctx->common.ticks
 	);
 
-	WyncStore_prop_state_buffer_insert(prop, tick, state);
+	WyncStore_prop_state_buffer_insert(ctx, prop, tick, state);
 
 	if (prop->relative_sync_enabled) {
 		// FIXME: check for max? what about unordered packets?
@@ -157,7 +159,7 @@ void WyncStore_service_cleanup_dummy_props(WyncCtx *ctx) {
 
 		DummyProp_ConMap_remove_by_key(&ctx->co_dummy.dummy_props, prop_id);
 		++ctx->co_dummy.stat_lost_dummy_props;
-		Wync_DummyProp_free(*dummy);
+		Wync_DummyProp_free(&dummy);
 	}
 }
 
@@ -201,15 +203,15 @@ i32 WyncStore_server_handle_pkt_inputs(
 	for (u32 i = 0; i < pkt.amount; ++i) {
 		input = &pkt.inputs[i];
 
-		if (input->data_size == 0 || input->data == NULL) {
+		if (input->state.data_size == 0 || input->state.data == NULL) {
 			continue;
 		}
 
 		WyncState state_copy =
-			WyncState_copy_from_buffer(input->data_size, input->data);
+			WyncState_copy_from_buffer(input->state.data_size, input->state.data);
 
 		WyncStore_prop_state_buffer_insert_in_place(
-			prop_input, input->tick, state_copy);
+			ctx, prop_input, input->tick, state_copy);
 
 		// TODO: Reject input that is too old
 	}
@@ -243,15 +245,15 @@ i32 WyncStore_client_handle_pkt_inputs(
 	for (u32 i = 0; i < pkt.amount; ++i) {
 		input = &pkt.inputs[i];
 
-		if (input->data_size == 0 || input->data == NULL) {
+		if (input->state.data_size == 0 || input->state.data == NULL) {
 			continue;
 		}
 
 		WyncState state_copy =
-			WyncState_copy_from_buffer(input->data_size, input->data);
+			WyncState_copy_from_buffer(input->state.data_size, input->state.data);
 
 		WyncStore_prop_state_buffer_insert(
-			prop_input, input->tick, state_copy);
+			ctx, prop_input, input->tick, state_copy);
 			
 		max_tick = MAX(max_tick, input->tick);
 	}
@@ -270,12 +272,18 @@ i32 WyncStore_client_handle_pkt_inputs(
 
 /// Transfers ownership of the data pointers
 void WyncStore_prop_state_buffer_insert(
+	WyncCtx *ctx,
 	WyncProp *prop,
 	u32 tick,
 	WyncState state
 ){
 	WyncState replaced_state = { 0 };
 	size_t state_idx;
+
+	if (state.data_size == 0 || state.data == NULL) {
+		LOG_WAR_C(ctx, "Tried to buffer empty state");
+		return;
+	}
 
 	//
 	i32 err = WyncState_RinBuf_push(
@@ -285,7 +293,7 @@ void WyncStore_prop_state_buffer_insert(
 	if (err != OK) { return; }
 
 	// free whatever old state is found if any
-	WyncState_free(replaced_state);
+	WyncState_free(&replaced_state);
 
 	u32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_idx, tick);
 	u32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, (u32)state_idx);
@@ -293,18 +301,19 @@ void WyncStore_prop_state_buffer_insert(
 
 /// Transfers ownership of the data pointers
 void WyncStore_prop_state_buffer_insert_in_place(
+	WyncCtx *ctx,
 	WyncProp *prop,
 	u32 tick,
 	WyncState state
 ){
-	u32 state_id = *u32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
-	u32 stored_tick = *u32_RinBuf_get_absolute(&prop->statebff.state_id_to_tick, state_id);
+	u32 state_id = *i32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
+	u32 stored_tick = *i32_RinBuf_get_absolute(&prop->statebff.state_id_to_tick, state_id);
 	if (tick != stored_tick) {
-		WyncStore_prop_state_buffer_insert(prop, tick, state);
+		WyncStore_prop_state_buffer_insert(ctx, prop, tick, state);
 	}
 
-	u32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_id, tick);
-	u32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, state_id);
+	i32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_id, tick);
+	i32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, state_id);
 }
 
 /// Transfers ownership of the data pointers
@@ -329,7 +338,7 @@ i32 WyncStore_insert_state_to_entity_prop (
 	u32_RinBuf_push(&prop->statebff.last_ticks_received, tick, NULL, NULL);
 	u32_RinBuf_sort(&prop->statebff.last_ticks_received);
 
-	WyncStore_prop_state_buffer_insert(prop, tick, state);
+	WyncStore_prop_state_buffer_insert(ctx, prop, tick, state);
 
 	u32_RinBuf_insert_at(
 		&prop->statebff.state_id_to_local_tick,

@@ -19,7 +19,7 @@ void WyncThrottle__remove_entity_from_sync_queue (
 	ConMap_set_pair(synced_last_time, entity_id, true);
 
 	u32_FIFORing *entity_queue = &ctx->co_throttling.queue_clients_entities_to_sync[peer_id];
-	u32 saved_entity_id = u32_FIFORing_pop_tail(entity_queue);
+	u32 saved_entity_id = *u32_FIFORing_pop_tail(entity_queue);
 
 	// FIXME
 	assert(saved_entity_id == entity_id);

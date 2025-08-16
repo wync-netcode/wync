@@ -19,7 +19,7 @@ double WyncClock_get_ms(WyncCtx* ctx){
 		(double)ctx->common.debug_time_offset_ms;
 }
 
-void WyncClock_wync_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
+void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 
 	// see https://en.wikipedia.org/wiki/Cristian%27s_algorithm
 
@@ -72,6 +72,67 @@ void WyncClock_wync_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	co_ticks->server_tick_offset = WyncOffsetCollection_get_most_common(co_ticks);
 	co_ticks->server_ticks = (u32)((i32)ctx->common.ticks + co_ticks->server_tick_offset);
 }
+
+/// @returns error
+i32 WyncClock_server_handle_pkt_clock_req (
+	WyncCtx *ctx,
+	WyncPktClock pkt,
+	u16 from_nete_peer_id
+) {
+	i32 return_error = OK;
+	WyncPacketOut packet_out = { 0 };
+
+	do {
+		u16 wync_peer_id;
+		i32 error = WyncJoin_is_peer_registered(
+			ctx, from_nete_peer_id, &wync_peer_id);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "client %hu is not registered", from_nete_peer_id);
+			return_error = -1;
+			break;
+		}
+
+		// prepare packet back
+
+		WyncPktClock packet_clock = {
+			.time_og = pkt.time_og,
+			.tick_og = pkt.tick_og,
+			.tick = ctx->common.ticks,
+			.time = (u32) WyncClock_get_ms(ctx)
+		};
+
+		error = WyncPacket_wrap_packet_out_alloc(
+			ctx,
+			wync_peer_id,
+			WYNC_PKT_CLOCK,
+			sizeof(packet_clock),
+			&packet_clock,
+			&packet_out
+		);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
+			return_error = -2;
+			break;
+		}
+
+		error = WyncPacket_try_to_queue_out_packet(
+			ctx,
+			packet_out,
+			UNRELIABLE,
+			false, false
+		);
+		if (error != OK) {
+			LOG_ERR_C(ctx, "couldn't queue packet");
+			return_error = -3;
+			break;
+		}
+	} while (0);
+
+	WyncPacketOut_free(&packet_out);
+
+	return return_error;
+}
+
 
 void WyncClock_system_stabilize_latency (
 	WyncCtx *ctx,
@@ -185,66 +246,6 @@ void WyncClock_update_prediction_ticks (WyncCtx *ctx) {
 	// NOTE: This could be moved elsewhere
 	
 	//WyncActions.action_tick_history_reset(ctx, co_pred.target_tick);
-}
-
-/// @returns error
-i32 WyncClock_server_handle_clock_req (
-	WyncCtx *ctx,
-	WyncPktClock pkt,
-	u16 from_nete_peer_id
-) {
-	i32 return_error = OK;
-	WyncPacketOut packet_out = { 0 };
-
-	do {
-		u16 wync_peer_id;
-		i32 error = WyncJoin_is_peer_registered(
-			ctx, from_nete_peer_id, &wync_peer_id);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "client %hu is not registered", from_nete_peer_id);
-			return_error = -1;
-			break;
-		}
-
-		// prepare packet back
-
-		WyncPktClock packet_clock = {
-			.time_og = pkt.time_og,
-			.tick_og = pkt.tick_og,
-			.tick = ctx->common.ticks,
-			.time = (u32) WyncClock_get_ms(ctx)
-		};
-
-		error = WyncPacket_wrap_packet_out_alloc(
-			ctx,
-			wync_peer_id,
-			WYNC_PKT_CLOCK,
-			sizeof(packet_clock),
-			&packet_clock,
-			&packet_out
-		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
-			return_error = -2;
-			break;
-		}
-
-		error = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
-			UNRELIABLE,
-			false, false
-		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "couldn't queue packet");
-			return_error = -3;
-			break;
-		}
-	} while (0);
-
-	WyncPacketOut_free(&packet_out);
-
-	return return_error;
 }
 
 /// @returns error

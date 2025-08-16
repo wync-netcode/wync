@@ -143,7 +143,7 @@ void wync_init_ctx_spawn (WyncCtx *ctx){
 	CoSpawn *co_spawn = &ctx->co_spawn;
 	WyncState_ConMap_init(&co_spawn->entity_spawn_data);
 	co_spawn->out_queue_spawn_events = SpawnEvent_FIFORing_init(1024);
-	co_spawn->next_entity_to_spawn = (Wync_EntitySpawnEvent){ 0 };
+	//co_spawn->next_entity_to_spawn = (Wync_EntitySpawnEvent){ 0 };
 	EntitySpawnPropRange_ConMap_init(&co_spawn->pending_entity_to_spawn_props);
 	co_spawn->despawned_entity_ids = u32_DynArr_create();
 }
@@ -171,9 +171,8 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 		(sizeof(u32_FIFORing), max_peers);
 	co_throt->entities_synced_last_time = calloc
 		(sizeof(ConMap), max_peers);
-	co_throt->queue_entity_pairs_to_sync = calloc
-		(sizeof(Wync_PeerEntityPair), 100);
-	
+	co_throt->queue_entity_pairs_to_sync = Wync_PeerEntityPair_DynArr_create();
+
 	co_throt->rela_prop_ids_for_full_snapshot = u32_DynArr_create();
 	co_throt->pending_rela_props_to_sync_to_peer =
 		Wync_PeerPropPair_DynArr_create();
