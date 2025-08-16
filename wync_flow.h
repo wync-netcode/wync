@@ -295,6 +295,7 @@ i32 wync_flow_server_setup(WyncCtx *ctx) {
 
 i32 wync_flow_client_init(WyncCtx *ctx) {
 	ctx->common.is_client = true;
+	ctx->common.peers = i32_DynArr_create();
 	return OK;
 }
 

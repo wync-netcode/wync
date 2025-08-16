@@ -228,7 +228,7 @@ bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
 /// @param[out] value The found value if any
 /// @retval     0     OK
 /// @retval     1     Not found
-i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE* value) {
+i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE** value) {
     u32 node_index = (u32)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
     u32 pair_index;
@@ -236,7 +236,7 @@ i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE* value) {
     if (err != OK) {
         return 1;
     }
-    *value = node->values[pair_index];
+    (*value) = &node->values[pair_index];
     return OK;
 }
 
@@ -272,25 +272,14 @@ i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
 {
     // check correctness
 
-    if (it->node_idx < 0 || it->node_idx >= map->size) { return -1; }
+    if (it->node_idx >= map->size) { return -1; }
 
     CONMAP_NODE *node = &map->nodes[it->node_idx];
 
-    if (it->pair_idx < 0) { return -1; }
-
-    if (it->pair_idx >= node->size) {
-
-        // skip empty nodes
-
-        while (it->node_idx < map->size) {
-            node = &map->nodes[it->node_idx];
-            if (node->size > 0) break;
-            ++it->node_idx;
-        }
-
-        it->pair_idx = 0;
-        
+    while (node->size == 0) {
+        ++it->node_idx;
         if (it->node_idx >= map->size) { return -1; }
+        node = &map->nodes[it->node_idx];
     }
 
     // increment iterator, return key

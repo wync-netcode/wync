@@ -104,7 +104,7 @@ i32 WyncTrack_prop_register_minimal (
 			i32 error = EntitySpawnPropRange_ConMap_get(
 				&ctx->co_spawn.pending_entity_to_spawn_props,
 				entity_id,
-				prop_range
+				&prop_range
 			);
 
 			if (error == OK) {
@@ -130,6 +130,7 @@ i32 WyncTrack_prop_register_minimal (
 	*prop = (WyncProp) { 0 };
 	strcpy(prop->name_id, name_id);
 	prop->prop_type = data_type;
+	prop->enabled = true;
 
 	// initialize statebff
 	// TODO: some might not be necessary for all
@@ -163,7 +164,7 @@ i32 WyncTrack_prop_register_minimal (
 
 	u32_DynArr *entity_props = NULL;
 	i32 error = u32_DynArr_ConMap_get
-		(&ctx->co_track.entity_has_props, entity_id, entity_props);
+		(&ctx->co_track.entity_has_props, entity_id, &entity_props);
 	assert(error == OK);
 
 	u32_DynArr_insert(entity_props, prop_id);
@@ -192,7 +193,7 @@ WyncProp *WyncTrack_entity_get_prop(
 
 	u32_DynArr *entity_props = NULL;
 	i32 error = u32_DynArr_ConMap_get
-		(&ctx->co_track.entity_has_props, entity_id, entity_props);
+		(&ctx->co_track.entity_has_props, entity_id, &entity_props);
 	if (error != OK) {
 		return NULL;
 	}
@@ -227,7 +228,7 @@ i32 WyncTrack_entity_get_prop_id(
 
 	u32_DynArr *entity_props = NULL;
 	i32 error = u32_DynArr_ConMap_get
-		(&ctx->co_track.entity_has_props, entity_id, entity_props);
+		(&ctx->co_track.entity_has_props, entity_id, &entity_props);
 	if (error != OK) {
 		return -2;
 	}
@@ -270,7 +271,7 @@ i32 WyncTrack_prop_get_entity(
 
 		u32_DynArr *entity_props = NULL;
 		u32_DynArr_ConMap_get
-			(&ctx->co_track.entity_has_props, entity_id, entity_props);
+			(&ctx->co_track.entity_has_props, entity_id, &entity_props);
 
 		// iterate entity props
 
@@ -327,14 +328,14 @@ i32 WyncTrack_prop_register_update_dummy (
 
 	// check if a dummy exists
 
-	i32 found = DummyProp_ConMap_get(dummy_props, prop_id, dummy) == OK;
+	i32 found = DummyProp_ConMap_get(dummy_props, prop_id, &dummy) == OK;
 
 	if (found) {
 		// free old data ???
 	} else {
 		Wync_DummyProp new_dummy = { 0 };
 		DummyProp_ConMap_set_pair(dummy_props, prop_id, new_dummy);
-		DummyProp_ConMap_get(dummy_props, prop_id, dummy);
+		DummyProp_ConMap_get(dummy_props, prop_id, &dummy);
 	}
 
 	dummy->last_tick = last_tick;

@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 
-/// @param[out] out_snap Prop snapshop
+/// @param[out] out_snap Fills it with a copy (new alloc'd)
 /// @returns error
 i32 WyncSend__wync_sync_regular_prop(
 	WyncProp *prop,
@@ -22,13 +22,13 @@ i32 WyncSend__wync_sync_regular_prop(
 	}
 
 	out_snap->prop_id = prop_id;
-	out_snap->data = state;
+	out_snap->data = WyncState_copy_from_buffer(state.data_size, state.data);
 	return OK;
 }
 
 
+/// Builds packets
 /// This services modifies ctx.client_has_relative_prop_has_last_tick
-///
 void WyncSend_extracted_data(WyncCtx *ctx) {
 
 	u32 data_used = 0;
@@ -48,11 +48,12 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 
 		WyncSnap_DynArrIterator it = { 0 };
 		while (WyncSnap_DynArr_iterator_get_next(reliable, &it) == OK) {
-			WyncPacket_free(it.item);
+			//WyncSnap
+			WyncState_free(&it.item->data);
 		}
 		it = (WyncSnap_DynArrIterator){ 0 };
 		while (WyncSnap_DynArr_iterator_get_next(reliable, &it) == OK) {
-			WyncPacket_free(it.item);
+			WyncState_free(&it.item->data);
 		}
 
 		WyncSnap_DynArr_clear_preserving_capacity(reliable);
@@ -81,7 +82,7 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 
 		u32_DynArr *entity_prop_ids = NULL;
 		i32 err = u32_DynArr_ConMap_get(
-			&ctx->co_track.entity_has_props, entity_id, entity_prop_ids);
+			&ctx->co_track.entity_has_props, entity_id, &entity_prop_ids);
 		assert(err == OK);
 
 		u32_DynArrIterator prop_it = { 0 };

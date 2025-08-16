@@ -274,25 +274,14 @@ i32 ConMap_iterator_get_next_key (ConMap *map, ConMapIterator *it)
 {
     // check correctness
 
-    if (it->__node_idx < 0 || it->__node_idx >= map->size) { return -1; }
+    if (it->__node_idx >= map->size) { return -1; }
 
     ConMapNode *node = &map->nodes[it->__node_idx];
 
-    if (it->__pair_idx < 0) { return -1; }
-
-    if (it->__pair_idx >= node->size) {
-
-        // skip empty nodes
-
-        while (it->__node_idx < map->size) {
-            node = &map->nodes[it->__node_idx];
-            if (node->size > 0) break;
-            ++it->__node_idx;
-        }
-
-        it->__pair_idx = 0;
-        
+    while (node->size == 0) {
+        ++it->__node_idx;
         if (it->__node_idx >= map->size) { return -1; }
+        node = &map->nodes[it->__node_idx];
     }
 
     // increment iterator, return key

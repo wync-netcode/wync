@@ -89,7 +89,7 @@ bool PRE(FIFOMap_has_item_hash) (FIFOMAP *map, u32 item_hash) {
 
 TYPE *PRE(FIFOMap_get_item_by_hash) (FIFOMAP *map, u32 item_hash) {
 	TYPE *item = NULL;
-	i32 error = MAP_G_PREFIX(ConMap_get)(&map->map_internal, (i32)item_hash, item);
+	i32 error = MAP_G_PREFIX(ConMap_get)(&map->map_internal, (i32)item_hash, &item);
 	if (error != OK) {
 		return NULL;
 	}

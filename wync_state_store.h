@@ -61,8 +61,8 @@ void WyncStore_handle_pkt_prop_snap(
 
 		// avoid flooding the buffer with old late state
 		
-		u32 last_tick_received =
-			*u32_RinBuf_get_relative(&prop->statebff.last_ticks_received, 0);
+		i32 last_tick_received =
+			*i32_RinBuf_get_relative(&prop->statebff.last_ticks_received, 0);
 
 		if ( !(pkt.tick > (last_tick_received -
 			ctx->co_track.REGULAR_PROP_CACHED_STATE_AMOUNT))
@@ -109,9 +109,9 @@ i32 WyncStore_save_confirmed_state(
 
 	prop->statebff.just_received_new_state = true;
 
-	u32_RinBuf_push(&prop->statebff.last_ticks_received, tick, NULL, NULL);
-	u32_RinBuf_sort(&prop->statebff.last_ticks_received);
-	u32_RinBuf_insert_at(
+	i32_RinBuf_push(&prop->statebff.last_ticks_received, tick, NULL, NULL);
+	i32_RinBuf_sort(&prop->statebff.last_ticks_received);
+	i32_RinBuf_insert_at(
 		&prop->statebff.state_id_to_local_tick,
 		prop->statebff.saved_states.head_pointer,
 		ctx->common.ticks
@@ -148,7 +148,7 @@ void WyncStore_service_cleanup_dummy_props(WyncCtx *ctx) {
 		dummy = NULL;
 		u32 prop_id = it.key;
 
-		i32 err = DummyProp_ConMap_get(&ctx->co_dummy.dummy_props, it.key, dummy);
+		i32 err = DummyProp_ConMap_get(&ctx->co_dummy.dummy_props, it.key, &dummy);
 		assert (err == OK && dummy != NULL);
 
 		if ((curr_tick - dummy->last_tick) < MAX_DUMMY_PROP_TICKS_ALIVE) {
@@ -159,7 +159,7 @@ void WyncStore_service_cleanup_dummy_props(WyncCtx *ctx) {
 
 		DummyProp_ConMap_remove_by_key(&ctx->co_dummy.dummy_props, prop_id);
 		++ctx->co_dummy.stat_lost_dummy_props;
-		Wync_DummyProp_free(&dummy);
+		Wync_DummyProp_free(dummy);
 	}
 }
 
@@ -258,7 +258,7 @@ i32 WyncStore_client_handle_pkt_inputs(
 		max_tick = MAX(max_tick, input->tick);
 	}
 
-	u32_RinBuf_sort(&prop_input->statebff.last_ticks_received);
+	i32_RinBuf_sort(&prop_input->statebff.last_ticks_received);
 
 	WyncStore_client_update_last_tick_received(ctx, max_tick);
 
@@ -295,8 +295,8 @@ void WyncStore_prop_state_buffer_insert(
 	// free whatever old state is found if any
 	WyncState_free(&replaced_state);
 
-	u32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_idx, tick);
-	u32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, (u32)state_idx);
+	i32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_idx, tick);
+	i32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, (u32)state_idx);
 }
 
 /// Transfers ownership of the data pointers
@@ -335,12 +335,12 @@ i32 WyncStore_insert_state_to_entity_prop (
 
 	prop->statebff.just_received_new_state = true;
 
-	u32_RinBuf_push(&prop->statebff.last_ticks_received, tick, NULL, NULL);
-	u32_RinBuf_sort(&prop->statebff.last_ticks_received);
+	i32_RinBuf_push(&prop->statebff.last_ticks_received, tick, NULL, NULL);
+	i32_RinBuf_sort(&prop->statebff.last_ticks_received);
 
 	WyncStore_prop_state_buffer_insert(ctx, prop, tick, state);
 
-	u32_RinBuf_insert_at(
+	i32_RinBuf_insert_at(
 		&prop->statebff.state_id_to_local_tick,
 		prop->statebff.saved_states.head_pointer,
 		ctx->common.ticks
@@ -353,8 +353,8 @@ i32 WyncStore_insert_state_to_entity_prop (
 ///
 /// @returns shared state, copy if needed
 WyncState WyncState_prop_state_buffer_get(WyncProp *prop, u32 tick) {
-	u32 state_id = *u32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
-	if (state_id == (u32)-1) {
+	i32 state_id = *i32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
+	if (state_id == -1) {
 		return (WyncState) { 0 };
 	}
 
@@ -375,7 +375,7 @@ WyncState WyncState_prop_state_buffer_get_throughout (
 	size_t size = WyncState_RinBuf_get_size(&prop->statebff.saved_states);
 	for (size_t state_id = 0; state_id < size; ++state_id) {
 
-		u32 saved_tick = *u32_RinBuf_get_absolute(
+		u32 saved_tick = *i32_RinBuf_get_absolute(
 			&prop->statebff.state_id_to_tick, state_id);
 
 		if (saved_tick == tick) {

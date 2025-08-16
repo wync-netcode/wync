@@ -131,13 +131,13 @@ void WyncSpawn_finish_spawning_entity(WyncCtx *ctx, u32 entity_id) {
 	assert(EntitySpawnPropRange_ConMap_has_key(
 		&ctx->co_spawn.pending_entity_to_spawn_props, entity_id) == OK);
 
-	EntitySpawnPropRange prop_range;
+	EntitySpawnPropRange *prop_range;
 	EntitySpawnPropRange_ConMap_get(
 		&ctx->co_spawn.pending_entity_to_spawn_props,
 		entity_id,
 		&prop_range);
 
-	assert((prop_range.prop_end - prop_range.prop_start) == (prop_range.curr -1));
+	assert((prop_range->prop_end - prop_range->prop_start) == (prop_range->curr -1));
 
 	EntitySpawnPropRange_ConMap_remove_by_key(
 		&ctx->co_spawn.pending_entity_to_spawn_props, entity_id);
@@ -148,7 +148,7 @@ void WyncSpawn_finish_spawning_entity(WyncCtx *ctx, u32 entity_id) {
 
 	u32_DynArr *entity_props = NULL;
 	i32 error = u32_DynArr_ConMap_get(
-		&ctx->co_track.entity_has_props, entity_id, entity_props);
+		&ctx->co_track.entity_has_props, entity_id, &entity_props);
 	assert(error == OK);
 
 	u32_DynArrIterator it = { 0 };
@@ -159,13 +159,13 @@ void WyncSpawn_finish_spawning_entity(WyncCtx *ctx, u32 entity_id) {
 			continue;
 		}
 
-		Wync_DummyProp dummy;
+		Wync_DummyProp *dummy;
 		error =
 			DummyProp_ConMap_get(&ctx->co_dummy.dummy_props, prop_id, &dummy);
 		assert (error == OK);
 
 		WyncStore_save_confirmed_state(
-			ctx, prop_id, dummy.last_tick, dummy.data);
+			ctx, prop_id, dummy->last_tick, dummy->data);
 
 		// clean up
 		DummyProp_ConMap_remove_by_key(&ctx->co_dummy.dummy_props, prop_id);
@@ -196,6 +196,8 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 		ConMap *current_entities =
 			&ctx->co_throttling.clients_sees_entities[client_id];
 
+		ConMap_clear_preserve_capacity(&ids_to_spawn);
+
 		// compile ids to sync
 
 		ConMapIterator it = { 0 };
@@ -223,7 +225,7 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 		i32 i = -1;
 		i32 error;
 		u32 entity_id;
-		u16 entity_type_id;
+		u32 entity_type_id;
 
 		// add each new entity
 
@@ -237,31 +239,31 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 				&ctx->co_track.entity_is_of_type, entity_id, (i32*)&entity_type_id);
 			assert (error == OK);
 
-			u32_DynArr prop_ids = { 0 };
+			u32_DynArr *prop_ids = NULL;
 			u32_DynArr_ConMap_get(
 				&ctx->co_track.entity_has_props, entity_id, &prop_ids);
-			u32 prop_amount = (u32)u32_DynArr_get_size(&prop_ids);
+			u32 prop_amount = (u32)u32_DynArr_get_size(prop_ids);
 			assert (prop_amount > 0);
 
 			packet.entity_ids[i] = entity_id;
 			packet.entity_type_ids[i] = entity_type_id;
-			packet.entity_prop_id_start[i] = *u32_DynArr_get(&prop_ids, 0);
-			packet.entity_prop_id_end[i] = *u32_DynArr_get(&prop_ids, prop_amount -1);
+			packet.entity_prop_id_start[i] = *u32_DynArr_get(prop_ids, 0);
+			packet.entity_prop_id_end[i] = *u32_DynArr_get(prop_ids, prop_amount -1);
 
 			// Clone spawn data
 
 			if (WyncState_ConMap_has_key(
 					&ctx->co_spawn.entity_spawn_data, entity_id)
 			){
-				WyncState spawn_data = { 0 };
+				WyncState *spawn_data = NULL;
 
 				WyncState_ConMap_get(
 					&ctx->co_spawn.entity_spawn_data, entity_id, &spawn_data);
 
-				spawn_data = WyncState_copy_from_buffer(
-					spawn_data.data_size, spawn_data.data);
+				*spawn_data = WyncState_copy_from_buffer(
+					spawn_data->data_size, spawn_data->data);
 
-				packet.entity_spawn_data[i] = spawn_data;
+				packet.entity_spawn_data[i] = *spawn_data;
 			}
 
 			// commit: confirm as _client can see it_
@@ -433,7 +435,7 @@ void _wync_confirm_client_can_see_entity(
 
 	u32_DynArr *entity_props = NULL;
 	u32_DynArr_ConMap_get(
-		&ctx->co_track.entity_has_props, entity_id, entity_props);
+		&ctx->co_track.entity_has_props, entity_id, &entity_props);
 	u32_DynArrIterator it = { 0 };
 
 	while (u32_DynArr_iterator_get_next(entity_props, &it) == OK) {
