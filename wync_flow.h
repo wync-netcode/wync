@@ -94,7 +94,7 @@ void wync_flow_internal_wync_system_gather_packets_start(WyncCtx *ctx) {
 void wync_flow_internal_wync_system_gather_packets_end(WyncCtx *ctx) {
 	// pending delta props fullsnapshots should be extracted by now
 	//WyncStateSend.wync_send_pending_rela_props_fullsnapshot(ctx)
-	//WyncStateSend._wync_queue_out_snapshots_for_delivery(ctx) # both reliable/unreliable
+	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
 }
 
 /// param wync_pkt User must free it manually
@@ -122,6 +122,7 @@ i32 wync_flow_wync_feed_packet(
 
 	switch (wync_pkt.packet_type_id) {
 		case WYNC_PKT_JOIN_REQ:
+		{
 			if (is_server) {
 				WyncPktJoinReq pkt = { 0 };
 				if (WyncPktJoinReq_serialize (true, &buffer, &pkt)) {
@@ -129,65 +130,114 @@ i32 wync_flow_wync_feed_packet(
 				}
 			}
 			break;
+		}
 		case WYNC_PKT_JOIN_RES:
+		{
 			if (is_client) {
-				//WyncJoin.wync_handle_pkt_join_res(ctx, wync_pkt.data)
 				WyncPktJoinRes pkt = { 0 };
 				if (WyncPktJoinRes_serialize (true, &buffer, &pkt)) {
 					WyncJoin_handle_pkt_join_res(ctx, pkt);
 				}
 			}
 			break;
+		}
 		case WYNC_PKT_EVENT_DATA:
+		{
 			//WyncEventUtils.wync_handle_pkt_event_data(ctx, wync_pkt.data)
 			break;
+		}
 		case WYNC_PKT_INPUTS:
-			if (is_client) {
-				//WyncStateStore.wync_client_handle_pkt_inputs(ctx, wync_pkt.data)
-			} else {
-				//WyncStateStore.wync_server_handle_pkt_inputs(ctx, wync_pkt.data, from_nete_peer_id)
+		{
+			WyncPktInputs pkt = { 0 };
+			if (!WyncPktInputs_serialize(true, &buffer, &pkt)) {
+				WyncPktInputs_free(&pkt);
+				break;
 			}
+			if (is_client) {
+				WyncStore_client_handle_pkt_inputs(ctx, pkt);
+			} else {
+				WyncStore_server_handle_pkt_inputs(ctx, pkt, from_nete_peer_id);
+			}
+			WyncPktInputs_free(&pkt);
 			break;
+		}
 		case WYNC_PKT_PROP_SNAP:
+		{
 			if (is_client) {
-				// TODO: in the future we might support client authority
-				//WyncStateStore.wync_handle_pkt_prop_snap(ctx, wync_pkt.data)
+				WyncPktSnap pkt = { 0 };
+				if (!WyncPktSnap_serialize(true, &buffer, &pkt)) {
+					WyncPktSnap_free(&pkt);
+					break;
+				}
+				WyncStore_handle_pkt_prop_snap(ctx, pkt);
+				WyncPktSnap_free(&pkt);
 			}
 			break;
+		}
 		case WYNC_PKT_RES_CLIENT_INFO:
+		{
 			if (is_client) {
-				//WyncJoin.wync_handle_packet_res_client_info(ctx, wync_pkt.data)
+				WyncPktResClientInfo pkt = { 0 };
+				if (!WyncPktResClientInfo_serialize(true, &buffer, &pkt)) break;
+				WyncJoin_handle_pkt_res_client_info(ctx, pkt);
 			}
 			break;
+		}
 		case WYNC_PKT_CLOCK:
+		{
+			WyncPktClock pkt = { 0 };
+			if (!WyncPktClock_serialize(true, &buffer, &pkt)) {
+				break;
+			}
 			if (is_client) {
-				//WyncClock.wync_handle_pkt_clock(ctx, wync_pkt.data)
+				WyncClock_client_handle_pkt_clock(ctx, pkt);
 			} else {
-				//WyncClock.wync_server_handle_clock_req(ctx, wync_pkt.data, from_nete_peer_id)
+				WyncClock_server_handle_pkt_clock_req(ctx, pkt, from_nete_peer_id);
 			}
 			break;
+		}
 		case WYNC_PKT_CLIENT_SET_LERP_MS:
+		{
 			if (is_server) {
 				//WyncLerp.wync_handle_packet_client_set_lerp_ms(ctx, wync_pkt.data, from_nete_peer_id)
 			}
 			break;
+		}
 		case WYNC_PKT_SPAWN:
+		{
 			if (is_client) {
+				WyncPktSpawn pkt = { 0 };
+				if (!WyncPktSpawn_serialize(true, &buffer, &pkt, 0)) {
+					WyncPktSpawn_free(&pkt);
+					break;
+				}
 				//Log.outc(ctx, "spawn, spawn pkt %s" % [(wync_pkt.data as WyncPktSpawn).entity_ids])
-				//WyncSpawn.wync_handle_pkt_spawn(ctx, wync_pkt.data)
+				WyncSpawn_handle_pkt_spawn(ctx, pkt);
+				WyncPktSpawn_free(&pkt);
 			}
 			break;
+		}
 		case WYNC_PKT_DESPAWN:
+		{
 			if (is_client) {
+				WyncPktDespawn pkt = { 0 };
+				if (!WyncPktDespawn_serialize(true, &buffer, &pkt)) {
+					WyncPktDespawn_free(&pkt);
+					break;
+				}
 				//Log.outc(ctx, "spawn, despawn pkt %s" % [(wync_pkt.data as WyncPktDespawn).entity_ids])
-				//WyncSpawn.wync_handle_pkt_despawn(ctx, wync_pkt.data)
+				WyncSpawn_handle_pkt_despawn(ctx, pkt);
+				WyncPktDespawn_free(&pkt);
 			}
 			break;
+		}
 		case WYNC_PKT_DELTA_PROP_ACK:
+		{
 			if (is_server) {
 				//WyncDeltaSyncUtilsInternal.wync_handle_pkt_delta_prop_ack(ctx, wync_pkt.data, from_nete_peer_id)
 			}
 			break;
+		}
 		default:
 			//Log.errc(ctx, "wync packet_type_id(%s) not recognized skipping (%s)" % [wync_pkt.packet_type_id, wync_pkt.data])
 			return -1;
@@ -255,7 +305,6 @@ i32 wync_flow_client_init(WyncCtx *ctx) {
 void wync_flow_setup_context(WyncCtx *ctx) {
 	wync_flow_internal_setup_context(ctx);
 	WyncWrapper_initialize(ctx);
-	//WyncWrapper.wrapper_initialize(ctx)
 }
 
 
@@ -274,10 +323,12 @@ void wync_flow_wync_server_tick_start(WyncCtx *ctx) {
 
 
 void wync_flow_wync_server_tick_end(WyncCtx *ctx) {
-	//for peer_id: int in range(1, ctx.common.peers.size()):
-		//WyncClock.wync_system_stabilize_latency(ctx, ctx.common.peer_latency_info[peer_id])
+	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
+	for (u16 peer_id = 1; peer_id < peer_amount; ++peer_id) {
+		WyncClock_system_stabilize_latency(ctx, &ctx->common.peer_latency_info[peer_id]);
+	}
 
-	//WyncXtrapInternal.wync_xtrap_server_filter_prop_ids(ctx)
+	WyncWrapper_server_filter_prop_ids(ctx);
 
 	//WyncStateSend.system_update_delta_base_state_tick(ctx)
 
@@ -286,15 +337,15 @@ void wync_flow_wync_server_tick_end(WyncCtx *ctx) {
 	// This function extracts regular props, plus _auxiliar delta event props_
 	// We need a function to extract data exclusively of events... Like the equivalent
 	// of the client's _input_bufferer_
-	//WyncWrapper.extract_data_to_tick(ctx, ctx.common.ticks) # wrapper function
+	WyncWrapper_extract_data_to_tick(ctx, ctx->common.ticks); // wrapper function
 }
 
 void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 
-	//WyncXtrapInternal.wync_xtrap_client_filter_prop_ids(ctx)
-	//WyncClock.wync_advance_ticks(ctx)
-	//WyncClock.wync_system_stabilize_latency(ctx, ctx.common.peer_latency_info[WyncCtx.SERVER_PEER_ID])
-	//WyncClock.wync_update_prediction_ticks(ctx)
+	WyncWrapper_client_filter_prop_ids(ctx);
+	WyncClock_advance_ticks(ctx);
+	WyncClock_system_stabilize_latency(ctx, &ctx->common.peer_latency_info[SERVER_PEER_ID]);
+	WyncClock_update_prediction_ticks(ctx);
 	
 	//WyncWrapper.wync_buffer_inputs(ctx) # wrapper function
 
@@ -310,7 +361,7 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 
 	//WyncStats.wync_system_calculate_server_tick_rate(ctx)
 
-	//WyncStateStore.wync_service_cleanup_dummy_props(ctx)
+	WyncStore_service_cleanup_dummy_props(ctx);
 
 	//WyncLerp.wync_lerp_precompute(ctx)
 }
