@@ -398,7 +398,7 @@ void WyncSpawn_system_send_entities_to_despawn(WyncCtx *ctx) {
 		error = WyncPacket_wrap_packet_out_alloc(
 			ctx,
 			client_id,
-			WYNC_PKT_SPAWN,
+			WYNC_PKT_DESPAWN,
 			buffer.cursor_byte,
 			buffer.data,
 			&packet_out);

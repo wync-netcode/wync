@@ -33,9 +33,8 @@ WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
 	return state;
 }
 void WyncState_free (WyncState state) {
-	if (state.data != NULL) {
-		free(state.data);
-	}
+	free(state.data);
+	state.data = NULL;
 }
 bool WyncState_serialize (
 	bool is_reading,
@@ -94,12 +93,12 @@ typedef struct {
 // throttling
 
 typedef struct {
-	u32 peer_id;
+	u16 peer_id;
 	u32 entity_id;
 } Wync_PeerEntityPair;
 
 typedef struct {
-	u32 peer_id;
+	u16 peer_id;
 	u32 prop_id;
 } Wync_PeerPropPair;
 
@@ -205,31 +204,41 @@ static const char* PKT_NAMES[WYNC_PKT_AMOUNT] = {
 
 typedef struct {
 	enum WYNC_PKT packet_type_id;
-	u32 data_size;
-	void *data;
+	WyncState data;
 } WyncPacket;
 
-bool WyncPacket_write(NeteBuffer *buffer, WyncPacket *pkt) {
+bool WyncPacket_serialize(
+	bool is_reading, 
+	NeteBuffer *buffer,
+	WyncPacket *pkt
+) {
 	NETEBUFFER_WRITE_BYTES(buffer, &pkt->packet_type_id, sizeof(u16));
-	NETEBUFFER_WRITE_BYTES(buffer, &pkt->data_size, sizeof(u32));
-	NETEBUFFER_WRITE_BYTES(buffer, pkt->data, pkt->data_size);
+	if (!WyncState_serialize(is_reading, buffer, &pkt->data)) { return false; }
 	return true;
 }
-bool WyncPacket_read(NeteBuffer *buffer, WyncPacket *pkt) {
-	NETEBUFFER_READ_BYTES
-		(buffer, &pkt->packet_type_id, sizeof(pkt->packet_type_id));
-	NETEBUFFER_READ_BYTES
-		(buffer, &pkt->data_size, sizeof(pkt->data_size));
 
-	// TODO: must set a limit on the size
-	pkt->data = calloc(sizeof(char), pkt->data_size);
-
-	NETEBUFFER_READ_BYTES(buffer, pkt->data, pkt->data_size);
-	return true;
-}
 void WyncPacket_free(WyncPacket *pkt) {
-	if (pkt->data != NULL) free(pkt->data);
+	WyncState_free(pkt->data);
 }
+
+//bool WyncPacket_write(NeteBuffer *buffer, WyncPacket *pkt) {
+	//NETEBUFFER_WRITE_BYTES(buffer, &pkt->packet_type_id, sizeof(u16));
+	//NETEBUFFER_WRITE_BYTES(buffer, &pkt->data_size, sizeof(u32));
+	//NETEBUFFER_WRITE_BYTES(buffer, pkt->data, pkt->data_size);
+	//return true;
+//}
+//bool WyncPacket_read(NeteBuffer *buffer, WyncPacket *pkt) {
+	//NETEBUFFER_READ_BYTES
+		//(buffer, &pkt->packet_type_id, sizeof(pkt->packet_type_id));
+	//NETEBUFFER_READ_BYTES
+		//(buffer, &pkt->data_size, sizeof(pkt->data_size));
+
+	//// TODO: must set a limit on the size
+	//pkt->data = calloc(sizeof(char), pkt->data_size);
+
+	//NETEBUFFER_READ_BYTES(buffer, pkt->data, pkt->data_size);
+	//return true;
+//}
 
 
 // Packets handed to you for sending through the network
@@ -259,7 +268,9 @@ bool WyncPacketOut_read(NeteBuffer *buffer, WyncPacketOut *pkt) {
 	return true;
 }
 void WyncPacketOut_free(WyncPacketOut *pkt) {
-	if (pkt->data != NULL) free(pkt->data);
+	free(pkt->data);
+	pkt->data = NULL;
+	pkt->data_size = 0;
 }
 
 typedef struct {
@@ -342,6 +353,8 @@ bool WyncPktDeltaPropAck_serialize (
 	if (is_reading) {
 		free(i.delta_prop_ids);
 		free(i.last_tick_received);
+		i.delta_prop_ids = NULL;
+		i.last_tick_received = NULL;
 	}
 	return false;
 }
@@ -364,7 +377,8 @@ void WyncPktDespawn_allocate(WyncPktDespawn *pkt, u32 size) {
 	pkt->entity_ids = calloc(sizeof(u32), size);
 }
 void WyncPktDespawn_free(WyncPktDespawn *pkt) {
-	if (pkt->entity_ids != NULL) free(pkt->entity_ids);
+	free(pkt->entity_ids);
+	pkt->entity_ids = NULL;
 	pkt->entity_amount = 0;
 }
 /// Allocates needed memory
@@ -383,7 +397,7 @@ bool WyncPktDespawn_serialize(
 		NETEBUFFER_BYTES_SERIALIZE(
 			is_reading, buffer, &pkt->entity_ids[i], sizeof(u32));
 	}
-	return OK;
+	return true;
 }
 
 /*
@@ -432,9 +446,8 @@ func duplicate() -> WyncPktEventData:
 
 typedef struct {
 	u32 tick;
-	u32 data_size;
-	void *data;
-} Wync_NetTickDataDecorator;
+	WyncState state;
+} WyncTickDecorator;
 
 /*
 	func duplicate() -> NetTickDataDecorator:
@@ -447,19 +460,42 @@ typedef struct {
 typedef struct {
 	u32 prop_id;
 	u32 amount;
-	Wync_NetTickDataDecorator *inputs;
+	WyncTickDecorator *inputs;
 } WyncPktInputs;
 
 void WyncPktInputs_free (WyncPktInputs pkt) {
-	Wync_NetTickDataDecorator *input;
+	WyncTickDecorator *input;
 	if (pkt.inputs == NULL) return;
 	for (u32 i = 0; i < pkt.amount; ++i) {
 		input = &pkt.inputs[i];
-		if (input->data != NULL) {
-			free(input->data);
-		}
+		WyncState_free(input->state);
 	}
 	free(pkt.inputs);
+	pkt.inputs = NULL;
+	pkt.amount = 0;
+}
+
+bool WyncPktInputs_serialize (
+	bool is_reading,
+	NeteBuffer *buff,
+	WyncPktInputs pkt
+) {
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt.prop_id, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt.amount, sizeof(u32));
+
+	if (is_reading) {
+		pkt.inputs = calloc(sizeof(WyncTickDecorator), pkt.amount);
+	}
+
+	WyncTickDecorator *input;
+	for (u32 i = 0; i < pkt.amount; ++i) {
+		input = &pkt.inputs[i];
+
+		NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &input->tick, sizeof(u32));
+		if (!WyncState_serialize(is_reading, buff, &input->state))
+			{ return false; }
+	}
+	return true;
 }
 
 /*
@@ -549,7 +585,7 @@ bool WyncPktResClientInfo_serialize(
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->peer_id, sizeof(u16));
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->prop_id, sizeof(u32));
-	return OK;
+	return true;
 }
 /*
 func duplicate() -> WyncPktResClientInfo:
@@ -561,10 +597,23 @@ func duplicate() -> WyncPktResClientInfo:
    */
 
 typedef struct {
-	u16 prop_id;
-	u16 state_size;
-	void *state; // e.g. Vector2, Quaternion, float, struct
-} WyncPktSnap_SnapProp;
+	u32 prop_id;
+	WyncState state;
+} WyncSnap;
+
+bool WyncSnap_serialize(
+	bool is_reading,
+	NeteBuffer *buffer,
+	WyncSnap *snap
+) {
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &snap->prop_id, sizeof(u32));
+	if (!WyncState_serialize(is_reading, buffer, &snap->state))
+		{ return false; }
+	return true;
+}
+void WyncSnap_free(WyncSnap *snap) {
+	WyncState_free(snap->state);
+}
 
 /*
 ## NOTE: Build an optimized packet format exclusive for positional data
@@ -580,8 +629,34 @@ class SnapProp:
 typedef struct {
 	u32 tick;
 	u16 snap_amount;
-	WyncPktSnap_SnapProp *snaps;
+	WyncSnap *snaps;
 } WyncPktSnap;
+
+bool WyncPktSnap_serialize(
+	bool is_reading,
+	NeteBuffer *buffer,
+	WyncPktSnap *pkt
+) {
+	NETEBUFFER_BYTES_SERIALIZE(
+			is_reading, buffer, &pkt->tick, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(
+			is_reading, buffer, &pkt->snap_amount, sizeof(u16));
+	if (is_reading) {
+		// TODO: limit
+		pkt->snaps = calloc(sizeof(WyncSnap), pkt->snap_amount);
+	}
+	for (u16 i = 0; i < pkt->snap_amount; ++i) {
+		if (!WyncSnap_serialize(is_reading, buffer, &pkt->snaps[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+void WyncPktSnap_free(WyncPktSnap *pkt) {
+	for (u16 i = 0; i < pkt->snap_amount; ++i) {
+		WyncSnap_free(&pkt->snaps[i]);
+	}
+}
 
 /*
 func duplicate() -> WyncPktSnap:
@@ -748,13 +823,19 @@ func duplicate() -> WyncPktSpawn:
 #undef DYN_ARR_TYPE
 #undef DYN_ARR_PREFIX
 
-#define DYN_ARR_TYPE WyncPacket
+#define DYN_ARR_TYPE WyncSnap
 #undef  DYN_ARR_PREFIX
 #include "containers/da.h"
 #undef DYN_ARR_TYPE
 #undef DYN_ARR_PREFIX
 
 #define DYN_ARR_TYPE WyncPacketOut
+#undef  DYN_ARR_PREFIX
+#include "containers/da.h"
+#undef DYN_ARR_TYPE
+#undef DYN_ARR_PREFIX
+
+#define DYN_ARR_TYPE WyncTickDecorator
 #undef  DYN_ARR_PREFIX
 #include "containers/da.h"
 #undef DYN_ARR_TYPE
@@ -1285,8 +1366,8 @@ typedef struct {
 	
 	// temporary snapshot cache for later packet size optimization
 	// Array < client_id: int, DynArr < WyncPacket > >
-	WyncPacket_DynArr *clients_cached_reliable_snapshots;
-	WyncPacket_DynArr *clients_cached_unreliable_snapshots;
+	WyncSnap_DynArr *clients_cached_reliable_snapshots;
+	WyncSnap_DynArr *clients_cached_unreliable_snapshots;
 	
 	// Array<client_id: int, ordered_set<event_id> >
 	ConMap *peers_events_to_sync; // Array[Dictionary]
@@ -1325,7 +1406,7 @@ typedef struct {
 	
 	// how far in the past we can go
 	// Updated every frame, should correspond to current_tick - max_history_ticks
-	i32 delta_base_state_tick; // -1
+	u32 delta_base_state_tick; // -1
 } CoEvents;
 
 

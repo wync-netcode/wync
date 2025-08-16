@@ -51,10 +51,10 @@ i32 WyncPacket_wrap_packet_out_alloc (
 	buffer.data = calloc(sizeof(char), buffer.size_bytes);
 
 	wync_pkt.packet_type_id = packet_type_id;
-	wync_pkt.data_size = data_size;
-	wync_pkt.data = data;
+	wync_pkt.data.data_size = data_size;
+	wync_pkt.data.data = data;
 
-	if (!WyncPacket_write(&buffer, &wync_pkt)) {
+	if (!WyncPacket_serialize(false, &buffer, &wync_pkt)) {
 		error = -2;
 		goto WyncPacket_wrap_packet_out__defer;
 	}
@@ -68,7 +68,8 @@ i32 WyncPacket_wrap_packet_out_alloc (
 	*out_packet = wync_pkt_out;
 	error = OK;
 	WyncPacket_wrap_packet_out__defer:
-	if (buffer.data != NULL) free(buffer.data);
+	free(buffer.data);
+	buffer.data = NULL;
 
 	return error;
 }

@@ -36,7 +36,7 @@ void WyncStore_handle_pkt_prop_snap(
 	WyncPktSnap pkt
 ) {
 
-	WyncPktSnap_SnapProp *snap;
+	WyncSnap *snap;
 
 	for (u32 i = 0; i < pkt.snap_amount; ++i) {
 		snap = &pkt.snaps[i];
@@ -197,7 +197,7 @@ i32 WyncStore_server_handle_pkt_inputs(
 
 	// save the input in the prop before simulation
 
-	Wync_NetTickDataDecorator *input;
+	WyncTickDecorator *input;
 	for (u32 i = 0; i < pkt.amount; ++i) {
 		input = &pkt.inputs[i];
 
@@ -239,7 +239,7 @@ i32 WyncStore_client_handle_pkt_inputs(
 
 	u32 max_tick = 0;
 
-	Wync_NetTickDataDecorator *input;
+	WyncTickDecorator *input;
 	for (u32 i = 0; i < pkt.amount; ++i) {
 		input = &pkt.inputs[i];
 

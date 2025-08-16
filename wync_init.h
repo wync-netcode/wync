@@ -180,9 +180,9 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 	co_throt->out_peer_pending_to_setup = u32_DynArr_create();
 	
 	co_throt->clients_cached_reliable_snapshots =
-		calloc(sizeof(WyncPacket_DynArr), max_peers);
+		calloc(sizeof(WyncSnap_DynArr), max_peers);
 	co_throt->clients_cached_unreliable_snapshots =
-		calloc(sizeof(WyncPacket_DynArr), max_peers);
+		calloc(sizeof(WyncSnap_DynArr), max_peers);
 	
 	co_throt->peers_events_to_sync = calloc (sizeof(ConMap), max_peers);
 
@@ -192,9 +192,9 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 		ConMap_init(&co_throt->entities_synced_last_time[peer_id]);
 
 		co_throt->clients_cached_reliable_snapshots[peer_id] =
-			WyncPacket_DynArr_create();
+			WyncSnap_DynArr_create();
 		co_throt->clients_cached_unreliable_snapshots[peer_id] =
-			WyncPacket_DynArr_create();
+			WyncSnap_DynArr_create();
 
 		ConMap_init(&co_throt->peers_events_to_sync[peer_id]);
 	}

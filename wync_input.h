@@ -73,7 +73,7 @@ void WyncInput_system_sync_client_ownership(WyncCtx *ctx) {
 			error = WyncPacket_wrap_packet_out_alloc(
 				ctx,
 				wync_peer_id,
-				WYNC_PKT_SPAWN,
+				WYNC_PKT_RES_CLIENT_INFO,
 				buffer.cursor_byte,
 				buffer.data,
 				&packet_out);

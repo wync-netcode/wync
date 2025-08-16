@@ -192,8 +192,11 @@ static void PRE(ConMap_rehash_map) (CONMAP *map) {
         CONMAP_NODE *node = &old_nodes[i];
         free(node->values);
         free(node->keys);
+        node->values = NULL;
+        node->keys = NULL;
     }
     free(old_nodes);
+    old_nodes = NULL;
 }
 
 void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value) {
