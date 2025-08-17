@@ -251,7 +251,7 @@ i32 WyncTrack_entity_get_prop_id(
 
 
 /// Note: Better have a structure for direct access instead of searching
-/// @param[out] out_entity_id
+/// @param[out] out_entity_id Pointer to Instance
 /// @returns error
 i32 WyncTrack_prop_get_entity(
 	WyncCtx *ctx,

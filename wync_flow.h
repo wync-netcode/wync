@@ -3,6 +3,7 @@
 
 #include "wync/wync_input.h"
 #include "wync/wync_state_send.h"
+#include "wync/wync_state_set.h"
 #include "wync/wync_wrapper_util.h"
 #include "wync_join.h"
 #include "wync_spawn.h"
@@ -10,6 +11,7 @@
 #include "wync_throttle.h"
 #include "wync_init.h"
 #include "wync_clock.h"
+#include "wync/wync_xtrap.h"
 #include "math.h"
 
 // ==================================================
@@ -357,7 +359,7 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 	//WyncDeltaSyncUtilsInternal.delta_props_clear_current_delta_events(ctx)
 	//WyncDeltaSyncUtils.predicted_event_props_clear_events(ctx)
 
-	//WyncStateSet.wync_reset_props_to_latest_value(ctx)
+	WyncState_reset_props_to_latest_value(ctx);
 	
 	// NOTE: Maybe this one should be called AFTER consuming packets, and BEFORE xtrap
 	//WyncStats.wync_system_calculate_prob_prop_rate(ctx)

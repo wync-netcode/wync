@@ -7,6 +7,13 @@
 #include "wync_typedef.h"
 
 
+// TODO: Move me elsewhere
+void WyncXtrap_update_entity_last_tick_received(
+	WyncCtx *ctx,
+	u32 prop_id
+);
+
+
 void WyncStore_prop_state_buffer_insert(
 	WyncCtx *ctx,
 	WyncProp *prop,
@@ -82,10 +89,9 @@ void WyncStore_handle_pkt_prop_snap(
 		}
 
 		// update entity last received
-		// NOTE: assuming snap props always include all snaps for an entity
-		//if WyncXtrap.prop_is_predicted(ctx, snap_prop.prop_id):
-		// ..........
-		// ..........
+		if (prop->xtrap_enabled) {
+			WyncXtrap_update_entity_last_tick_received(ctx, snap->prop_id);
+		}
 	}
 
 	WyncStore_client_update_last_tick_received(ctx, pkt.tick);
@@ -263,8 +269,9 @@ i32 WyncStore_client_handle_pkt_inputs(
 	WyncStore_client_update_last_tick_received(ctx, max_tick);
 
 	// Update entity last received
-	//if WyncXtrap.prop_is_predicted(ctx, data.prop_id): 
-	// ......
+	if (prop_input->xtrap_enabled) {
+		WyncXtrap_update_entity_last_tick_received(ctx, prop_id);
+	}
 
 	return OK;
 }
@@ -351,7 +358,7 @@ i32 WyncStore_insert_state_to_entity_prop (
 
 /// Main method to access stored state
 ///
-/// @returns shared state, copy if needed
+/// @returns shared state, copy it yourself if needed
 WyncState WyncState_prop_state_buffer_get(WyncProp *prop, u32 tick) {
 	i32 state_id = *i32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
 	if (state_id == -1) {

@@ -24,6 +24,11 @@ typedef struct {
 	void *data;
 } WyncState;
 
+void WyncState_free (WyncState *state) {
+	free(state->data);
+	state->data = NULL;
+	state->data_size = 0;
+}
 WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
 	WyncState state = { 
 		.data_size = data_size,
@@ -32,9 +37,13 @@ WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
 	memcpy(state.data, data, data_size);
 	return state;
 }
-void WyncState_free (WyncState *state) {
-	free(state->data);
-	state->data = NULL;
+void WyncState_set_from_buffer (WyncState *self, u32 data_size, void *data) {
+	if (self->data_size != data_size) {
+		WyncState_free(self);
+		*self = WyncState_copy_from_buffer(data_size, data);
+		return;
+	}
+	memcpy(self->data, data, data_size);
 }
 bool WyncState_serialize (
 	bool is_reading,
@@ -59,19 +68,18 @@ bool WyncState_serialize (
 typedef struct {
 	u32 server_tick;
 	u32 arrived_at_tick;
-	u32 data_size;
-	void *data;
+	WyncState data;
 } Wync_NetTickData;
 
 
-Wync_NetTickData Wync_NetTickData_copy_calloc(Wync_NetTickData *self) {
-	Wync_NetTickData i = (Wync_NetTickData) { 0 };
-	memcpy(&i, self, sizeof(Wync_NetTickData));
+//Wync_NetTickData Wync_NetTickData_copy_calloc(Wync_NetTickData *self) {
+	//Wync_NetTickData i = (Wync_NetTickData) { 0 };
+	//memcpy(&i, self, sizeof(Wync_NetTickData));
 	
-	i.data = calloc(sizeof(char), i.data_size);
-	memcpy(i.data, self->data, i.data_size);
-	return i;
-}
+	//i.data = calloc(sizeof(char), i.data_size);
+	//memcpy(i.data, self->data, i.data_size);
+	//return i;
+//}
 
 // user network info feed
 
@@ -1282,10 +1290,10 @@ typedef struct {
 	// --------------------------------------------------------
 	
 	// last tick received from the server
-	u32 last_tick_received;
+	i32 last_tick_received;
 	
 	bool currently_on_predicted_tick;
-	u32 current_predicted_tick; // only for debugging
+	i32 current_predicted_tick; // only for debugging
 	
 	// tick markers for the prev prediction cycle
 	i32 first_tick_predicted;
