@@ -129,7 +129,7 @@ void WyncSpawn_finish_spawning_entity(WyncCtx *ctx, u32 entity_id) {
 	// remove from 'spawn prop range'
 
 	assert(EntitySpawnPropRange_ConMap_has_key(
-		&ctx->co_spawn.pending_entity_to_spawn_props, entity_id) == OK);
+		&ctx->co_spawn.pending_entity_to_spawn_props, entity_id));
 
 	EntitySpawnPropRange *prop_range;
 	EntitySpawnPropRange_ConMap_get(
@@ -315,7 +315,7 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 			LOG_ERR_C(ctx, "Couldn't wrap packet");
 			continue;
 		}
-		WyncPacketOut_free(&packet_out);
+		WyncPacketOut_free(&packet_out); // fix: memory leak
 
 		// data limit
 

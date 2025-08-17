@@ -13,10 +13,26 @@
 // Private
 // ==================================================
 
+#ifdef _WIN32
+#include <windows.h>
+#else // Linux, macOS, etc.
+#include <sys/time.h>
+#endif
+
+long long get_current_milliseconds(void) {
+#ifdef _WIN32
+    return GetTickCount64();
+#else // Linux, macOS, etc.
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (long long)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+#endif
+}
+
 double WyncClock_get_ms(WyncCtx* ctx){
 	return
-		(double)(time(NULL) * 1000) +
-		(double)ctx->common.debug_time_offset_ms;
+		(double) get_current_milliseconds() +
+		(double) ctx->common.debug_time_offset_ms;
 }
 
 void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {

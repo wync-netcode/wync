@@ -209,8 +209,10 @@ i32 wync_flow_wync_feed_packet(
 				WyncPktSpawn pkt = { 0 };
 				if (!WyncPktSpawn_serialize(true, &buffer, &pkt, 0)) {
 					WyncPktSpawn_free(&pkt);
+					LOG_WAR_C(ctx, "flow, couldn't deserialize packet");
 					break;
 				}
+				LOG_OUT_C(ctx, "spawn, received pcket");
 				//Log.outc(ctx, "spawn, spawn pkt %s" % [(wync_pkt.data as WyncPktSpawn).entity_ids])
 				WyncSpawn_handle_pkt_spawn(ctx, pkt);
 				WyncPktSpawn_free(&pkt);

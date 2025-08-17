@@ -221,7 +221,8 @@ bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
     u32 node_index = (u32)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
     u32 pair_index;
-    return ConMap_buffer_find_val(node->keys, node->size, key, &pair_index) == OK;
+    i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &pair_index) == OK;
+    return err;
 }
 
 

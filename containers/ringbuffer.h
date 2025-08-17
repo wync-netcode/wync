@@ -154,8 +154,12 @@ static PRE(RinBuf_Pair) PRE(RinBuf_partition) (TYPE *buffer, size_t from, size_t
 void PRE(RinBuf_sort_range) (TYPE *buffer, size_t from, size_t to) {
     if (from >= 0 && from < to) {
         PRE(RinBuf_Pair) partition_index = PRE(RinBuf_partition)(buffer, from, to);
-        PRE(RinBuf_sort_range) (buffer, from, partition_index.a -1);
-        PRE(RinBuf_sort_range) (buffer, partition_index.b +1, to);
+        if (from +1 < partition_index.a) {
+            PRE(RinBuf_sort_range) (buffer, from, partition_index.a -1);
+        }
+        if (partition_index.b +1 < to) {
+            PRE(RinBuf_sort_range) (buffer, partition_index.b +1, to);
+        }
     }
 }
 

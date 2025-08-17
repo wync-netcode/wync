@@ -35,7 +35,6 @@ int LOG_caller_id = 0;
 		fprintf(stderr, "%s", ANSI_RED); \
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, " %s%s|%s:%d%s\n", ANSI_GRAY, __func__, __FILE__, __LINE__, ANSI_NRM); \
-		DEBUG_BREAK; \
 	} while (0)
 
 #define LOG_OUT_INTERNAL(is_client, ...) \
@@ -52,7 +51,6 @@ int LOG_caller_id = 0;
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, "%s", ANSI_GRAY); \
 		fprintf(stderr, " %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
-		DEBUG_BREAK; \
 	} while (0)
 
 #define LOG_WAR_INTERNAL(is_client, ...) \
@@ -62,7 +60,6 @@ int LOG_caller_id = 0;
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, "%s", ANSI_GRAY); \
 		fprintf(stderr, " %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
-		DEBUG_BREAK; \
 	} while (0)
 
 #define LOG_OUT_STATIC(...) LOG_OUT_INTERNAL(LOG_caller_id, __VA_ARGS__)

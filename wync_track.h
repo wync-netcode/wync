@@ -331,7 +331,7 @@ i32 WyncTrack_prop_register_update_dummy (
 	i32 found = DummyProp_ConMap_get(dummy_props, prop_id, &dummy) == OK;
 
 	if (found) {
-		// free old data ???
+		WyncState_free(&dummy->data);
 	} else {
 		Wync_DummyProp new_dummy = { 0 };
 		DummyProp_ConMap_set_pair(dummy_props, prop_id, new_dummy);
@@ -339,9 +339,7 @@ i32 WyncTrack_prop_register_update_dummy (
 	}
 
 	dummy->last_tick = last_tick;
-	dummy->data.data_size = data_size;
-	dummy->data.data = calloc(sizeof(char), data_size);
-	memcpy(dummy->data.data, data, data_size);
+	dummy->data = WyncState_copy_from_buffer(data_size, data);
 	
 	return OK;
 }

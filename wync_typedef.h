@@ -43,6 +43,9 @@ bool WyncState_serialize (
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(
 		is_reading, buffer, &state->data_size, sizeof(u32));
+	if (state->data_size == 0) {
+		return true;
+	}
 	if (is_reading) {
 		// TODO: add limit
 		state->data = calloc(1, state->data_size);
@@ -557,6 +560,7 @@ bool WyncPktSpawn_serialize(
 	if (is_reading) {
 		NETEBUFFER_BYTES_SERIALIZE(is_reading,
 			buffer, &pkt->entity_amount, sizeof(u16));
+		entity_amount = pkt->entity_amount;
 	} else {
 		NETEBUFFER_BYTES_SERIALIZE(is_reading,
 			buffer, &entity_amount, sizeof(u16));
@@ -582,7 +586,9 @@ bool WyncPktSpawn_serialize(
 		(is_reading, buffer, &pkt->entity_prop_id_end[i], sizeof(u32));
 	}
 	for WYNC_PKT_SPAWN_EASY_LOOP {
-		WyncState_serialize(is_reading, buffer, &pkt->entity_spawn_data[i]);
+		if (!WyncState_serialize(is_reading, buffer, &pkt->entity_spawn_data[i])) {
+			return false;
+		}
 	}
 	#undef WYNC_PKT_SPAWN_EASY_LOOP
 
