@@ -4,6 +4,7 @@
 #include "wync/wync_state_store.h"
 #include "wync/wync_track.h"
 #include "wync/wync_wrapper.h"
+#include "wync/wync_xtrap.h"
 #include "wync_typedef.h"
 #include <stdlib.h>
 
@@ -41,7 +42,10 @@ void WyncWrapper_buffer_inputs(WyncCtx *ctx) {
 		WyncWrapper_Getter getter = ctx->wrapper->prop_getter[prop_id];
 
 		WyncWrapper_Data new_state = getter(user_ctx);
-		//WyncStateStore
+
+		WyncStore_prop_state_buffer_insert(
+				ctx, input_prop, ctx->co_pred.target_tick,
+				(WyncState) {new_state.data_size, new_state.data});
 	}
 
 }
@@ -200,7 +204,7 @@ void WyncWrapper_client_filter_prop_ids (WyncCtx *ctx) {
 	ConMapIterator it = { 0 };
 
 	while (ConMap_iterator_get_next_key(
-		&ctx->co_clientauth.client_owns_prop[ctx->common.my_nete_peer_id], &it) == OK)
+		&ctx->co_clientauth.client_owns_prop[ctx->common.my_peer_id], &it) == OK)
 	{
 		u32 prop_id = it.key;
 		prop = WyncTrack_get_prop(ctx, prop_id);
@@ -253,13 +257,14 @@ void WyncWrapper_client_filter_prop_ids (WyncCtx *ctx) {
 		}
 	}
 
-	// TODO: filter predicted entities
-	//it = (ConMapIterator) { 0 };
-	//while (ConMap_iterator_get_next_key(
-		//&ctx->co_track.tracked_entities, &it) == OK)
-	//{
-		//if (!
-	//}
+	it = (ConMapIterator) { 0 };
+	while (ConMap_iterator_get_next_key(
+		&ctx->co_track.tracked_entities, &it) == OK) 
+	{
+		u32 wync_entity_id = it.key;
+		if (!WyncXtrap_is_entity_predicted(ctx, wync_entity_id)) continue;
+		u32_DynArr_insert(&ctx->co_pred.predicted_entity_ids, wync_entity_id);
+	}
 }
 
 

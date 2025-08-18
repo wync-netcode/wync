@@ -376,14 +376,13 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 		// wrap and queue
 
 		buffer.cursor_byte = 0;
-		i32 err = WyncPktInputs_serialize(false, &buffer, &pkt_inputs);
-		if (err != OK) {
+		if (!WyncPktInputs_serialize(false, &buffer, &pkt_inputs)) {
 			LOG_ERR_C(ctx, "Couldn't queue packet");
 			continue;
 		}
 
 		WyncPacketOut packet_out = { 0 };
-		err = WyncPacket_wrap_packet_out_alloc(
+		i32 err = WyncPacket_wrap_packet_out_alloc(
 			ctx,
 			SERVER_PEER_ID,
 			WYNC_PKT_INPUTS,

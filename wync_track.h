@@ -261,17 +261,17 @@ i32 WyncTrack_prop_get_entity(
 	ConMap *tracked_entities = &ctx->co_track.tracked_entities;
     ConMapIterator it = { 0 };
     u32 entity_id;
-	i32 error;
+	i32 err;
 
 	// iterate all entities (slow)
 
     while (ConMap_iterator_get_next_key(tracked_entities, &it) == OK) {
-        error = ConMap_get(tracked_entities, it.key, (i32*)&entity_id);
-		if (error != OK) { continue; }
+		entity_id = it.key;
 
 		u32_DynArr *entity_props = NULL;
-		u32_DynArr_ConMap_get
+		err = u32_DynArr_ConMap_get
 			(&ctx->co_track.entity_has_props, entity_id, &entity_props);
+		assert(err == OK);
 
 		// iterate entity props
 

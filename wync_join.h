@@ -1,6 +1,7 @@
 #ifndef WYNC_JOIN_H
 #define WYNC_JOIN_H
 
+#include "wync/wync_input.h"
 #include "wync_event_utils.h"
 #include "wync_typedef.h"
 #include "wync_packet_util.h"
@@ -287,12 +288,12 @@ void WyncJoin_handle_pkt_res_client_info (
 	WyncPktResClientInfo pkt
 ) {
 	// set prop ownership
-	//WyncInput_prop_set_client_owner(ctx, data.prop_id, data.peer_id);
+	WyncInput_prop_set_client_owner(ctx, pkt.prop_id, pkt.peer_id);
+
 	LOG_OUT_C(ctx, "Prop %hu ownership given to client %hu", pkt.prop_id, pkt.peer_id);
 
 	// trigger refilter
 	ctx->common.was_any_prop_added_deleted = true;
-
 }
 
 /// Client only

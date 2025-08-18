@@ -279,18 +279,18 @@ bool WyncPktClientSetLerpMS_serialize (
 
 typedef struct {
 	u32 tick; // answerer's tick
-	u32 time; // answerer's time
+	u64 time; // answerer's time
 	u32 tick_og; // requester's tick
-	u32 time_og; // requester's time
+	u64 time_og; // requester's time
 } WyncPktClock;
 
 bool WyncPktClock_serialize (
 	bool is_reading, NeteBuffer *buffer, WyncPktClock *pkt
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->tick, sizeof(u32));
-	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time, sizeof(u64));
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->tick_og, sizeof(u32));
-	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time_og, sizeof(u32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time_og, sizeof(u64));
 	return true;
 }
 
@@ -407,7 +407,7 @@ bool WyncPktInputs_serialize (
 		pkt->inputs = calloc(sizeof(WyncTickDecorator), pkt->amount);
 	}
 
-	WyncTickDecorator *input;
+	WyncTickDecorator *input = NULL;
 	for (u32 i = 0; i < pkt->amount; ++i) {
 		input = &pkt->inputs[i];
 
@@ -623,6 +623,7 @@ bool WyncPktSpawn_serialize(
 
 #define DYN_ARR_TYPE u32
 #define DYN_ARR_PREFIX u32_
+#define DYN_ARR_ENABLE_SORT
 #include "containers/da.h"
 #undef DYN_ARR_TYPE
 #undef DYN_ARR_PREFIX
@@ -932,7 +933,7 @@ typedef struct {
 
 	// for a "debug_tick_offset" equivalent just set ctx.co_ticks.common.ticks
 	// to any value
-	i32 debug_time_offset_ms;
+	u32 debug_time_offset_ms;
 
 	// --------------------------------------------------------
 	// Wrapper
@@ -1227,6 +1228,8 @@ typedef struct {
 
 
 typedef struct {
+	// Timestamp when WyncCtx was initialized
+	u64 start_time_ms;
 
 	u32 server_ticks;
 

@@ -19,20 +19,22 @@
 #include <sys/time.h>
 #endif
 
-long long get_current_milliseconds(void) {
+u64 WyncClock_get_system_milliseconds(void) {
 #ifdef _WIN32
     return GetTickCount64();
 #else // Linux, macOS, etc.
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (long long)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    return (u64)tv.tv_sec * 1000 + (u64)tv.tv_usec / 1000;
 #endif
 }
 
-double WyncClock_get_ms(WyncCtx* ctx){
-	return
-		(double) get_current_milliseconds() +
-		(double) ctx->common.debug_time_offset_ms;
+u64 WyncClock_get_ms(WyncCtx* ctx){
+	return (
+		(WyncClock_get_system_milliseconds()
+		- ctx->co_ticks.start_time_ms)
+		+ (u64)ctx->common.debug_time_offset_ms
+	);
 }
 
 void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
@@ -42,8 +44,8 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	CoTicks *co_ticks = &ctx->co_ticks;
 	CoPredictionData *co_pred = &ctx->co_pred;
 	u16 physics_fps = ctx->common.physic_ticks_per_second;
-	double curr_time = WyncClock_get_ms(ctx);
-	i32 curr_clock_offset = (pkt.time + (curr_time - pkt.time_og) / 2.0) - curr_time;
+	u64 curr_time = WyncClock_get_ms(ctx);
+	long double curr_clock_offset = (pkt.time + (curr_time - pkt.time_og) / 2.0) - curr_time;
 
 	// calculate mean
 	// Note: To improve accurace modify _server clock sync_ throttling or
@@ -53,7 +55,7 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	//   Resistant to sudden lag spikes. Look into 'Trimmed mean'
 
 	i32_RinBuf_push(
-		&co_pred->clock_offset_sliding_window, curr_clock_offset, NULL, NULL);
+		&co_pred->clock_offset_sliding_window, (i32)curr_clock_offset, NULL, NULL);
 
 	u32 window_size =
 		(u32)i32_RinBuf_get_size(&co_pred->clock_offset_sliding_window);

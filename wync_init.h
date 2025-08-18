@@ -1,6 +1,7 @@
 #ifndef WYNC_INIT_H
 #define WYNC_INIT_H
 
+#include "wync/wync_clock.h"
 #include "wync_typedef.h"
 
 
@@ -60,7 +61,7 @@ void wync_init_ctx_clientauth(WyncCtx *ctx) {
 	u16 max_peers = ctx->common.max_peers;
 	ctx->co_clientauth.client_owns_prop = calloc (sizeof(ConMap), max_peers);
 
-	ConMap *map;
+	ConMap *map = NULL;
 	for (u32 peer_id = 0; peer_id < max_peers; ++peer_id) {
 		map = &ctx->co_clientauth.client_owns_prop[peer_id];
 		ConMap_init(map);
@@ -203,6 +204,7 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 void wync_init_ctx_ticks(WyncCtx *ctx) {
 	ctx->co_ticks.server_tick_offset_collection = 
 		calloc(sizeof(Wync_i32Pair), SERVER_TICK_OFFSET_COLLECTION_SIZE);
+	ctx->co_ticks.start_time_ms = WyncClock_get_system_milliseconds();
 }
 
 

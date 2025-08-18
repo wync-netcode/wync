@@ -115,7 +115,6 @@ void PRE(RinBuf_clear) (PRE(RinBuf) *r) {
 
 
 #ifdef RINGBUFFER_ENABLE_SORT
-
 typedef struct {
     size_t a;
     size_t b;
@@ -165,10 +164,11 @@ void PRE(RinBuf_sort_range) (TYPE *buffer, size_t from, size_t to) {
 
 // sorts it and repositions head to latest
 void PRE(RinBuf_sort) (PRE(RinBuf) *r) {
+    if (r->size == 0) return;
     r->head_pointer = r->size-1;
     PRE(RinBuf_sort_range) (r->buffer, 0, r->size-1);
 }
+#endif // !RINGBUFFER_ENABLE_SORT
 
 #undef TYPE
 #undef RINGBUFFER_ENABLE_SORT
-#endif // !RINGBUFFER_ENABLE_SORT

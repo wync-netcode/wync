@@ -2,6 +2,7 @@
 // #define DYN_ARR_TYPE uint
 // #undef  DYN_ARR_PREFIX            (optional)
 // #define DYN_ARR_PREFIX CustomName (optional)
+// #define DYN_ARR_ENABLE_SORT       (optional)
 // #include "da.h"
 
 // user didn't specify type, using default
@@ -119,6 +120,62 @@ int PRE(DynArr_iterator_get_next) (PRE(DynArr) *da, PRE(DynArrIterator) *it)
     return OK;
 }
 
+#ifdef DYN_ARR_ENABLE_SORT
+typedef struct {
+    size_t a;
+    size_t b;
+} PRE(DynArr_Pair);
+
+static PRE(DynArr_Pair) PRE(DynArr_partition) (TYPE *buffer, size_t from, size_t to) {
+
+    size_t left = from;
+    size_t eq = from;
+    size_t right = to;
+    TYPE pivot = buffer[(from + to) / 2];
+
+    while (eq <= right) {
+
+        if (buffer[eq] < pivot) {
+            TYPE swap = buffer[eq];
+            buffer[eq] = buffer[left];
+            buffer[left] = swap;
+
+            ++left;
+            ++eq;
+        } else if (buffer[eq] > pivot) {
+            TYPE swap = buffer[eq];
+            buffer[eq] = buffer[right];
+            buffer[right] = swap;
+
+            --right;
+        } else {
+            ++eq;
+        }
+    }
+
+    return (PRE(DynArr_Pair)){left, right};
+}
+
+void PRE(DynArr_sort_range) (TYPE *buffer, size_t from, size_t to) {
+    if (from >= 0 && from < to) {
+        PRE(DynArr_Pair) partition_index = PRE(DynArr_partition)(buffer, from, to);
+        if (from +1 < partition_index.a) {
+            PRE(DynArr_sort_range) (buffer, from, partition_index.a -1);
+        }
+        if (partition_index.b +1 < to) {
+            PRE(DynArr_sort_range) (buffer, partition_index.b +1, to);
+        }
+    }
+}
+
+// sorts it and repositions head to latest
+void PRE(DynArr_sort) (PRE(DynArr) *r) {
+    if (r->size == 0) return;
+    PRE(DynArr_sort_range) (r->items, 0, r->size-1);
+}
+#endif // !DYN_ARR_ENABLE_SORT
+
 #undef PRE
+#undef DYN_ARR_ENABLE_SORT
 //#undef TYPE
 //#undef DYN_ARR_PREFIX

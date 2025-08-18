@@ -189,6 +189,7 @@ i32 wync_flow_wync_feed_packet(
 		{
 			WyncPktClock pkt = { 0 };
 			if (!WyncPktClock_serialize(true, &buffer, &pkt)) {
+				LOG_ERR_C(ctx, "Coulnd't read PKT_CLOCK");
 				break;
 			}
 			if (is_client) {
@@ -352,7 +353,7 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 	WyncClock_system_stabilize_latency(ctx, &ctx->common.peer_latency_info[SERVER_PEER_ID]);
 	WyncClock_update_prediction_ticks(ctx);
 	
-	//WyncWrapper.wync_buffer_inputs(ctx) # wrapper function
+	WyncWrapper_buffer_inputs(ctx);
 
 	// CANNOT reset events BEFORE polling inputs, WHERE do we put this?
 	

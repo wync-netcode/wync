@@ -10,7 +10,8 @@
 #define ANSI_GRN  "\x1B[32m"
 #define ANSI_GRAY "\x1b[90m"
 
-bool BREAK_enable = true; // For manual disabling in GDB
+bool wync_break_enable = true; // For manual disabling in GDB
+bool wync_error_break_enable = true; // For manual disabling in GDB
 int LOG_caller_id = 0;
 
 #define LOG_CALLER_SERVER 0
@@ -22,7 +23,9 @@ int LOG_caller_id = 0;
 #define ABORT abort();
 
 
-#define DEBUG_BREAK do { if (BREAK_enable) { asm("int3"); } } while(0)
+#define DEBUG_BREAK do { if (wync_break_enable) { asm("int3"); } } while(0)
+
+#define LOG_DEBUG_BREAK do { if (wync_error_break_enable) { asm("int3"); } } while(0)
 
 #define LOG_OUT(...) \
 	do { \
@@ -35,6 +38,7 @@ int LOG_caller_id = 0;
 		fprintf(stderr, "%s", ANSI_RED); \
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, " %s%s|%s:%d%s\n", ANSI_GRAY, __func__, __FILE__, __LINE__, ANSI_NRM); \
+		LOG_DEBUG_BREAK; \
 	} while (0)
 
 #define LOG_OUT_INTERNAL(is_client, ...) \
@@ -51,6 +55,7 @@ int LOG_caller_id = 0;
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, "%s", ANSI_GRAY); \
 		fprintf(stderr, " %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
+		LOG_DEBUG_BREAK; \
 	} while (0)
 
 #define LOG_WAR_INTERNAL(is_client, ...) \

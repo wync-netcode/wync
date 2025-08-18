@@ -17,14 +17,14 @@ void WyncXtrap_update_entity_last_tick_received(
 void WyncStore_prop_state_buffer_insert(
 	WyncCtx *ctx,
 	WyncProp *prop,
-	u32 tick,
+	i32 tick,
 	WyncState state
 );
 
 void WyncStore_prop_state_buffer_insert_in_place(
 	WyncCtx *ctx,
 	WyncProp *prop,
-	u32 tick,
+	i32 tick,
 	WyncState state
 );
 
@@ -281,9 +281,10 @@ i32 WyncStore_client_handle_pkt_inputs(
 void WyncStore_prop_state_buffer_insert(
 	WyncCtx *ctx,
 	WyncProp *prop,
-	u32 tick,
+	i32 tick,
 	WyncState state
 ){
+	if (tick < 0) return;
 	WyncState replaced_state = { 0 };
 	size_t state_idx;
 
@@ -310,13 +311,21 @@ void WyncStore_prop_state_buffer_insert(
 void WyncStore_prop_state_buffer_insert_in_place(
 	WyncCtx *ctx,
 	WyncProp *prop,
-	u32 tick,
+	i32 tick,
 	WyncState state
 ){
-	u32 state_id = *i32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
-	u32 stored_tick = *i32_RinBuf_get_absolute(&prop->statebff.state_id_to_tick, state_id);
+	if (tick < 0) return;
+
+	i32 state_id = *i32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
+	if (state_id == -1) {
+		WyncStore_prop_state_buffer_insert(ctx, prop, tick, state);
+		return;
+	}
+
+	i32 stored_tick = *i32_RinBuf_get_absolute(&prop->statebff.state_id_to_tick, state_id);
 	if (tick != stored_tick) {
 		WyncStore_prop_state_buffer_insert(ctx, prop, tick, state);
+		return;
 	}
 
 	i32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_id, tick);
