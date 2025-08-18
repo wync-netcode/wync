@@ -107,11 +107,11 @@ i32 WyncTrack_prop_register_minimal (
 				&prop_range
 			);
 
-			if (error == OK) {
-				setted_prop_id = true;
-				prop_id = prop_range->prop_start + prop_range->curr;
-				++prop_range->curr;
-			}
+			assert(error == OK);
+
+			setted_prop_id = true;
+			prop_id = prop_range->prop_start + prop_range->curr;
+			++prop_range->curr;
 		}
 	}
 

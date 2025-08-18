@@ -19,7 +19,7 @@ void WyncSpawn_handle_pkt_spawn(WyncCtx *ctx, WyncPktSpawn pkt) {
 		u32 entity_id = pkt.entity_ids[i];
 		u16 entity_type_id = pkt.entity_type_ids[i];
 		u32 prop_start = pkt.entity_prop_id_start[i];
-		u32 prop_end = pkt.entity_prop_id_start[i];
+		u32 prop_end = pkt.entity_prop_id_end[i];
 		WyncState spawn_data = pkt.entity_spawn_data[i];
 
 		spawn_data = WyncState_copy_from_buffer(
