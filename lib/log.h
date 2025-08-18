@@ -11,7 +11,7 @@
 #define ANSI_GRAY "\x1b[90m"
 
 bool wync_break_enable = true; // For manual disabling in GDB
-bool wync_error_break_enable = true; // For manual disabling in GDB
+bool wync_error_break_enable = false; // For manual disabling in GDB
 int LOG_caller_id = 0;
 
 #define LOG_CALLER_SERVER 0
@@ -41,16 +41,18 @@ int LOG_caller_id = 0;
 		LOG_DEBUG_BREAK; \
 	} while (0)
 
-#define LOG_OUT_INTERNAL(is_client, ...) \
+#define LOG_OUT_INTERNAL(is_client, tick, ...) \
 	do { \
+		printf("%d ", tick); \
 		printf("%s: ", (is_client) ? "clien" : "serve"); \
 		printf(__VA_ARGS__); \
 		printf(" %s%s|%s:%d%s\n", ANSI_GRAY, __func__, __FILE__, __LINE__, ANSI_NRM); \
 	} while (0)
 
-#define LOG_ERR_INTERNAL(is_client, ...) \
+#define LOG_ERR_INTERNAL(is_client, tick, ...) \
 	do { \
 		fprintf(stderr, "%s", ANSI_RED); \
+		fprintf(stderr, "%d ", tick); \
 		fprintf(stderr, "%s: ", (is_client) ? "clien" : "serve"); \
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, "%s", ANSI_GRAY); \
@@ -58,23 +60,24 @@ int LOG_caller_id = 0;
 		LOG_DEBUG_BREAK; \
 	} while (0)
 
-#define LOG_WAR_INTERNAL(is_client, ...) \
+#define LOG_WAR_INTERNAL(is_client, tick, ...) \
 	do { \
 		fprintf(stderr, "%s", ANSI_RED); \
+		fprintf(stderr, "%d ", tick); \
 		fprintf(stderr, "%s: ", (is_client) ? "clien" : "serve"); \
 		fprintf(stderr, __VA_ARGS__); \
 		fprintf(stderr, "%s", ANSI_GRAY); \
 		fprintf(stderr, " %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
 	} while (0)
 
-#define LOG_OUT_STATIC(...) LOG_OUT_INTERNAL(LOG_caller_id, __VA_ARGS__)
-#define LOG_ERR_STATIC(...) LOG_ERR_INTERNAL(LOG_caller_id, __VA_ARGS__)
+#define LOG_OUT_STATIC(...) LOG_OUT_INTERNAL(LOG_caller_id, 0, __VA_ARGS__)
+#define LOG_ERR_STATIC(...) LOG_ERR_INTERNAL(LOG_caller_id, 0, __VA_ARGS__)
 
-#define LOG_OUT_GS(gs, ...) LOG_OUT_INTERNAL((gs->net.is_client), __VA_ARGS__)
-#define LOG_ERR_GS(gs, ...) LOG_ERR_INTERNAL((gs->net.is_client), __VA_ARGS__)
+#define LOG_OUT_GS(gs, ...) LOG_OUT_INTERNAL((gs->net.is_client), (gs)->wctx.common.ticks, __VA_ARGS__)
+#define LOG_ERR_GS(gs, ...) LOG_ERR_INTERNAL((gs->net.is_client), (gs)->wctx.common.ticks, __VA_ARGS__)
 
-#define LOG_OUT_C(ctx, ...) LOG_OUT_INTERNAL(((ctx)->common.is_client), __VA_ARGS__)
-#define LOG_ERR_C(ctx, ...) LOG_ERR_INTERNAL(((ctx)->common.is_client), __VA_ARGS__)
-#define LOG_WAR_C(ctx, ...) LOG_WAR_INTERNAL(((ctx)->common.is_client), __VA_ARGS__)
+#define LOG_OUT_C(ctx, ...) LOG_OUT_INTERNAL(((ctx)->common.is_client), (ctx)->common.ticks, __VA_ARGS__)
+#define LOG_ERR_C(ctx, ...) LOG_ERR_INTERNAL(((ctx)->common.is_client), (ctx)->common.ticks, __VA_ARGS__)
+#define LOG_WAR_C(ctx, ...) LOG_WAR_INTERNAL(((ctx)->common.is_client), (ctx)->common.ticks, __VA_ARGS__)
 
 #endif // !WYNC_LOG_H
