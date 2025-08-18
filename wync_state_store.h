@@ -133,9 +133,9 @@ i32 WyncStore_save_confirmed_state(
 		ConMap_set_pair(delta_props_last_tick, prop_id, tick);
 	}
 
-	// TODO: update prob prop update rate
-	//if prop_id == ctx.co_metrics.PROP_ID_PROB:
-		//WyncStats.wync_try_to_update_prob_prop_rate(ctx)
+	if (prop_id == ctx->co_metrics.PROP_ID_PROB) {
+		WyncStat_try_to_update_prob_prop_rate(ctx);
+	}
 
 	return OK;
 }

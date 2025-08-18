@@ -130,7 +130,7 @@ void wync_init_ctx_metrics(WyncCtx *ctx) {
 	co_metrics->server_tick_rate_sliding_window = u32_RinBuf_create
 		(SERVER_TICK_RATE_SLIDING_WINDOW_SIZE, 0);
 
-	co_metrics->low_priority_entity_update_rate_sliding_window = u32_RinBuf_create
+	co_metrics->low_priority_entity_update_rate_sliding_window = i32_RinBuf_create
 		(co_metrics->low_priority_entity_update_rate_sliding_window_size, 0);
 
 	for (u32 i = 0; i < WYNC_PKT_AMOUNT; ++i) {
@@ -213,7 +213,7 @@ void wync_init_ctx_prediction_data(WyncCtx *ctx) {
 
 	co_pred->clock_offset_sliding_window_size = 16;
 	co_pred->clock_offset_sliding_window = 
-		i32_RinBuf_create(co_pred->clock_offset_sliding_window_size, 0);
+		double_RinBuf_create(co_pred->clock_offset_sliding_window_size, 0);
 
 	co_pred->global_entity_ids_to_predict = u32_DynArr_create();
 

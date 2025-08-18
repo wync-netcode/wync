@@ -76,30 +76,6 @@ void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 	// TODO: Delta props here ....
 }
 
-void WyncWrapper_input_props_set_tick_value (WyncCtx *ctx) {
-	WyncProp *prop = NULL;
-	u32_DynArrIterator it = { 0 };
-	WyncWrapper_Setter *setter = NULL;
-	WyncWrapper_UserCtx *user_ctx = NULL;
-
-	while (u32_DynArr_iterator_get_next(
-		&ctx->co_filter_s.filtered_clients_input_and_event_prop_ids, &it) == OK)
-	{
-		u32 prop_id = *it.item;
-		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
-
-		WyncState input = WyncState_prop_state_buffer_get(prop, ctx->common.ticks);
-		if (input.data_size == 0 || input.data == NULL) {
-			LOG_OUT_C(ctx, "couldn't find input (%s) for tick (%u)", prop->name_id, ctx->common.ticks);
-			continue;
-		}
-
-		setter = &ctx->wrapper->prop_setter[prop_id];
-		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
-		(*setter)(*user_ctx, (WyncWrapper_Data){input.data_size, input.data});
-	}
-}
-
 // TODO: Move to WyncFlow
 void WyncWrapper_server_filter_prop_ids(WyncCtx *ctx) {
 	if (!ctx->common.was_any_prop_added_deleted) return;

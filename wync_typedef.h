@@ -678,6 +678,13 @@ bool WyncPktSpawn_serialize(
 #undef RINGBUFFER_TYPE
 #undef RINGBUFFER_PREFIX
 
+#define RINGBUFFER_TYPE double
+#undef RINGBUFFER_PREFIX
+#define RINGBUFFER_ENABLE_SORT
+#include "containers/ringbuffer.h"
+#undef RINGBUFFER_TYPE
+#undef RINGBUFFER_PREFIX
+
 #define RINGBUFFER_TYPE WyncState
 #undef RINGBUFFER_PREFIX
 #include "containers/ringbuffer.h"
@@ -1390,11 +1397,11 @@ typedef struct {
 	// it's described in common.ticks between receiving updates from the server
 	// So, 3 would mean it's 1 update every 4 common.ticks. 0 means updates
 	// every tick.
-	float low_priority_entity_update_rate;
-	u32_RinBuf low_priority_entity_update_rate_sliding_window;
+	double low_priority_entity_update_rate;
+	i32_RinBuf low_priority_entity_update_rate_sliding_window;
 	u32 low_priority_entity_update_rate_sliding_window_size;
 	u32 low_priority_entity_tick_last_update;
-	i32 PROP_ID_PROB;
+	u32 PROP_ID_PROB;
 } CoMetrics;
 
 typedef struct {

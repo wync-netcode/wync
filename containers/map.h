@@ -65,7 +65,7 @@ ConMapNode ConMapNode_create_node (void)
 /// @returns error
 /// @retval  0 Found
 /// @retval -1 Not found
-static i32 ConMap_array_find (i32 *array, u32 size, i32 value, u32 *index)
+static i32 ConMap_array_find (u32 *array, u32 size, u32 value, u32 *index)
 {
     for (u32 i = 0; i < size; ++i) {
         if (array[i] == value) {

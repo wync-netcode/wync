@@ -2,7 +2,6 @@
 #define WYNC_JOIN_H
 
 #include "wync/wync_input.h"
-#include "wync_event_utils.h"
 #include "wync_typedef.h"
 #include "wync_packet_util.h"
 #include "wync_track.h"
@@ -186,8 +185,52 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 // packet consuming -----------------------------------------------------------
 
 
+/// Client only
+///
+/// @returns error
+i32 WyncJoin_client_setup_my_client (
+	WyncCtx *ctx,
+	u16 peer_id
+) {
+	ctx->common.my_peer_id = peer_id;
+
+	// NOTE: Tests multiple clients rejoining and ensure data integrity
+	//ConMap* client_owns_prop = &ctx->co_clientauth.client_owns_prop[peer_id];
+
+	// setup event caching
+
+	u16 max_peers = ctx->common.max_peers;
+	ctx->co_events.events_hash_to_id = u32_FIFOMap_init_calloc(
+		ctx->common.max_amount_cache_events);
+	ctx->co_events.to_peers_i_sent_events =
+		calloc(sizeof(u32_FIFOMap), max_peers);
+
+	for (u16 i = 0; i < max_peers; ++i) {
+		ctx->co_events.to_peers_i_sent_events[i] =
+			u32_FIFOMap_init_calloc(ctx->common.max_amount_cache_events);
+	}
+
+	// setup relative synchronization
+
+	ctx->co_throttling.peers_events_to_sync =
+		calloc(sizeof(ConMap), max_peers);
+	for (u16 i = 0; i < max_peers; ++i) {
+		ConMap_init(&ctx->co_throttling.peers_events_to_sync[i]);
+	}
+
+	// TODO
+	// setup peer channels
+	//WyncEventUtils_setup_peer_global_events
+
+	return OK;
+}
+
+
 /// @returns error
 i32 WyncJoin_handle_pkt_join_res (WyncCtx *ctx, WyncPktJoinRes pkt) {
+	if (ctx->common.connected) {
+		return OK;
+	}
 	if (!pkt.approved) {
 		LOG_ERR_C(ctx, "Connection DENIED for client(%d) (me)", ctx->common.my_nete_peer_id);
 		return -1;
@@ -198,7 +241,7 @@ i32 WyncJoin_handle_pkt_join_res (WyncCtx *ctx, WyncPktJoinRes pkt) {
 
 	ctx->common.connected = true;
 	ctx->common.my_peer_id = pkt.wync_client_id;
-	//WyncJoin_client_setup_my_client(ctx, data.wync_client_id);
+	WyncJoin_client_setup_my_client(ctx, pkt.wync_client_id);
 
 	LOG_OUT_C(ctx, "client nete_peer_id(%d) connected as wync_peer_id(%d)",
 		ctx->common.my_nete_peer_id, ctx->common.my_peer_id);
@@ -294,48 +337,6 @@ void WyncJoin_handle_pkt_res_client_info (
 
 	// trigger refilter
 	ctx->common.was_any_prop_added_deleted = true;
-}
-
-/// Client only
-///
-/// @returns error
-i32 WyncJoin_client_setup_my_client (
-	WyncCtx *ctx,
-	u16 peer_id
-) {
-	ctx->common.my_peer_id = peer_id;
-
-	// NOTE: Tests multiple clients rejoining and ensure data integrity
-	//ConMap* client_owns_prop = &ctx->co_clientauth.client_owns_prop[peer_id];
-
-	// setup event caching
-
-	u16 max_peers = ctx->common.max_peers;
-	ctx->co_events.events_hash_to_id = u32_FIFOMap_init_calloc(
-		ctx->common.max_amount_cache_events);
-	ctx->co_events.to_peers_i_sent_events =
-		calloc(sizeof(u32_FIFOMap), max_peers);
-
-	for (u16 i = 0; i < max_peers; ++i) {
-		ctx->co_events.to_peers_i_sent_events[i] =
-			u32_FIFOMap_init_calloc(ctx->common.max_amount_cache_events);
-	}
-
-	// setup relative synchronization
-
-	ctx->co_throttling.peers_events_to_sync =
-		calloc(sizeof(ConMap), max_peers);
-	for (u16 i = 0; i < max_peers; ++i) {
-		ConMap_init(&ctx->co_throttling.peers_events_to_sync[i]);
-	}
-
-	// TODO
-	// setup peer channels
-	//WyncEventUtils_setup_peer_global_events
-	// setup prob prop
-	//WyncStats.setup_entity_prob_for_entity_update_delay_ticks(ctx, ctx.common.my_peer_id)
-
-	return OK;
 }
 
 void WyncJoin_clear_peers_pending_to_setup (WyncCtx *ctx) {

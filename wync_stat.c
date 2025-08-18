@@ -1,0 +1,98 @@
+#include "wync/wync_stat.h"
+#include "wync/wync_track.h"
+#include "wync/wync_typedef.h"
+#include "wync/wync_wrapper_util.h"
+#include <math.h>
+
+
+void WyncStat_try_to_update_prob_prop_rate (WyncCtx *ctx) {
+	if (ctx->co_metrics.low_priority_entity_tick_last_update == ctx->common.ticks)
+	{ return; }
+	i32 tick_rate =
+		(i32)ctx->common.ticks -
+		(i32)ctx->co_metrics.low_priority_entity_tick_last_update -1;
+	i32_RinBuf_push(
+		&ctx->co_metrics.low_priority_entity_update_rate_sliding_window,
+		tick_rate, NULL, NULL);
+	ctx->co_metrics.low_priority_entity_tick_last_update = ctx->common.ticks;
+}
+
+
+void WyncStat_system_calculate_prob_prop_rate(WyncCtx *ctx) {
+	i32 accu = 0;
+	size_t amount = ctx->co_metrics.low_priority_entity_update_rate_sliding_window_size;
+
+	for (size_t i = 0; i < amount; ++i)
+	{
+		i32 value = *i32_RinBuf_get_at(
+			&ctx->co_metrics.low_priority_entity_update_rate_sliding_window, i);
+		accu += value;
+	}
+
+	ctx->co_metrics.low_priority_entity_update_rate = (double) accu / (double) amount;
+
+	// TODO: Move this elsewhere
+
+	// calculate prediction threeshold
+	// adding 1 of padding for good measure
+	ctx->co_pred.max_prediction_tick_threeshold =
+		(i32) ceil(ctx->co_metrics.low_priority_entity_update_rate) + 1;
+
+	// 'REGULAR_PROP_CACHED_STATE_AMOUNT -1' because for xtrap we need to set it
+	// to the value just before 'ctx.max_prediction_tick_threeshold -1'
+	/*ctx->co_pred.max_prediction_tick_threeshold = MIN(*/
+			/*ctx->co_track.REGULAR_PROP_CACHED_STATE_AMOUNT-1,*/
+			/*ctx->co_pred.max_prediction_tick_threeshold);*/
+}
+
+
+
+// ==================================================
+// WRAPPER
+// ==================================================
+
+static inline WyncWrapper_Data prob_get_state (WyncWrapper_UserCtx ctx) {
+	static u32 deadbeef = 0xDEADBEFF;
+	WyncWrapper_Data data;
+	data.data_size = sizeof(u32);
+	data.data = malloc(data.data_size); 
+	memcpy(data.data, &deadbeef, data.data_size);
+	return data;
+}
+
+void WyncStat_setup_prob_for_entity_update_delay_ticks(
+	WyncCtx *ctx, u32 peer_id
+) {
+	
+	u32 entity_id = ENTITY_ID_PROB_FOR_ENTITY_UPDATE_DELAY_TICKS;
+	u32 prob_id;
+
+	WyncTrack_track_entity(ctx, entity_id, (u32)(-1));
+
+	i32 err = WyncTrack_prop_register_minimal(
+		ctx,
+		entity_id,
+		"entity_prob",
+		WYNC_PROP_TYPE_STATE,
+		&prob_id
+	);
+	assert(err == OK);
+
+	// TODO: internal functions shouldn't be using wrapper functions...
+	// Maybe we can treat these differently? These are all internal, so it
+	// doesn't make sense to require external functions like the wrapper's
+	WyncWrapper_set_prop_callbacks(
+		ctx,
+		prob_id,
+		(WyncWrapper_UserCtx) { NULL, 0 },
+		prob_get_state,
+		NULL
+	);
+
+	ctx->co_metrics.PROP_ID_PROB = prob_id;
+
+	// add as local existing prop
+	if (!ctx->common.is_client) {
+		WyncTrack_wync_add_local_existing_entity(ctx, peer_id, entity_id);
+	}
+}

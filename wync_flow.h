@@ -2,6 +2,7 @@
 #define WYNC_FLOW_H
 
 #include "wync/wync_input.h"
+#include "wync/wync_stat.h"
 #include "wync/wync_state_send.h"
 #include "wync/wync_state_set.h"
 #include "wync/wync_wrapper_util.h"
@@ -11,7 +12,6 @@
 #include "wync_throttle.h"
 #include "wync_init.h"
 #include "wync_clock.h"
-#include "wync/wync_xtrap.h"
 #include "math.h"
 
 // ==================================================
@@ -168,6 +168,7 @@ i32 wync_flow_wync_feed_packet(
 			if (is_client) {
 				WyncPktSnap pkt = { 0 };
 				if (!WyncPktSnap_serialize(true, &buffer, &pkt)) {
+					LOG_ERR_C(ctx, "couldn't deserialize Snap");
 					WyncPktSnap_free(&pkt);
 					break;
 				}
@@ -290,9 +291,8 @@ i32 wync_flow_server_setup(WyncCtx *ctx) {
 	//for i in range(1, ctx.common.max_peers):
 		//WyncEventUtils.setup_peer_global_events(ctx, i)
 
-	//# setup prob prop
-	//WyncStats.setup_entity_prob_for_entity_update_delay_ticks(ctx, WyncCtx.SERVER_PEER_ID)
-
+	// setup prob prop
+	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, SERVER_PEER_ID);
 
 	return OK;
 }
@@ -322,7 +322,13 @@ void wync_flow_wync_server_tick_start(WyncCtx *ctx) {
 
 	//WyncActions.module_events_consumed_advance_tick(ctx)
 
-	//WyncWrapper.wync_input_props_set_tick_value(ctx) # wrapper function
+	// player inputs
+	WyncState_reset_all_state_to_confirmed_tick_absolute (
+		ctx,
+		ctx->co_filter_s.filtered_clients_input_and_event_prop_ids.items,
+		(u32)ctx->co_filter_s.filtered_clients_input_and_event_prop_ids.size,
+		ctx->common.ticks
+	);
 
 	//WyncDeltaSyncUtilsInternal.delta_props_clear_current_delta_events(ctx)
 }
@@ -363,7 +369,7 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 	WyncState_reset_props_to_latest_value(ctx);
 	
 	// NOTE: Maybe this one should be called AFTER consuming packets, and BEFORE xtrap
-	//WyncStats.wync_system_calculate_prob_prop_rate(ctx)
+	WyncStat_system_calculate_prob_prop_rate(ctx);
 
 	//WyncStats.wync_system_calculate_server_tick_rate(ctx)
 
