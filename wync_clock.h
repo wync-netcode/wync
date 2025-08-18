@@ -30,10 +30,10 @@ u64 WyncClock_get_system_milliseconds(void) {
 }
 
 u64 WyncClock_get_ms(WyncCtx* ctx){
-	return (
-		(WyncClock_get_system_milliseconds()
-		- ctx->co_ticks.start_time_ms)
-		+ (u64)ctx->common.debug_time_offset_ms
+	return (u64)(
+		((i64)WyncClock_get_system_milliseconds()
+		- (i64)ctx->co_ticks.start_time_ms)
+		+ (i64)ctx->common.debug_time_offset_ms
 	);
 }
 
@@ -44,8 +44,11 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	CoTicks *co_ticks = &ctx->co_ticks;
 	CoPredictionData *co_pred = &ctx->co_pred;
 	u16 physics_fps = ctx->common.physic_ticks_per_second;
-	u64 curr_time = WyncClock_get_ms(ctx);
-	long double curr_clock_offset = (pkt.time + (curr_time - pkt.time_og) / 2.0) - curr_time;
+	double curr_time = (double)WyncClock_get_ms(ctx);
+	double curr_clock_offset =
+		((double)pkt.time + (curr_time - (double)pkt.time_og) / 2) - (double)curr_time;
+
+	printf("LATENCIA REAL %f\n", curr_time - (double)pkt.time_og);
 
 	// calculate mean
 	// Note: To improve accurace modify _server clock sync_ throttling or
@@ -54,18 +57,18 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	// of the clock offset
 	//   Resistant to sudden lag spikes. Look into 'Trimmed mean'
 
-	i32_RinBuf_push(
-		&co_pred->clock_offset_sliding_window, (i32)curr_clock_offset, NULL, NULL);
+	double_RinBuf_push(
+		&co_pred->clock_offset_sliding_window, curr_clock_offset, NULL, NULL);
 
 	u32 window_size =
-		(u32)i32_RinBuf_get_size(&co_pred->clock_offset_sliding_window);
+		(u32)double_RinBuf_get_size(&co_pred->clock_offset_sliding_window);
 
 	u32 count = 0;
-	i32 acc = 0;
+	double acc = 0;
 
 	for (u32 i = 0; i < window_size; ++i) {
-		i32 i_clock_offset = 
-			*i32_RinBuf_get_at(&co_pred->clock_offset_sliding_window, i);
+		double i_clock_offset = 
+			*double_RinBuf_get_at(&co_pred->clock_offset_sliding_window, i);
 		if (i_clock_offset == 0)
 			continue;
 
@@ -73,8 +76,8 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 		acc += i_clock_offset;
 	}
 
-	co_pred->clock_offset_mean = ceilf((float)acc / count);
-	float current_server_time = curr_time + co_pred->clock_offset_mean;
+	co_pred->clock_offset_mean = ceil(acc / (double)count);
+	//double current_server_time = (double)curr_time + co_pred->clock_offset_mean;
 
 	// update ticks
 
@@ -82,7 +85,7 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 		(pkt.tick + ((curr_time - pkt.time_og) / 2.0) /
 			(1000.0 / physics_fps));
 	i32 new_server_ticks_offset =
-		(i32)round(cal_server_ticks - ctx->common.ticks);
+		(i32)round(cal_server_ticks - (float)ctx->common.ticks);
 
 	// Note: at the beggining 'server_ticks' will be equal to 0
 
@@ -116,7 +119,7 @@ i32 WyncClock_server_handle_pkt_clock_req (
 			.time_og = pkt.time_og,
 			.tick_og = pkt.tick_og,
 			.tick = ctx->common.ticks,
-			.time = (u32) WyncClock_get_ms(ctx)
+			.time = WyncClock_get_ms(ctx)
 		};
 		
 		static NeteBuffer buffer = { 0 };
@@ -177,7 +180,7 @@ void WyncClock_system_stabilize_latency (
 	// sliding window mean
 
 	u32 counter = 0, accum = 0, mean = 0;
-	u16 lat = 0;
+	u32 lat = 0;
 
 	for (u32 i = 0; i < LATENCY_BUFFER_SIZE; ++i) {
 		lat = lat_info->latency_buffer[i];
@@ -211,7 +214,7 @@ void WyncClock_system_stabilize_latency (
 	// 98th percentile = mean + 2*std_dev
 
 	lat_info->latency_std_dev_ms = (u32)ceil(sqrt((double)accum/(double)counter));
-	lat_info->latency_stable_ms = lat_info->latency_stable_ms + lat_info->latency_std_dev_ms*2;
+	lat_info->latency_stable_ms = lat_info->latency_mean_ms + lat_info->latency_std_dev_ms*2;
 }
 
 
@@ -347,7 +350,7 @@ void WyncClock_wync_client_set_physics_ticks_per_second (WyncCtx *ctx, u16 tps){
 	ctx->common.physic_ticks_per_second = tps;
 }
 
-void WyncClock_set_debug_time_offset(WyncCtx *ctx, i32 time_offset_ms){
+void WyncClock_set_debug_time_offset(WyncCtx *ctx, u64 time_offset_ms){
 	ctx->common.debug_time_offset_ms = time_offset_ms;
 }
 
