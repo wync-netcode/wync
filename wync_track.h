@@ -344,15 +344,15 @@ i32 WyncTrack_prop_register_update_dummy (
 	return OK;
 }
 
-// * Use it after setting up an entity and it's props
-// * Use it to add entities that already exist on the server & client
-// * Useful for map provided entities.
-// Make sure to reserve some of your _game entity ids_ for static entities
-// * Once a peer connects, make sure to setup all map _entity ids_ for him.
-// * WARNING: entity_id must be the same on server & client
-// * It will prevent the generation of a Spawn packet for that client
-// because it assumes the client already has it.
-
+/// * Use it after setting up an entity and it's props
+/// * Use it to add entities that already exist on the server & client
+/// * Useful for map provided entities.
+/// Make sure to reserve some of your _game entity ids_ for static entities
+/// * Once a peer connects, make sure to setup all map _entity ids_ for him.
+/// * WARNING: entity_id must be the same on server & client
+/// * It will prevent the generation of a Spawn packet for that client
+/// because it assumes the client already has it.
+/// 
 /// @returns error
 i32 WyncTrack_wync_add_local_existing_entity (
 	WyncCtx *ctx,
@@ -362,7 +362,7 @@ i32 WyncTrack_wync_add_local_existing_entity (
 	if (ctx->common.is_client)
 		{ return -1; }
 	if (wync_client_id == SERVER_PEER_ID
-		|| wync_client_id < ctx->common.max_peers)
+		|| wync_client_id >= ctx->common.max_peers)
 		{ return -2; } 
 	if (!WyncTrack_is_entity_tracked(ctx, entity_id)) {
 		// entity exists
