@@ -14,24 +14,29 @@ void WyncState_reset_all_state_to_confirmed_tick_absolute(
 	u32 prop_id_amount,
 	u32 tick
 ) {
+	WyncProp *prop;
 	WyncWrapper_Setter *setter;
 	WyncWrapper_UserCtx *user_ctx;
 
 	for (u32 i = 0; i < prop_id_amount; ++i) {
 		u32 prop_id = prop_ids[i];
 
-		WyncProp *prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
 		if (prop == NULL) {
 			continue;
 		}
 
 		WyncState state = WyncState_prop_state_buffer_get(prop, tick);
 		if (state.data_size == 0 || state.data == NULL) {
+			if (!ctx->common.is_client && prop->prop_type != WYNC_PROP_TYPE_STATE) {
+				LOG_WAR_C(ctx, "No input for %s tick %d", prop->name_id, tick);
+			}
 			continue;
 		}
 
 		setter = &ctx->wrapper->prop_setter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		if (*setter == NULL) continue;
 		(*setter)(*user_ctx, (WyncWrapper_Data){ state.data_size, state.data });
 	}
 }
@@ -66,6 +71,7 @@ void WyncState_reset_all_state_to_confirmed_tick_relative(
 
 		setter = &ctx->wrapper->prop_setter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		if (*setter == NULL) continue;
 		(*setter)(*user_ctx, (WyncWrapper_Data){ state.data_size, state.data });
 
 		if (prop->relative_sync_enabled) {
@@ -101,12 +107,15 @@ void WyncState_reset_props_to_latest_value (WyncCtx *ctx) {
 
 		if (!prop->xtrap_enabled) { continue; }
 
-		if (!prop->relative_sync_enabled) { // regular prop
+		if (!prop->relative_sync_enabled) { 
+
+			// regular prop
 
 			u32 entity_id = 0;
 			i32 err = WyncTrack_prop_get_entity(ctx, prop_id, &entity_id);
 			if (err != OK) {
 				LOG_ERR_C(ctx, "Couldn't find entity for prop %u", prop_id);
+				continue;
 			}
 			i32 last_ticks_received = *i32_RinBuf_get_relative(
 				&prop->statebff.last_ticks_received, 0);

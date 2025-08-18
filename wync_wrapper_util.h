@@ -52,9 +52,7 @@ void WyncWrapper_buffer_inputs(WyncCtx *ctx) {
 
 void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 	WyncProp *prop = NULL;
-	WyncProp *prop_aux = NULL;
 	WyncWrapper_Getter *getter = NULL;
-	WyncWrapper_Setter *setter = NULL;
 	WyncWrapper_UserCtx *user_ctx = NULL;
 
 	// save state history per tick
@@ -67,6 +65,7 @@ void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 		getter = &ctx->wrapper->prop_getter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
 
+		if (*getter == NULL) continue;
 		WyncWrapper_Data data = (*getter)(*user_ctx);
 
 		WyncStore_prop_state_buffer_insert(

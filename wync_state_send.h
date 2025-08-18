@@ -75,7 +75,7 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 		WyncThrottle__remove_entity_from_sync_queue(
 			ctx, client_id, entity_id);
 
-		// fill all the data for the props, the see if it fits
+		// fill all the data for the props, then see if it fits
 
 		WyncSnap_DynArr *unreliable =
 			&ctx->co_throttling.clients_cached_unreliable_snapshots[client_id];
@@ -145,7 +145,7 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 
 		}
 
-		if (data_used >= ctx->common.out_packets_size_remaining_chars) {
+		if ((i32)data_used >= ctx->common.out_packets_size_remaining_chars) {
 			break;
 		}
 	}

@@ -136,6 +136,6 @@ void WyncPacket_set_data_limit_chars_for_out_packets(
 	WyncCtx *ctx,
 	u32 data_limit_bytes
 ) {
-	ctx->common.out_packets_size_limit -= data_limit_bytes;
-	ctx->common.out_packets_size_remaining_chars -= data_limit_bytes;
+	ctx->common.out_packets_size_limit = data_limit_bytes;
+	ctx->common.out_packets_size_remaining_chars = data_limit_bytes;
 }

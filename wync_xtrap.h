@@ -18,7 +18,7 @@ i32 WyncXtrap_preparation(WyncCtx *ctx) {
 	if (ctx->co_pred.last_tick_received == 0) {
 		return -1;
 	}
-
+	
 	ctx->co_pred.currently_on_predicted_tick = true;
 
 	if (
@@ -58,19 +58,22 @@ void WyncXtrap_regular_entities_to_predict(WyncCtx *ctx, i32 tick) {
 	{
 		u32 entity_id = *it.item;
 
-		ConMap_get(&ctx->co_pred.entity_last_received_tick, entity_id, &entity_last_tick);
+		i32 err = ConMap_get(
+			&ctx->co_pred.entity_last_received_tick, entity_id, &entity_last_tick);
 
 		// no history
-		if (entity_last_tick == -1) continue;
+		if (err != OK || entity_last_tick == -1) {
+			continue;
+		}
 
 		// already have confirmed state + it's regular prop
 		if (entity_last_tick >= tick) continue;
 
-		ConMap_get(&ctx->co_pred.entity_last_predicted_tick,
+		err = ConMap_get(&ctx->co_pred.entity_last_predicted_tick,
 				entity_id, &entity_last_predicted_tick);
 
 		// already predicted
-		if (tick <= entity_last_predicted_tick) continue;
+		if (err != OK || tick <= entity_last_predicted_tick) continue;
 
 		// else, aprove prediction and assume this tick as predicted
 		if (tick > entity_last_predicted_tick) {
@@ -189,6 +192,7 @@ void WyncXtrap_props_update_predicted_states_data (
 		
 		getter = &ctx->wrapper->prop_getter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		if (*getter == NULL) { continue; }
 
 		WyncWrapper_Data extracted = (*getter)(*user_ctx);
 		if (extracted.data_size == 0 || extracted.data == NULL) {
@@ -358,7 +362,7 @@ void WyncXtrap_update_entity_last_tick_received(
 			ctx, entity_id);
 	if (last_tick < 0) { return; }
 
-	ConMap_set_pair(&ctx->co_pred.entity_last_predicted_tick,
+	ConMap_set_pair(&ctx->co_pred.entity_last_received_tick,
 		entity_id, last_tick);
 }
 

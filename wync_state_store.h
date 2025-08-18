@@ -71,7 +71,7 @@ void WyncStore_handle_pkt_prop_snap(
 		i32 last_tick_received =
 			*i32_RinBuf_get_relative(&prop->statebff.last_ticks_received, 0);
 
-		if ( !(pkt.tick > (last_tick_received -
+		if ( !((i32)pkt.tick > (last_tick_received -
 			ctx->co_track.REGULAR_PROP_CACHED_STATE_AMOUNT))
 		) {
 			continue;
@@ -286,7 +286,7 @@ void WyncStore_prop_state_buffer_insert(
 ){
 	if (tick < 0) return;
 	WyncState replaced_state = { 0 };
-	size_t state_idx;
+	i32 state_idx;
 
 	if (state.data_size == 0 || state.data == NULL) {
 		LOG_WAR_C(ctx, "Tried to buffer empty state");
@@ -296,15 +296,16 @@ void WyncStore_prop_state_buffer_insert(
 	//
 	i32 err = WyncState_RinBuf_push(
 			&prop->statebff.saved_states, state,
-			&state_idx, &replaced_state);
+			NULL, &replaced_state);
 
 	if (err != OK) { return; }
 
 	// free whatever old state is found if any
 	WyncState_free(&replaced_state);
 
+	state_idx = prop->statebff.saved_states.head_pointer;
 	i32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_idx, tick);
-	i32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, (u32)state_idx);
+	i32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, state_idx);
 }
 
 /// Transfers ownership of the data pointers
@@ -368,9 +369,14 @@ i32 WyncStore_insert_state_to_entity_prop (
 /// Main method to access stored state
 ///
 /// @returns shared state, copy it yourself if needed
-WyncState WyncState_prop_state_buffer_get(WyncProp *prop, u32 tick) {
+WyncState WyncState_prop_state_buffer_get(WyncProp *prop, i32 tick) {
 	i32 state_id = *i32_RinBuf_get_at(&prop->statebff.tick_to_state_id, tick);
-	if (state_id == -1) {
+	if (state_id < 0 || tick < 0) {
+		return (WyncState) { 0 };
+	}
+
+	i32 saved_tick = *i32_RinBuf_get_absolute(&prop->statebff.state_id_to_tick, state_id);
+	if (saved_tick != tick) {
 		return (WyncState) { 0 };
 	}
 

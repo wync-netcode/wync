@@ -86,11 +86,11 @@ typedef struct {
 #define LATENCY_BUFFER_SIZE 20 // 20 size, 2 polls per second -> 10 seconds worth
 
 typedef struct {
-	u16 latency_raw_latest_ms; // Recently polled latency
-	u16 latency_stable_ms;     // Stabilized latency
-	u16 latency_mean_ms; 
+	u32 latency_raw_latest_ms; // Recently polled latency
+	u32 latency_stable_ms;     // Stabilized latency
+	u32 latency_mean_ms; 
 	u32 latency_std_dev_ms;
-	u16 latency_buffer[LATENCY_BUFFER_SIZE];
+	u32 latency_buffer[LATENCY_BUFFER_SIZE];
 	u32 latency_buffer_head;
 	float debug_latency_mean_ms;
 } Wync_PeerLatencyInfo;
@@ -940,7 +940,7 @@ typedef struct {
 
 	// for a "debug_tick_offset" equivalent just set ctx.co_ticks.common.ticks
 	// to any value
-	u32 debug_time_offset_ms;
+	u64 debug_time_offset_ms;
 
 	// --------------------------------------------------------
 	// Wrapper
@@ -966,8 +966,8 @@ typedef struct {
 	// --------------------------------------------------------
 
 	// can be used to limit the production of packets
-	u32 out_packets_size_limit;
-	u32 out_packets_size_remaining_chars;
+	i32 out_packets_size_limit;
+	i32 out_packets_size_remaining_chars;
 	WyncPacketOut_DynArr out_reliable_packets;
 	WyncPacketOut_DynArr out_unreliable_packets;
 
@@ -1282,7 +1282,7 @@ typedef struct {
 	i32 tick_offset;
 	i32 tick_offset_prev;
 	i32 tick_offset_desired;
-	u32 target_tick; // co_ticks.common.ticks + tick_offset
+	i32 target_tick; // co_ticks.common.ticks + tick_offset
 	// fixed timestamp for current tick
 	// It's the point of reference for other common.ticks
 	float current_tick_timestamp;
@@ -1290,9 +1290,9 @@ typedef struct {
 	// For calculating clock_offset_mean
 	// TODO: Move this to co_ticks
 	
-	i32_RinBuf clock_offset_sliding_window;
+	double_RinBuf clock_offset_sliding_window;
 	u16 clock_offset_sliding_window_size; // default 16
-	float clock_offset_mean;
+	double clock_offset_mean;
 
 
 	// --------------------------------------------------------
