@@ -29,11 +29,8 @@ void WyncThrottle__remove_entity_from_sync_queue (
 ///
 void WyncThrottle_system_fill_entity_sync_queue (WyncCtx *ctx) {
 
-	i32_DynArrIterator it = { 0 };
-	while(i32_DynArr_iterator_get_next(&ctx->common.peers, &it) == OK) {
-
-		if (it.index == 0) continue; // skip server
-		i32 client_id = *it.item;
+	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
+	for (u16 client_id = 1; client_id < peer_amount; ++client_id) {
 
 		bool everything_fitted = true;
 		u32_FIFORing *entity_queue =
@@ -106,12 +103,8 @@ void WyncThrottle_compute_entity_sync_order(WyncCtx *ctx) {
 
 		// from each client we get the Nth item in queue (entity_index'th)
 
-		i32_DynArrIterator it = { 0 };
-		i32 client_id;
-		while(i32_DynArr_iterator_get_next(&ctx->common.peers, &it) == OK) {
-
-			if (it.index == 0) continue; // skip server
-			client_id = *it.item;
+		u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
+		for (u16 client_id = 1; client_id < peer_amount; ++client_id) {
 
 			u32_FIFORing *entity_queue =
 				&ctx->co_throttling.queue_clients_entities_to_sync[client_id];
@@ -131,6 +124,9 @@ void WyncThrottle_compute_entity_sync_order(WyncCtx *ctx) {
 			
 			Wync_PeerEntityPair_DynArr_insert(
 				&ctx->co_throttling.queue_entity_pairs_to_sync, pair);
+
+			// enough to continue
+			ran_out_of_entites = false;
 
 		}
 
