@@ -54,6 +54,10 @@ void WyncJoin_set_my_nete_peer_id (WyncCtx *ctx, u16 nete_peer_id){
 	ctx->common.my_nete_peer_id = nete_peer_id;
 }
 
+i32 WyncJoin_get_my_wync_peer_id(WyncCtx *ctx) {
+	return ctx->common.my_peer_id;
+}
+
 /// Client only
 ///
 void WyncJoin_set_server_nete_peer_id (WyncCtx *ctx, u16 nete_peer_id){

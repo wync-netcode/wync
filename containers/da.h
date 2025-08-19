@@ -40,6 +40,7 @@ static inline PRE(DynArr) PRE(DynArr_create) (void) {
 }
 
 
+/// Inserts item at the back
 /// @param   item  Item passed as value
 /// @returns index
 static inline size_t PRE(DynArr_insert) (PRE(DynArr) *da, TYPE item) {

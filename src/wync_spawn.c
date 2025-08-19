@@ -111,6 +111,7 @@ i32 WyncSpawn_get_next_entity_event_spawn (
 		*out_spawn_event = *spawn_event;
 	}
 
+	// TODO: free struct?
 	//ctx->co_spawn.next_entity_to_spawn = spawn_event;
 
 	return OK;

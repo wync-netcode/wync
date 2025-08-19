@@ -6,13 +6,12 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-//typedef struct WyncCtx *WyncCtx;
 typedef struct WyncCtx WyncCtx;
 
 enum WYNC_PROP_TYPE {
-	WYNC_PROP_TYPE_STATE,
-	WYNC_PROP_TYPE_INPUT,
-	WYNC_PROP_TYPE_EVENT // can only store Array[int]
+    WYNC_PROP_TYPE_STATE,
+    WYNC_PROP_TYPE_INPUT,
+    WYNC_PROP_TYPE_EVENT // can only store Array[int]
 };
 
 typedef struct {
@@ -39,6 +38,15 @@ typedef struct {
     uint32_t spawn_data_size;
     void *spawn_data;
 } Wync_EntitySpawnEvent;
+
+// Packets handed to you for sending through the network
+// it includes the destination nete peer
+
+typedef struct {
+	uint16_t to_nete_peer_id;
+	uint32_t data_size;
+	void *data; // WyncPacket
+} WyncPacketOut;
 
 /// ---------------------------------------------------------------------------
 /// WYNC STATISTICS
@@ -106,10 +114,11 @@ void WyncClock_peer_set_current_latency(
 void WyncClock_wync_client_set_physics_ticks_per_second(
     WyncCtx *ctx, uint16_t tps);
 
-void WyncClock_set_debug_time_offset(
-    WyncCtx *ctx, uint64_t time_offset_ms);
+void WyncClock_set_debug_time_offset(WyncCtx *ctx, uint64_t time_offset_ms);
 
 // float WyncClock_get_tick_timestamp_ms(WyncCtx *ctx, int32_t ticks);
+
+void WyncClock_set_ticks(WyncCtx *ctx, uint32_t ticks);
 
 uint32_t WyncClock_get_ticks(WyncCtx *ctx);
 
@@ -128,12 +137,13 @@ uint32_t WyncClock_get_ticks(WyncCtx *ctx);
 /// ---------------------------------------------------------------------------
 
 int32_t wync_flow_wync_feed_packet(
-    WyncCtx *ctx, uint16_t from_nete_peer_id, uint32_t data_size,
-    void *data);
+    WyncCtx *ctx, uint16_t from_nete_peer_id, uint32_t data_size, void *data);
 
 int32_t wync_flow_server_setup(WyncCtx *ctx);
 
-void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
+void wync_flow_client_setup(WyncCtx *ctx);
+
+//void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
 
 void wync_flow_wync_server_tick_start(WyncCtx *ctx);
 
@@ -143,10 +153,19 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx);
 
 void wync_flow_wync_system_gather_packets(WyncCtx *ctx);
 
+void WyncFlow_gather_packets(WyncCtx *ctx);
+
+void WyncFlow_packet_cleanup(WyncCtx *ctx);
+
+int32_t WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
+
+int32_t WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
+
 /// ---------------------------------------------------------------------------
 /// WYNC INIT
 /// ---------------------------------------------------------------------------
 
+WyncCtx *WyncInit_create_context(void);
 // void wync_init_ctx_common(WyncCtx *ctx);
 // void wync_init_ctx_state_tracking(WyncCtx *ctx);
 // void wync_init_ctx_clientauth(WyncCtx *ctx);
@@ -190,8 +209,7 @@ int32_t WyncJoin_is_peer_registered(
 
 void WyncJoin_set_my_nete_peer_id(WyncCtx *ctx, uint16_t nete_peer_id);
 
-void WyncJoin_set_server_nete_peer_id(
-    WyncCtx *ctx, uint16_t nete_peer_id);
+void WyncJoin_set_server_nete_peer_id(WyncCtx *ctx, uint16_t nete_peer_id);
 
 // uint16_t WyncJoin_peer_register(WyncCtx *ctx, int32_t nete_peer_id);
 
@@ -352,8 +370,7 @@ void WyncSpawn_system_spawned_props_cleanup(WyncCtx *ctx);
 int32_t WyncThrottle_client_now_can_see_entity(
     WyncCtx *ctx, uint16_t client_id, uint32_t entity_id);
 
-void WyncThrottle_everyone_now_can_see_entity(
-    WyncCtx *ctx, uint32_t entity_id);
+void WyncThrottle_everyone_now_can_see_entity(WyncCtx *ctx, uint32_t entity_id);
 
 void WyncThrottle_entity_set_spawn_data(
     WyncCtx *ctx, uint32_t entity_id, uint32_t data_size, void *data);
@@ -481,13 +498,9 @@ void WyncXtrap_tick_end(WyncCtx *ctx, int32_t tick);
 
 // void WyncWrapper_initialize(WyncCtx *ctx);
 
-// void WyncWrapper_set_prop_callbacks(
-// WyncCtx *ctx,
-// uint32_t prop_id,
-// WyncWrapper_UserCtx user_ctx,
-// WyncWrapper_Getter getter,
-// WyncWrapper_Setter setter
-//);
+void WyncWrapper_set_prop_callbacks(
+    WyncCtx *ctx, uint32_t prop_id, WyncWrapper_UserCtx user_ctx,
+    WyncWrapper_Getter getter, WyncWrapper_Setter setter);
 
 // void WyncWrapper_buffer_inputs(WyncCtx *ctx);
 

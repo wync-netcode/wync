@@ -80,6 +80,8 @@ void WyncClock_wync_client_set_physics_ticks_per_second(WyncCtx *ctx, u16 tps);
 
 void WyncClock_set_debug_time_offset(WyncCtx *ctx, u64 time_offset_ms);
 
+void WyncClock_set_ticks(WyncCtx *ctx, u32 ticks);
+
 float WyncClock_get_tick_timestamp_ms(WyncCtx *ctx, i32 ticks);
 
 u32 WyncClock_get_ticks(WyncCtx *ctx);
@@ -102,6 +104,8 @@ i32 wync_flow_wync_feed_packet(
 
 i32 wync_flow_server_setup(WyncCtx *ctx);
 
+void wync_flow_client_setup(WyncCtx *ctx);
+
 void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
 
 void wync_flow_wync_server_tick_start(WyncCtx *ctx);
@@ -110,12 +114,20 @@ void wync_flow_wync_server_tick_end(WyncCtx *ctx);
 
 void wync_flow_wync_client_tick_end(WyncCtx *ctx);
 
-void wync_flow_wync_system_gather_packets(WyncCtx *ctx);
+void WyncFlow_gather_packets(WyncCtx *ctx);
+
+void WyncFlow_packet_cleanup(WyncCtx *ctx);
+
+i32 WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
+
+i32 WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
+
 
 /// ---------------------------------------------------------------------------
 /// WYNC INIT
 /// ---------------------------------------------------------------------------
 
+WyncCtx *WyncInit_create_context(void);
 void wync_init_ctx_common(WyncCtx *ctx);
 void wync_init_ctx_state_tracking(WyncCtx *ctx);
 void wync_init_ctx_clientauth(WyncCtx *ctx);
@@ -156,6 +168,8 @@ i32 WyncJoin_get_wync_peer_id_from_nete_peer_id(
     WyncCtx *ctx, u16 nete_peer_id, u16 *out_wync_peer_id);
 
 void WyncJoin_set_my_nete_peer_id(WyncCtx *ctx, u16 nete_peer_id);
+
+i32 WyncJoin_get_my_wync_peer_id(WyncCtx *ctx);
 
 void WyncJoin_set_server_nete_peer_id(WyncCtx *ctx, u16 nete_peer_id);
 

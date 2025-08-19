@@ -253,15 +253,6 @@ static void WyncPacket_free(WyncPacket *pkt) {
 	WyncState_free(&pkt->data);
 }
 
-// Packets handed to you for sending through the network
-// it includes the destination nete peer
-
-typedef struct {
-	u16 to_nete_peer_id;
-	u32 data_size;
-	void *data; // WyncPacket
-} WyncPacketOut;
-
 static bool WyncPacketOut_write(NeteBuffer *buffer, WyncPacketOut *pkt) {
 	NETEBUFFER_WRITE_BYTES(buffer, &pkt->to_nete_peer_id, sizeof(u16));
 	NETEBUFFER_WRITE_BYTES(buffer, &pkt->data_size, sizeof(u32));
@@ -989,6 +980,8 @@ typedef struct {
 	i32 out_packets_size_remaining_chars;
 	WyncPacketOut_DynArr out_reliable_packets;
 	WyncPacketOut_DynArr out_unreliable_packets;
+	WyncPacketOut_DynArrIterator rel_pkt_it;
+	WyncPacketOut_DynArrIterator unrel_pkt_it;
 
 
 	// --------------------------------------------------------

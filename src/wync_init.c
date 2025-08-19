@@ -1,12 +1,11 @@
 #include "wync_private.h"
 
 
-// Intend:
-// 1. Have all (most) allocations in one place
-// 2. Remove initialization from class declarations
-
-// Q: Isn't it better for each module to manage it's initialization?
-// A: Do that, where it makes sense
+WyncCtx *WyncInit_create_context (void) {
+	WyncCtx *ctx = calloc(sizeof(WyncCtx), 1);
+	wync_flow_setup_context(ctx);
+	return ctx;
+}
 
 
 void wync_init_ctx_common(WyncCtx *ctx) {

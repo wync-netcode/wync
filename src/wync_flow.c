@@ -58,36 +58,6 @@ static void wync_flow_internal_setup_context(WyncCtx *ctx) {
 	ctx->initialized = true;
 }
 
-// Calls all the systems that produce packets to send whilst respecting the data limit
-
-static void wync_flow_internal_wync_system_gather_packets_start(WyncCtx *ctx) {
-	if (ctx->common.is_client) {
-		if (!ctx->common.connected) {
-			WyncJoin_service_wync_try_to_connect(ctx);  // reliable, commited
-		} else {
-			WyncClock_client_ask_for_clock(ctx);   // unreliable
-			//WyncDeltaSyncUtilsInternal.wync_system_client_send_delta_prop_acks(ctx) // unreliable
-			WyncSend_client_send_inputs(ctx); // unreliable
-			//WyncEventUtils_send_event_data(ctx)   // reliable, commited
-		}
-	} else {
-		WyncSpawn_system_send_entities_to_despawn(ctx); // reliable, commited
-		WyncSpawn_system_send_entities_to_spawn(ctx);   // reliable, commited
-		WyncInput_system_sync_client_ownership(ctx);    // reliable, commited
-
-		WyncThrottle_system_fill_entity_sync_queue(ctx);
-		WyncThrottle_compute_entity_sync_order(ctx);
-		WyncSend_extracted_data(ctx); // both reliable/unreliable
-	}
-	//WyncStats.wync_system_calculate_data_per_tick(ctx)
-}
-
-static void wync_flow_internal_wync_system_gather_packets_end(WyncCtx *ctx) {
-	// pending delta props fullsnapshots should be extracted by now
-	//WyncStateSend.wync_send_pending_rela_props_fullsnapshot(ctx)
-	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
-}
-
 /// param data User must free it manually
 ///
 i32 wync_flow_wync_feed_packet(
@@ -266,6 +236,8 @@ i32 wync_flow_wync_feed_packet(
 			break;
 	}
 
+	WyncPacket_free(&wync_pkt);
+
 	return OK;
 }
 
@@ -311,6 +283,22 @@ i32 wync_flow_server_setup(WyncCtx *ctx) {
 	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, SERVER_PEER_ID);
 
 	return OK;
+}
+
+
+// TODO: Join with client_setup_my_client
+void wync_flow_client_setup(WyncCtx *ctx) {
+	ctx->common.is_client = true;
+	ctx->common.peers = i32_DynArr_create();
+	ctx->common.connected = false;
+
+	// setup peer channels
+	// ...
+
+	// setup prob
+	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, 0);
+
+	return;
 }
 
 
@@ -388,10 +376,91 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 	WyncLerp_precompute(ctx);
 }
 
-void wync_flow_wync_system_gather_packets(WyncCtx *ctx) {
-	wync_flow_internal_wync_system_gather_packets_start(ctx);
-	if (!ctx->common.is_client) {
-		//WyncWrapper.extract_rela_prop_fullsnapshot_to_tick(ctx, ctx.common.ticks);
+
+/// Calls all the systems that produce packets to send whilst respecting the data limit
+void WyncFlow_gather_packets(WyncCtx *ctx) {
+
+	if (ctx->common.is_client) {
+		if (!ctx->common.connected) {
+			WyncJoin_service_wync_try_to_connect(ctx);  // reliable, commited
+		} else {
+			WyncClock_client_ask_for_clock(ctx);   // unreliable
+			//WyncDeltaSyncUtilsInternal.wync_system_client_send_delta_prop_acks(ctx) // unreliable
+			WyncSend_client_send_inputs(ctx); // unreliable
+			//WyncEventUtils_send_event_data(ctx)   // reliable, commited
+		}
+	} else {
+		WyncSpawn_system_send_entities_to_despawn(ctx); // reliable, commited
+		WyncSpawn_system_send_entities_to_spawn(ctx);   // reliable, commited
+		WyncInput_system_sync_client_ownership(ctx);    // reliable, commited
+
+		WyncThrottle_system_fill_entity_sync_queue(ctx);
+		WyncThrottle_compute_entity_sync_order(ctx);
+		WyncSend_extracted_data(ctx); // both reliable/unreliable
+
+		/*WyncWrapper.extract_rela_prop_fullsnapshot_to_tick(ctx, ctx.common.ticks);*/
 	}
-	wync_flow_internal_wync_system_gather_packets_end(ctx);
+
+	// pending delta props fullsnapshots should be extracted by now
+	//WyncStateSend.wync_send_pending_rela_props_fullsnapshot(ctx)
+	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
+
+	ctx->common.unrel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
+	ctx->common.rel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
 }
+
+// Call after getting all packets
+void WyncFlow_packet_cleanup(WyncCtx *ctx) {
+	WyncPacketOut_DynArrIterator it = (WyncPacketOut_DynArrIterator) { 0 };
+	while (WyncPacketOut_DynArr_iterator_get_next(
+		&ctx->common.out_reliable_packets, &it) == OK)
+	{
+		WyncPacketOut_free(it.item);
+	}
+
+	it = (WyncPacketOut_DynArrIterator) { 0 };
+	while (WyncPacketOut_DynArr_iterator_get_next(
+		&ctx->common.out_unreliable_packets, &it) == OK)
+	{
+		WyncPacketOut_free(it.item);
+	}
+
+	WyncPacketOut_DynArr_clear_preserving_capacity(
+			&ctx->common.out_reliable_packets);
+	WyncPacketOut_DynArr_clear_preserving_capacity(
+			&ctx->common.out_unreliable_packets);
+}
+
+/// @param[out] out_pkt Packet to send through the Network RELIABLY
+/// @returns error
+/// @retval 0 OK 
+/// @retval -1 No more packets
+i32 WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt) {
+	i32 err = WyncPacketOut_DynArr_iterator_get_next(
+		&ctx->common.out_reliable_packets,
+		&ctx->common.rel_pkt_it
+	);
+	if (err != OK) {
+		return -1;
+	}
+	*out_pkt = *ctx->common.rel_pkt_it.item;
+	return OK;
+}
+
+/// @param[out] out_pkt Packet to send through the Network UNRELIABLE
+/// @returns error
+/// @retval 0 OK 
+/// @retval -1 No more packets
+i32 WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt) {
+	i32 err = WyncPacketOut_DynArr_iterator_get_next(
+		&ctx->common.out_unreliable_packets,
+		&ctx->common.unrel_pkt_it
+	);
+	if (err != OK) {
+		return -1;
+	}
+	*out_pkt = *ctx->common.unrel_pkt_it.item;
+	return OK;
+}
+
+
