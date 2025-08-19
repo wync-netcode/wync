@@ -1,7 +1,5 @@
-#ifndef WYNC_DEBUG_H
-
-#include "wync/lib/log.h"
-#include "wync_packet_util.h"
+#include "wync_private.h"
+#include "lib/log.h"
 
 /// Increments Total
 void WyncDebug_log_packet_received(WyncCtx *ctx, u16 packet_type_id) {
@@ -28,5 +26,3 @@ void WyncDebug_received_log_prop_id(
 	}
 
 }
-
-#endif // !WYNC_DEBUG_H

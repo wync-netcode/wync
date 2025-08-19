@@ -1,11 +1,9 @@
 #ifndef WYNC_WRAPPER_H
 #define WYNC_WRAPPER_H
 
-// TODO: Need generic value MAP<int, Any>
+#include "../wync.h"
+#include "wync_private.h"
 #include "containers/map.h"
-#include "src/macro_types.h" // TODO: Rewrite
-#include "wync_typedef.h"
-
 
 typedef struct{
 
@@ -34,12 +32,12 @@ typedef struct{
 #define WYNC_MAX_USER_TYPES 256
 #define WYNC_MAX_BLUEPRINTS 64
 
-typedef struct {
-	u32 data_size;
-	void *data;
-} WyncWrapper_Data;
+//typedef struct {
+	//u32 data_size;
+	//void *data;
+//} WyncWrapper_Data;
 
-void WyncWrapper_Data_free(WyncWrapper_Data data) {
+inline static void WyncWrapper_Data_free(WyncWrapper_Data data) {
 	WyncState state = { data.data_size, data.data };
 	WyncState_free(&state);
 	data.data_size = 0;
@@ -48,19 +46,19 @@ void WyncWrapper_Data_free(WyncWrapper_Data data) {
 
 //typedef void* WyncWrapper_UserCtx;
 
-typedef struct {
-	void *ctx;
-	size_t type_size;
-} WyncWrapper_UserCtx;
+//typedef struct {
+	//void *ctx;
+	//size_t type_size;
+//} WyncWrapper_UserCtx;
 
-typedef WyncWrapper_Data (*WyncWrapper_Getter)(WyncWrapper_UserCtx ctx);
+//typedef WyncWrapper_Data (*WyncWrapper_Getter)(WyncWrapper_UserCtx ctx);
 
-typedef void (*WyncWrapper_Setter)(WyncWrapper_UserCtx, WyncWrapper_Data data);
+//typedef void (*WyncWrapper_Setter)(WyncWrapper_UserCtx, WyncWrapper_Data data);
 
-typedef WyncWrapper_Data (*WyncWrapper_LerpFunc)
-	(WyncWrapper_Data from, WyncWrapper_Data to, float delta);
+//typedef WyncWrapper_Data (*WyncWrapper_LerpFunc)
+	//(WyncWrapper_Data from, WyncWrapper_Data to, float delta);
 
-// ^^^ FUTURE: A method with less indirections using void* with cached size
+// ^^^ FUTURE: A method with less indirections using void* with prefixed size
 
 
 typedef struct WyncWrapperCtx{

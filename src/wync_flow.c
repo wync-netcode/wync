@@ -1,19 +1,7 @@
-#ifndef WYNC_FLOW_H
-#define WYNC_FLOW_H
-
-#include "wync/wync_input.h"
-#include "wync/wync_lerp.h"
-#include "wync/wync_stat.h"
-#include "wync/wync_state_send.h"
-#include "wync/wync_state_set.h"
-#include "wync/wync_wrapper_util.h"
-#include "wync_join.h"
-#include "wync_spawn.h"
-#include "wync_typedef.h"
-#include "wync_throttle.h"
-#include "wync_init.h"
-#include "wync_clock.h"
 #include "math.h"
+#define WYNC_LOG_GLOBAL_STATE
+#include "wync_private.h"
+#include "buffer.h"
 
 // ==================================================
 // PUBLIC API
@@ -22,7 +10,7 @@
 // High level functions related to logic cycles
 
 
-void wync_flow_internal_setup_context(WyncCtx *ctx) {
+static void wync_flow_internal_setup_context(WyncCtx *ctx) {
 	// Misc config
 
 	ctx->max_tick_history_timewarp = (u32)pow(2, 7);
@@ -72,7 +60,7 @@ void wync_flow_internal_setup_context(WyncCtx *ctx) {
 
 // Calls all the systems that produce packets to send whilst respecting the data limit
 
-void wync_flow_internal_wync_system_gather_packets_start(WyncCtx *ctx) {
+static void wync_flow_internal_wync_system_gather_packets_start(WyncCtx *ctx) {
 	if (ctx->common.is_client) {
 		if (!ctx->common.connected) {
 			WyncJoin_service_wync_try_to_connect(ctx);  // reliable, commited
@@ -94,19 +82,34 @@ void wync_flow_internal_wync_system_gather_packets_start(WyncCtx *ctx) {
 	//WyncStats.wync_system_calculate_data_per_tick(ctx)
 }
 
-void wync_flow_internal_wync_system_gather_packets_end(WyncCtx *ctx) {
+static void wync_flow_internal_wync_system_gather_packets_end(WyncCtx *ctx) {
 	// pending delta props fullsnapshots should be extracted by now
 	//WyncStateSend.wync_send_pending_rela_props_fullsnapshot(ctx)
 	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
 }
 
-/// param wync_pkt User must free it manually
+/// param data User must free it manually
 ///
 i32 wync_flow_wync_feed_packet(
 	WyncCtx *ctx, 
-	WyncPacket wync_pkt,
-	u16 from_nete_peer_id
+	u16 from_nete_peer_id,
+	u32 data_size,
+	void *data
 ) {
+
+	NeteBuffer buffer = {
+		.cursor_byte = 0,
+		.size_bytes = data_size,
+		.data = data
+	};
+
+	WyncPacket wync_pkt = { 0 };
+	if (!WyncPacket_serialize(true, &buffer, &wync_pkt)) {
+		WyncPacket_free(&wync_pkt);
+		DEBUG_BREAK;
+		return -1;
+	}
+
 	// debug statistics
 	//WyncDebug.log_packet_received(ctx, wync_pkt.packet_type_id)
 	bool is_client = ctx->common.is_client, is_server = !is_client;
@@ -116,10 +119,16 @@ i32 wync_flow_wync_feed_packet(
 		//WyncStats._wync_report_update_received(ctx)
 	}
 
-	static NeteBuffer buffer = { 0 };
-	buffer.cursor_byte = 0;
-	buffer.size_bytes = wync_pkt.data.data_size;
-	buffer.data = wync_pkt.data.data;
+	buffer = (NeteBuffer) {
+		.cursor_byte = 0,
+		.size_bytes = wync_pkt.data.data_size,
+		.data = wync_pkt.data.data
+	};
+
+	/*static NeteBuffer buffer = { 0 };*/
+	/*buffer.cursor_byte = 0;*/
+	/*buffer.size_bytes = wync_pkt.data.data_size;*/
+	/*buffer.data = wync_pkt.data.data;*/
 
 	LOG_OUT_C(ctx, "Received PKT %s", PKT_NAMES[wync_pkt.packet_type_id]);
 
@@ -386,6 +395,3 @@ void wync_flow_wync_system_gather_packets(WyncCtx *ctx) {
 	}
 	wync_flow_internal_wync_system_gather_packets_end(ctx);
 }
-
-
-#endif // !WYNC_FLOW_H

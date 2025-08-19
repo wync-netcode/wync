@@ -43,12 +43,12 @@ typedef struct {
     TYPE *buffer;
 } FIFORING;
 
-void PRE(FIFORing_calloc) (FIFORING *ring, u32 p_capacity) {
+static void PRE(FIFORing_calloc) (FIFORING *ring, u32 p_capacity) {
     ring->capacity = p_capacity;
     ring->buffer = (TYPE*)calloc(sizeof(TYPE), ring->capacity);
 }
 
-FIFORING PRE(FIFORing_init) (u32 p_capacity) {
+static FIFORING PRE(FIFORing_init) (u32 p_capacity) {
     FIFORING ring = { 0 };
     PRE(FIFORing_calloc) (&ring, p_capacity);
     return ring;
@@ -57,7 +57,7 @@ FIFORING PRE(FIFORing_init) (u32 p_capacity) {
 // @returns error
 // @retval  0 OK
 // @retval -1 error
-int PRE(FIFORing_push_head) (FIFORING *ring, TYPE item) {
+static int PRE(FIFORing_push_head) (FIFORING *ring, TYPE item) {
 	if (ring->size >= ring->capacity) {
 		return -1;
     } else if (ring->size == 0) {
@@ -78,7 +78,7 @@ int PRE(FIFORing_push_head) (FIFORING *ring, TYPE item) {
 // @returns error
 // @retval  0 OK
 // @retval -1 error
-i32 PRE(FIFORing_extend_head) (FIFORING *ring) {
+static i32 PRE(FIFORing_extend_head) (FIFORING *ring) {
 	if (ring->size >= ring->capacity) {
 		return -1;
     } else if (ring->size == 0) {
@@ -94,7 +94,7 @@ i32 PRE(FIFORing_extend_head) (FIFORING *ring) {
 }
 
 // @returns Popped item
-TYPE *PRE(FIFORing_pop_tail) (FIFORING *ring) {
+static TYPE *PRE(FIFORing_pop_tail) (FIFORING *ring) {
 	if (ring->size <= 0)
         { return NULL; }
 	
@@ -110,26 +110,26 @@ TYPE *PRE(FIFORing_pop_tail) (FIFORING *ring) {
 	return item;
 }
 
-TYPE *PRE(FIFORing_get_head) (FIFORING *ring) {
+static TYPE *PRE(FIFORing_get_head) (FIFORING *ring) {
 	return &ring->buffer[ring->head];
 }
 
-TYPE *PRE(FIFORing_get_tail) (FIFORING *ring) {
+static TYPE *PRE(FIFORing_get_tail) (FIFORING *ring) {
 	return &ring->buffer[ring->tail];
 }
 
-u32 PRE(FIFORing_get_size) (FIFORING *ring) {
+static u32 PRE(FIFORing_get_size) (FIFORING *ring) {
 	return ring->size;
 }
 
-void PRE(FIFORing_clear) (FIFORING *ring) {
+static void PRE(FIFORing_clear) (FIFORING *ring) {
     ring->tail = 0;
     ring->head = 0;
     ring->size = 0;
     memset(ring->buffer, 0, ring->capacity);
 }
 
-TYPE *PRE(FIFORing_get_relative_to_tail) (FIFORING *ring, u32 pos) {
+static TYPE *PRE(FIFORing_get_relative_to_tail) (FIFORING *ring, u32 pos) {
 	u32 index = (ring->tail + pos) % ring->capacity;
 	return &ring->buffer[index];
 }
@@ -137,7 +137,7 @@ TYPE *PRE(FIFORing_get_relative_to_tail) (FIFORING *ring, u32 pos) {
 // @returns error
 // @retval  0 OK
 // @retval -1 error
-i32 PRE(FIFORing_remove_relative_to_tail) (FIFORING *ring, u32 pos) {
+static i32 PRE(FIFORing_remove_relative_to_tail) (FIFORING *ring, u32 pos) {
 	if (ring->size <= 0) { return -1; }
 	if (pos >= ring->size) { return -2; }
 
@@ -158,7 +158,7 @@ i32 PRE(FIFORing_remove_relative_to_tail) (FIFORING *ring, u32 pos) {
 
 #ifndef FIFORING_DISABLE_COMPARISONS
 
-bool PRE(FIFORing_has_item) (FIFORING *ring, TYPE item) {
+static bool PRE(FIFORing_has_item) (FIFORING *ring, TYPE item) {
 	u32 tail = ring->tail, head = ring->head;
 
 	if (ring->size == 0) return false;

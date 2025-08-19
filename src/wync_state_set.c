@@ -1,10 +1,5 @@
-#ifndef WYNC_STATE_SET
-#define WYNC_STATE_SET
-
-#include "wync/wync_state_store.h"
-#include "wync/wync_track.h"
-#include "wync/wync_typedef.h"
-#include "wync/wync_wrapper.h"
+#include "wync_private.h"
+#include "wync_wrapper.h"
 
 /// Used only for resetting inputs in WyncXtrap
 /// Note: Could be use for general purpose
@@ -138,5 +133,3 @@ void WyncState_reset_props_to_latest_value (WyncCtx *ctx) {
 	//delta_props_update_and_apply_delta_events(ctx, ctx.co_filter_c.type_state__delta_prop_ids)
 
 }
-
-#endif // !WYNC_STATE_SET

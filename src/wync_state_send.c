@@ -1,11 +1,6 @@
-#ifndef WYNC_STATE_SEND
-#define WYNC_STATE_SEND
-
-#include "wync/wync_state_store.h"
-#include "wync/wync_throttle.h"
-#include "wync/wync_track.h"
-#include "wync_typedef.h"
+#include "wync_private.h"
 #include <stdlib.h>
+#include "assert.h"
 
 
 /// @param[out] out_snap Fills it with a copy (new alloc'd)
@@ -405,5 +400,3 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 		WyncPacketOut_free(&packet_out);
 	}
 }
-
-#endif // !WYNC_STATE_SEND

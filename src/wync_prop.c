@@ -1,9 +1,6 @@
-#ifndef WYNC_PROP_H
-#define WYNC_PROP_H
-
-#include "wync/wync_track.h"
-#include "wync/wync_wrapper.h"
-#include "wync_typedef.h"
+#include "wync_private.h"
+#include "wync_wrapper.h"
+#include "assert.h"
 
 /// @returns error
 i32 WyncProp_enable_prediction (WyncCtx *ctx, u32 prop_id){
@@ -45,6 +42,3 @@ i32 WyncProp_enable_interpolation (
 	
 	return OK;
 }
-
-
-#endif // !WYNC_PROP_H

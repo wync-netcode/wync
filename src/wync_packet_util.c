@@ -1,12 +1,5 @@
+#include "wync_private.h"
 #include "assert.h"
-#include "wync_typedef.h"
-#include "wync_join.h"
-#include "wync/lib/log.h"
-#include "wync/buffer.h"
-#include <stdlib.h>
-#include <string.h>
-
-#include "wync_packet_util.h"
 
 
 bool WyncPacket_type_exists(u16 packet_type_id) {

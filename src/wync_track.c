@@ -1,7 +1,4 @@
-#ifndef WYNC_TRACK_H
-#define WYNC_TRACK_H
-
-#include "wync_typedef.h"
+#include "wync_private.h"
 #include "lib/log.h"
 #include <string.h>
 #include <assert.h>
@@ -382,6 +379,3 @@ i32 WyncTrack_wync_add_local_existing_entity (
 
 	return OK;
 }
-
-
-#endif // !WYNC_TRACK_H

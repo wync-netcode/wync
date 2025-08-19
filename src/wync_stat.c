@@ -1,8 +1,6 @@
-#include "wync/wync_stat.h"
-#include "wync/wync_track.h"
-#include "wync/wync_typedef.h"
-#include "wync/wync_wrapper_util.h"
 #include <math.h>
+#include "wync_private.h"
+#include "assert.h"
 
 
 void WyncStat_try_to_update_prob_prop_rate (WyncCtx *ctx) {

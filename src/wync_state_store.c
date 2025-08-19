@@ -1,11 +1,5 @@
-#ifndef WYNC_STATE_STORE_H
-#define WYNC_STATE_STORE_H
-
-#include "wync/wync_debug.h"
-#include "wync/wync_join.h"
-#include "wync/wync_track.h"
-#include "wync/wync_stat.h"
-#include "wync_typedef.h"
+#include "wync_private.h"
+#include "assert.h"
 
 
 // TODO: Move me elsewhere
@@ -411,5 +405,3 @@ WyncState WyncState_prop_state_buffer_get_throughout (
 	return (WyncState) { 0 };
 }
 
-
-#endif // !WYNC_STATE_STORE_H

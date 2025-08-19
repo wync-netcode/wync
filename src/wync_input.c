@@ -1,9 +1,5 @@
-#ifndef WYNC_INPUT
-#define WYNC_INPUT
-
-#include "wync/containers/map.h"
-#include "wync/wync_packet_util.h"
-#include "wync_typedef.h"
+#include "containers/map.h"
+#include "wync_private.h"
 
 /// @param[out] out_prop_id If found
 /// @returns error
@@ -93,6 +89,3 @@ void WyncInput_system_sync_client_ownership(WyncCtx *ctx) {
 		}
 	}
 }
-
-
-#endif // !WYNC_INPUT

@@ -1,10 +1,4 @@
-#ifndef WYNC_CLOCK_H
-#define WYNC_CLOCK_H
-
-#include "wync/wync_join.h"
-#include "wync/wync_packet_util.h"
-#include "wync/wync_tick_collection.h"
-#include "wync_typedef.h"
+#include "wync_private.h"
 #include <math.h>
 #include <time.h>
 
@@ -340,8 +334,9 @@ void WyncClock_advance_ticks (WyncCtx *ctx) {
 	ctx->co_ticks.lerp_delta_accumulator_ms = 0;
 }
 
-// set the latency this peer is experimenting (get it from your transport)
-// @argument latency_ms: int. Latency in milliseconds
+/// TODO: Receive nete_peer_id then convert to wync_peer_id
+/// set the latency this peer is experimenting (get it from your transport)
+/// @argument latency_ms: int. Latency in milliseconds
 void WyncClock_peer_set_current_latency (WyncCtx *ctx, u16 peer_id, u16 latency_ms){
 	ctx->common.peer_latency_info[peer_id].latency_raw_latest_ms = latency_ms;
 }
@@ -363,5 +358,3 @@ float WyncClock_get_tick_timestamp_ms(WyncCtx *ctx, i32 ticks) {
 u32 WyncClock_get_ticks(WyncCtx *ctx) {
 	return ctx->common.ticks;
 }
-
-#endif // !WYNC_CLOCK_H

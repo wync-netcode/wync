@@ -1,12 +1,5 @@
-#ifndef WYNC_SPAWN_H
-#define WYNC_SPAWN_H
-
-#include "wync/containers/map.h"
-#include "wync/wync_packet_util.h"
-#include "wync/wync_track.h"
-#include "wync/wync_state_store.h"
-#include "wync_typedef.h"
-
+#include "wync_private.h"
+#include "assert.h"
 
 void _wync_confirm_client_can_see_entity(
 	WyncCtx *ctx, u16 client_id, u32 entity_id);
@@ -41,7 +34,8 @@ void WyncSpawn_handle_pkt_spawn(WyncCtx *ctx, WyncPktSpawn pkt) {
 			.spawn = true,
 			.entity_id = entity_id,
 			.entity_type_id = entity_type_id,
-			.spawn_data = spawn_data
+			.spawn_data_size = spawn_data.data_size,
+			.spawn_data = spawn_data.data
 		};
 
 		SpawnEvent_FIFORing_push_head(
@@ -464,5 +458,3 @@ void _wync_confirm_client_can_see_entity(
 	LOG_OUT_C(ctx, "spawn, confirmed: client %hu can now see entity %u",
 		client_id, entity_id);
 }
-
-#endif // !WYNC_SPAWN_H

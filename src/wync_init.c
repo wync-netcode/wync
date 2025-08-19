@@ -1,8 +1,4 @@
-#ifndef WYNC_INIT_H
-#define WYNC_INIT_H
-
-#include "wync/wync_clock.h"
-#include "wync_typedef.h"
+#include "wync_private.h"
 
 
 // Intend:
@@ -267,5 +263,3 @@ void wync_init_ctx_filter_c(WyncCtx *ctx) {
 	filter->type_state__interpolated_regular_prop_ids = u32_DynArr_create();
 	filter->type_state__newstate_prop_ids = u32_DynArr_create();
 }
-
-#endif // !WYNC_INIT_H

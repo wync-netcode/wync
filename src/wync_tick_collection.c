@@ -1,7 +1,4 @@
-#ifndef WYNC_TICK_COLLECTION
-#define WYNC_TICK_COLLECTION
-
-#include "wync_typedef.h"
+#include "wync_private.h"
 
 
 void WyncOffsetCollection_replace_value(CoTicks *co_ticks, i32 find_value, i32 new_value) {
@@ -67,5 +64,3 @@ void WyncOffsetCollection_add_value(CoTicks *co_ticks, i32 new_value) {
 		WyncOffsetCollection_replace_value(co_ticks, less_common_value, new_value);
 	}
 }
-
-#endif // !WYNC_TICK_COLLECTION

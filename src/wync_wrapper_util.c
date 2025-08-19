@@ -1,12 +1,5 @@
-#ifndef WYNC_WRAPPER_UTIL_H
-#define WYNC_WRAPPER_UTIL_H
-
-#include "wync/wync_state_store.h"
-#include "wync/wync_track.h"
-#include "wync/wync_wrapper.h"
-#include "wync/wync_xtrap.h"
-#include "wync_typedef.h"
-#include <stdlib.h>
+#include "wync_private.h"
+#include "wync_wrapper.h"
 
 void WyncWrapper_initialize(WyncCtx *ctx) {
 	ctx->wrapper = calloc(sizeof(WyncWrapperCtx), 1);
@@ -241,6 +234,3 @@ void WyncWrapper_client_filter_prop_ids (WyncCtx *ctx) {
 		u32_DynArr_insert(&ctx->co_pred.predicted_entity_ids, wync_entity_id);
 	}
 }
-
-
-#endif // !WYNC_WRAPPER_UTIL_H

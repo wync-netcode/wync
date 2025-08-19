@@ -46,7 +46,7 @@ typedef struct {
     TYPE *values;
 } ConMapNode;
 
-void ConMapNode_init_node (ConMapNode *node)
+static void ConMapNode_init_node (ConMapNode *node)
 {
     node->capacity = CON_MAP_NODE_DEFAULT_SIZE;
     node->size = 0;
@@ -54,7 +54,7 @@ void ConMapNode_init_node (ConMapNode *node)
     node->values = malloc(sizeof(TYPE) * node->capacity);
 }
 
-ConMapNode ConMapNode_create_node (void)
+static ConMapNode ConMapNode_create_node (void)
 {
     ConMapNode node = { 0 };
     ConMapNode_init_node(&node);
@@ -77,7 +77,7 @@ static i32 ConMap_array_find (u32 *array, u32 size, u32 value, u32 *index)
 
 // TODO: handle realloc error
 /// @returns index
-u32 ConMapNode_insert (ConMapNode *node, u32 key, TYPE value)
+static u32 ConMapNode_insert (ConMapNode *node, u32 key, TYPE value)
 {
     if (node->size >= node->capacity) {
         node->capacity *= 2;
@@ -92,7 +92,7 @@ u32 ConMapNode_insert (ConMapNode *node, u32 key, TYPE value)
 }
 
 /// @returns index
-u32 ConMapNode_emplace (ConMapNode *node, u32 key, TYPE value)
+static u32 ConMapNode_emplace (ConMapNode *node, u32 key, TYPE value)
 {
     u32 index;
     i32 err = ConMap_array_find(node->keys, node->size, key, &index);
@@ -107,7 +107,7 @@ u32 ConMapNode_emplace (ConMapNode *node, u32 key, TYPE value)
 
 /// @retval  0 OK
 /// @retval -1 Not found
-i32 ConMapNode_remove_by_key (ConMapNode *node, u32 key)
+static i32 ConMapNode_remove_by_key (ConMapNode *node, u32 key)
 {
     u32 index;
     i32 err = ConMap_array_find(node->keys, node->size, key, &index);
@@ -121,7 +121,7 @@ i32 ConMapNode_remove_by_key (ConMapNode *node, u32 key)
     return OK;
 }
 
-void ConMapNode_clear_preserve_capacity (ConMapNode *node) {
+static void ConMapNode_clear_preserve_capacity (ConMapNode *node) {
     node->size = 0;
 }
 
@@ -145,18 +145,18 @@ static void __ConMap_init (ConMap *map, u32 size) {
 }
 
 
-void ConMap_init (ConMap *map) {
+static void ConMap_init (ConMap *map) {
     __ConMap_init(map, CON_MAP_DEFAULT_SIZE);
 }
 
 
-ConMap* ConMap_create (void) {
+static ConMap* ConMap_create (void) {
     ConMap *map = calloc(sizeof(ConMap), 1);
     __ConMap_init(map, CON_MAP_DEFAULT_SIZE);
     return map;
 }
 
-void ConMap_set_pair (ConMap *map, u32 key, TYPE value);
+static void ConMap_set_pair (ConMap *map, u32 key, TYPE value);
 
 static void ConMap_rehash_map (ConMap *map) {
     u32 old_size = map->size;
@@ -193,7 +193,7 @@ static void ConMap_rehash_map (ConMap *map) {
     old_nodes = NULL;
 }
 
-void ConMap_set_pair (ConMap *map, u32 key, TYPE value) {
+static void ConMap_set_pair (ConMap *map, u32 key, TYPE value) {
     u32 node_index = (u32)key % map->size;
     ConMapNode *node = &map->nodes[node_index];
 
@@ -211,7 +211,7 @@ void ConMap_set_pair (ConMap *map, u32 key, TYPE value) {
 }
 
 
-bool ConMap_has_key (ConMap *map, u32 key) {
+static bool ConMap_has_key (ConMap *map, u32 key) {
     u32 node_index = (u32)key % map->size;
     ConMapNode *node = &map->nodes[node_index];
     u32 pair_index;
@@ -223,7 +223,7 @@ bool ConMap_has_key (ConMap *map, u32 key) {
 /// @param[out] value The found value if any
 /// @retval     0     OK
 /// @retval     1     Not found
-int ConMap_get (ConMap *map, u32 key, int* value) {
+static int ConMap_get (ConMap *map, u32 key, int* value) {
     u32 node_index = (u32)key % map->size;
     ConMapNode *node = &map->nodes[node_index];
     u32 pair_index;
@@ -236,13 +236,13 @@ int ConMap_get (ConMap *map, u32 key, int* value) {
 }
 
 
-u32 ConMap_get_key_count (ConMap *map) {
+static u32 ConMap_get_key_count (ConMap *map) {
     return map->pair_count;
 }
 
 /// @retval 0 OK
 /// @retval 1 Not found
-int ConMap_remove_by_key (ConMap *map, u32 key) {
+static int ConMap_remove_by_key (ConMap *map, u32 key) {
     u32 node_index = (u32)key % map->size;
     ConMapNode *node = &map->nodes[node_index];
     int err = ConMapNode_remove_by_key(node, key);
@@ -253,7 +253,7 @@ int ConMap_remove_by_key (ConMap *map, u32 key) {
 }
 
 
-void ConMap_clear_preserve_capacity (ConMap *map) {
+static void ConMap_clear_preserve_capacity (ConMap *map) {
     map->pair_count = 0;
     for (u32 i = 0; i < map->size; ++i) {
         ConMapNode_clear_preserve_capacity(&map->nodes[i]);
@@ -271,7 +271,7 @@ typedef struct {
 /// @param[out] key No longer valid once end is reached
 /// @retval       0 OK
 /// @retval      -1 End reached
-i32 ConMap_iterator_get_next_key (ConMap *map, ConMapIterator *it)
+static i32 ConMap_iterator_get_next_key (ConMap *map, ConMapIterator *it)
 {
     // check correctness
 

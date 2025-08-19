@@ -1,10 +1,5 @@
-#ifndef WYNC_XTRAP_H
-#define WYNC_XTRAP_H
-
-#include "wync/wync_state_set.h"
-#include "wync/wync_track.h"
-#include "wync/wync_typedef.h"
-#include "wync/wync_wrapper.h"
+#include "wync_private.h"
+#include "wync_wrapper.h"
 
 // functions to preform extrapolation / prediction
 
@@ -142,6 +137,9 @@ void WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
 	// WyncXtrapInternal.wync_xtrap_delta_props_clear_current_delta_events(ctx)
 
 	// ...
+
+	// collect what entities to predict
+	WyncXtrap_regular_entities_to_predict(ctx, tick);
 }
 
 
@@ -357,6 +355,3 @@ void WyncXtrap_tick_end(WyncCtx *ctx, i32 tick) {
 	WyncXtrap_save_latest_predicted_state (ctx, tick);
 	WyncXtrap_internal_tick_end(ctx, tick);
 }
-
-
-#endif // !WYNC_XTRAP_H

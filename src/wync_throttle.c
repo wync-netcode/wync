@@ -1,11 +1,8 @@
+
 // Functions related to Throttlng and client relative syncronization
 
-#ifndef WYNC_THROTTLE_H
-#define WYNC_THROTTLE_H
-
-#include "wync/lib/log.h"
-#include "wync/wync_track.h"
-#include "wync/wync_typedef.h"
+#include "wync_private.h"
+#include "lib/log.h"
 #include <assert.h>
 
 // TODO: rename
@@ -173,8 +170,11 @@ void WyncThrottle_everyone_now_can_see_entity(WyncCtx *ctx, u32 entity_id) {
 void WyncThrottle_entity_set_spawn_data(
 	WyncCtx *ctx,
 	u32 entity_id,
-	WyncState spawn_data
+	u32 data_size,
+	void *data
 ) {
+	WyncState spawn_data = { data_size, data };
+	// TODO: Copy
 	assert(!WyncState_ConMap_has_key(
 		&ctx->co_spawn.entity_spawn_data, entity_id));
 	WyncState_ConMap_set_pair(
@@ -197,5 +197,3 @@ i32 WyncThrottle_client_no_longer_sees_entity(
 	return OK;
 
 }
-
-#endif // !WYNC_THROTTLE_H

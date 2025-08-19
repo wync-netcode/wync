@@ -57,7 +57,7 @@ typedef struct {
 
 
 /// @param p_max_size Default 0
-FIFOMAP PRE(FIFOMap_init_calloc) (u32 p_max_size) {
+static FIFOMAP PRE(FIFOMap_init_calloc) (u32 p_max_size) {
 	FIFOMAP map = { 0 };
 
 	map.max_size = p_max_size;
@@ -67,7 +67,7 @@ FIFOMAP PRE(FIFOMap_init_calloc) (u32 p_max_size) {
 	return map;
 }
 
-void PRE(FIFOMap_push_head_hash_and_item) (FIFOMAP *map, u64 item_hash, TYPE item) {
+static void PRE(FIFOMap_push_head_hash_and_item) (FIFOMAP *map, u64 item_hash, TYPE item) {
 	// if not enough room -> pop
 
 	if (map->ring.size >= map->max_size) {
@@ -82,12 +82,12 @@ void PRE(FIFOMap_push_head_hash_and_item) (FIFOMAP *map, u64 item_hash, TYPE ite
 }
 
 
-bool PRE(FIFOMap_has_item_hash) (FIFOMAP *map, u32 item_hash) {
+static bool PRE(FIFOMap_has_item_hash) (FIFOMAP *map, u32 item_hash) {
 	return MAP_G_PREFIX(ConMap_has_key)(&map->map_internal, (i32)item_hash);
 }
 
 
-TYPE *PRE(FIFOMap_get_item_by_hash) (FIFOMAP *map, u32 item_hash) {
+static TYPE *PRE(FIFOMap_get_item_by_hash) (FIFOMAP *map, u32 item_hash) {
 	TYPE *item = NULL;
 	i32 error = MAP_G_PREFIX(ConMap_get)(&map->map_internal, (i32)item_hash, &item);
 	if (error != OK) {

@@ -1,14 +1,11 @@
 #ifndef WYNC_CTX_H
 #define WYNC_CTX_H
 
+#include "wync.h"
 #include "string.h"
 #include "stdlib.h"
-//#include "wync_wrapper.h"
-//#include "wync_packets.h"
-#include "macro_types.h"
 #include "containers/map.h"
-#include "wync/buffer.h"
-
+#include "src/buffer.h"
 
 
 // ============================================================
@@ -18,18 +15,41 @@
 // ============================================================
 
 
+#ifndef i16
+#define i16 int16_t
+#endif
+#ifndef u16
+#define u16 uint16_t
+#endif
+#ifndef i32
+#define i32 int32_t
+#endif
+#ifndef u32
+#define u32 uint32_t
+#endif
+#ifndef i64
+#define i64 int64_t
+#endif
+#ifndef u64
+#define u64 uint64_t
+#endif
+
+#define SIGN(x) ((x) < 0 ? -1 : ((x) > 0 ? +1 : 0))
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 
 typedef struct {
 	u32 data_size;
 	void *data;
 } WyncState;
 
-void WyncState_free (WyncState *state) {
+static void WyncState_free (WyncState *state) {
 	free(state->data);
 	state->data = NULL;
 	state->data_size = 0;
 }
-WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
+static WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
 	WyncState state = { 
 		.data_size = data_size,
 		.data = calloc(1, data_size)
@@ -37,7 +57,7 @@ WyncState WyncState_copy_from_buffer (u32 data_size, void *data) {
 	memcpy(state.data, data, data_size);
 	return state;
 }
-void WyncState_set_from_buffer (WyncState *self, u32 data_size, void *data) {
+static void WyncState_set_from_buffer (WyncState *self, u32 data_size, void *data) {
 	if (self->data_size != data_size) {
 		WyncState_free(self);
 		*self = WyncState_copy_from_buffer(data_size, data);
@@ -45,7 +65,7 @@ void WyncState_set_from_buffer (WyncState *self, u32 data_size, void *data) {
 	}
 	memcpy(self->data, data, data_size);
 }
-bool WyncState_serialize (
+static bool WyncState_serialize (
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncState *state
@@ -118,20 +138,21 @@ typedef struct {
 	i32 b;
 } Wync_i32Pair;
 
-typedef struct {
-	bool spawn; // wether to spawn or to dispawn
-	//bool already_spawned;
-	u32 entity_id;
-	u32 entity_type_id;
-	WyncState spawn_data;
-} Wync_EntitySpawnEvent;
+//typedef struct {
+	//bool spawn; // wether to spawn or to dispawn
+	////bool already_spawned;
+	//u32 entity_id;
+	//u32 entity_type_id;
+	//u32 spawn_data_size; // Not using WyncState because this is public API
+	//void *spawn_data;
+//} Wync_EntitySpawnEvent;
 
 typedef struct {
 	u32 last_tick;
 	WyncState data;
 } Wync_DummyProp;
 
-void Wync_DummyProp_free (Wync_DummyProp *self) {
+static void Wync_DummyProp_free (Wync_DummyProp *self) {
 	WyncState_free(&self->data);
 }
 
@@ -144,7 +165,7 @@ typedef struct {
 	void *event_data;
 } WyncEvent_EventData;
 
-WyncEvent_EventData WyncEvent_EventData_duplicate(WyncEvent_EventData *self) {
+static WyncEvent_EventData WyncEvent_EventData_duplicate(WyncEvent_EventData *self) {
 	WyncEvent_EventData newi = { 0 };
 	memcpy(&newi, self, sizeof(WyncEvent_EventData));
 
@@ -158,11 +179,11 @@ typedef struct {
 	u64 data_hash;
 } WyncEvent;
 
-enum WYNC_PROP_TYPE {
-	WYNC_PROP_TYPE_STATE,
-	WYNC_PROP_TYPE_INPUT,
-	WYNC_PROP_TYPE_EVENT // can only store Array[int]
-};
+//enum WYNC_PROP_TYPE {
+	//WYNC_PROP_TYPE_STATE,
+	//WYNC_PROP_TYPE_INPUT,
+	//WYNC_PROP_TYPE_EVENT // can only store Array[int]
+//};
 
 typedef struct {
 	u32 prop_start;
@@ -218,7 +239,7 @@ typedef struct {
 	WyncState data;
 } WyncPacket;
 
-bool WyncPacket_serialize(
+static bool WyncPacket_serialize(
 	bool is_reading, 
 	NeteBuffer *buffer,
 	WyncPacket *pkt
@@ -228,7 +249,7 @@ bool WyncPacket_serialize(
 	return true;
 }
 
-void WyncPacket_free(WyncPacket *pkt) {
+static void WyncPacket_free(WyncPacket *pkt) {
 	WyncState_free(&pkt->data);
 }
 
@@ -241,13 +262,13 @@ typedef struct {
 	void *data; // WyncPacket
 } WyncPacketOut;
 
-bool WyncPacketOut_write(NeteBuffer *buffer, WyncPacketOut *pkt) {
+static bool WyncPacketOut_write(NeteBuffer *buffer, WyncPacketOut *pkt) {
 	NETEBUFFER_WRITE_BYTES(buffer, &pkt->to_nete_peer_id, sizeof(u16));
 	NETEBUFFER_WRITE_BYTES(buffer, &pkt->data_size, sizeof(u32));
 	NETEBUFFER_WRITE_BYTES(buffer, pkt->data, pkt->data_size);
 	return true;
 }
-bool WyncPacketOut_read(NeteBuffer *buffer, WyncPacketOut *pkt) {
+static bool WyncPacketOut_read(NeteBuffer *buffer, WyncPacketOut *pkt) {
 	NETEBUFFER_READ_BYTES
 		(buffer, &pkt->to_nete_peer_id, sizeof(pkt->to_nete_peer_id));
 	NETEBUFFER_READ_BYTES
@@ -258,7 +279,7 @@ bool WyncPacketOut_read(NeteBuffer *buffer, WyncPacketOut *pkt) {
 	NETEBUFFER_READ_BYTES(buffer, pkt->data, pkt->data_size);
 	return true;
 }
-void WyncPacketOut_free(WyncPacketOut *pkt) {
+static void WyncPacketOut_free(WyncPacketOut *pkt) {
 	free(pkt->data);
 	pkt->data = NULL;
 	pkt->data_size = 0;
@@ -270,7 +291,7 @@ typedef struct {
 
 // what happens if it's expensive to know the size?
 
-bool WyncPktClientSetLerpMS_serialize (
+static bool WyncPktClientSetLerpMS_serialize (
 	bool is_reading, NeteBuffer *buffer, WyncPktClientSetLerpMS *pkt
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->lerp_ms, sizeof(u32));
@@ -284,7 +305,7 @@ typedef struct {
 	u64 time_og; // requester's time
 } WyncPktClock;
 
-bool WyncPktClock_serialize (
+static bool WyncPktClock_serialize (
 	bool is_reading, NeteBuffer *buffer, WyncPktClock *pkt
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->tick, sizeof(u32));
@@ -305,7 +326,7 @@ typedef struct {
 	u32 *last_tick_received;
 } WyncPktDeltaPropAck;
 
-bool WyncPktDeltaPropAck_serialize (
+static bool WyncPktDeltaPropAck_serialize (
 	bool is_reading, NeteBuffer *buffer, WyncPktDeltaPropAck *pkt
 ) {
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->prop_amount, sizeof(u32));
@@ -330,17 +351,17 @@ typedef struct {
 	u32 entity_amount;
 	u32 *entity_ids;
 } WyncPktDespawn;
-void WyncPktDespawn_allocate(WyncPktDespawn *pkt, u32 size) {
+static void WyncPktDespawn_allocate(WyncPktDespawn *pkt, u32 size) {
 	pkt->entity_amount = size;
 	pkt->entity_ids = calloc(sizeof(u32), size);
 }
-void WyncPktDespawn_free(WyncPktDespawn *pkt) {
+static void WyncPktDespawn_free(WyncPktDespawn *pkt) {
 	free(pkt->entity_ids);
 	pkt->entity_ids = NULL;
 	pkt->entity_amount = 0;
 }
 /// Allocates needed memory
-bool WyncPktDespawn_serialize(
+static bool WyncPktDespawn_serialize(
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncPktDespawn *pkt
@@ -383,7 +404,7 @@ typedef struct {
 	WyncTickDecorator *inputs;
 } WyncPktInputs;
 
-void WyncPktInputs_free (WyncPktInputs *pkt) {
+static void WyncPktInputs_free (WyncPktInputs *pkt) {
 	WyncTickDecorator *input;
 	if (pkt->inputs == NULL) return;
 	for (u32 i = 0; i < pkt->amount; ++i) {
@@ -395,7 +416,7 @@ void WyncPktInputs_free (WyncPktInputs *pkt) {
 	pkt->amount = 0;
 }
 
-bool WyncPktInputs_serialize (
+static bool WyncPktInputs_serialize (
 	bool is_reading,
 	NeteBuffer *buff,
 	WyncPktInputs *pkt
@@ -422,7 +443,7 @@ typedef struct {
 	u32 dummy;
 } WyncPktJoinReq;
 
-bool WyncPktJoinReq_serialize (
+static bool WyncPktJoinReq_serialize (
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncPktJoinReq *pkt
@@ -436,7 +457,7 @@ typedef struct {
 	i32 wync_client_id; // -1
 } WyncPktJoinRes;
 
-bool WyncPktJoinRes_serialize (
+static bool WyncPktJoinRes_serialize (
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncPktJoinRes *pkt
@@ -456,7 +477,7 @@ typedef struct {
 	u32 prop_id;
 } WyncPktResClientInfo; // TODO: Rename
 
-bool WyncPktResClientInfo_serialize(
+static bool WyncPktResClientInfo_serialize(
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncPktResClientInfo *pkt
@@ -471,7 +492,7 @@ typedef struct {
 	WyncState data;
 } WyncSnap;
 
-bool WyncSnap_serialize(
+static bool WyncSnap_serialize(
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncSnap *snap
@@ -481,7 +502,7 @@ bool WyncSnap_serialize(
 		{ return false; }
 	return true;
 }
-void WyncSnap_free(WyncSnap *snap) {
+static void WyncSnap_free(WyncSnap *snap) {
 	WyncState_free(&snap->data);
 }
 
@@ -491,7 +512,7 @@ typedef struct {
 	WyncSnap *snaps;
 } WyncPktSnap;
 
-bool WyncPktSnap_serialize(
+static bool WyncPktSnap_serialize(
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncPktSnap *pkt
@@ -511,7 +532,7 @@ bool WyncPktSnap_serialize(
 	}
 	return true;
 }
-void WyncPktSnap_free(WyncPktSnap *pkt) {
+static void WyncPktSnap_free(WyncPktSnap *pkt) {
 	for (u16 i = 0; i < pkt->snap_amount; ++i) {
 		WyncSnap_free(&pkt->snaps[i]);
 	}
@@ -528,7 +549,7 @@ typedef struct {
 
 } WyncPktSpawn;
 
-void WyncPktSpawn_calloc(WyncPktSpawn *pkt, u16 size) {
+static void WyncPktSpawn_calloc(WyncPktSpawn *pkt, u16 size) {
 	pkt->entity_amount = size;
 	pkt->entity_ids = calloc(sizeof(u32), size);
 	pkt->entity_type_ids = calloc(sizeof(u16), size);
@@ -537,7 +558,7 @@ void WyncPktSpawn_calloc(WyncPktSpawn *pkt, u16 size) {
 	pkt->entity_prop_id_end = calloc(sizeof(u32), size);
 	pkt->entity_spawn_data = calloc(sizeof(WyncState), size);
 }
-void WyncPktSpawn_free(WyncPktSpawn *pkt) {
+static void WyncPktSpawn_free(WyncPktSpawn *pkt) {
 	if (pkt->entity_ids != NULL) free(pkt->entity_ids);
 	if (pkt->entity_type_ids != NULL) free(pkt->entity_type_ids);
 	if (pkt->entity_prop_id_start != NULL) free(pkt->entity_prop_id_start);
@@ -554,7 +575,7 @@ void WyncPktSpawn_free(WyncPktSpawn *pkt) {
 /// Allocates memory when reading
 ///
 /// @returns error, if failed, manually free
-bool WyncPktSpawn_serialize(
+static bool WyncPktSpawn_serialize(
 	bool is_reading,
 	NeteBuffer *buffer,
 	WyncPktSpawn *pkt,
@@ -1402,7 +1423,7 @@ typedef struct {
 	u32 PROP_ID_PROB;
 } CoMetrics;
 
-typedef struct {
+struct WyncCtx {
 	Wync_CoCommon common;
 	struct WyncWrapperCtx *wrapper;
 
@@ -1444,6 +1465,6 @@ typedef struct {
 	// --------------------------------------------------------
 	// ...
 	
-} WyncCtx;
+};
 
 #endif // !WYNC_CTX_H

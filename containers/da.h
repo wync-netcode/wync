@@ -32,7 +32,7 @@ typedef struct {
 } PRE(DynArr);
 
 
-PRE(DynArr) PRE(DynArr_create) (void) {
+static inline PRE(DynArr) PRE(DynArr_create) (void) {
     PRE(DynArr) da = { 0 };
     da.capacity = 2;
     da.items = (TYPE *)malloc(sizeof(TYPE) * da.capacity);
@@ -42,7 +42,7 @@ PRE(DynArr) PRE(DynArr_create) (void) {
 
 /// @param   item  Item passed as value
 /// @returns index
-size_t PRE(DynArr_insert) (PRE(DynArr) *da, TYPE item) {
+static inline size_t PRE(DynArr_insert) (PRE(DynArr) *da, TYPE item) {
     if (da->size >= da->capacity) {
         da->capacity *= 2;
         da->items = (TYPE *)realloc(da->items, sizeof(TYPE) * da->capacity);
@@ -54,7 +54,7 @@ size_t PRE(DynArr_insert) (PRE(DynArr) *da, TYPE item) {
 }
 
 /// @returns error
-int PRE(DynArr_insert_at) (PRE(DynArr) *da, size_t index, TYPE item) {
+static int PRE(DynArr_insert_at) (PRE(DynArr) *da, size_t index, TYPE item) {
     if (index >= da->size) {
         return -1;
     }
@@ -65,12 +65,12 @@ int PRE(DynArr_insert_at) (PRE(DynArr) *da, size_t index, TYPE item) {
 
 
 /// @returns TYPE
-TYPE *PRE(DynArr_get) (PRE(DynArr) *da, size_t index) {
+static TYPE *PRE(DynArr_get) (PRE(DynArr) *da, size_t index) {
     return &da->items[index];
 }
 
 
-size_t PRE(DynArr_get_size) (PRE(DynArr) *da) {
+static size_t PRE(DynArr_get_size) (PRE(DynArr) *da) {
     return da->size;
 }
 
@@ -79,7 +79,7 @@ size_t PRE(DynArr_get_size) (PRE(DynArr) *da) {
 /// Removing will alter the order
 /// @retval  0 OK
 /// @retval -1 Not found
-int PRE(DynArr_remove_at) (PRE(DynArr) *da, size_t index) {
+static int PRE(DynArr_remove_at) (PRE(DynArr) *da, size_t index) {
     if (index < 0 || index >= da->size){
         return -1;
     }
@@ -91,7 +91,7 @@ int PRE(DynArr_remove_at) (PRE(DynArr) *da, size_t index) {
 
 
 /// Clears the array but preserves the allocated memory
-void PRE(DynArr_clear_preserving_capacity) (PRE(DynArr) *da) {
+static void PRE(DynArr_clear_preserving_capacity) (PRE(DynArr) *da) {
     da->size = 0;
 }
 
@@ -106,7 +106,7 @@ typedef struct {
 /// @param[out] it iterator
 /// @retval  0 OK
 /// @retval -1 End reached
-int PRE(DynArr_iterator_get_next) (PRE(DynArr) *da, PRE(DynArrIterator) *it)
+static int PRE(DynArr_iterator_get_next) (PRE(DynArr) *da, PRE(DynArrIterator) *it)
 {
     if (it->__next_index < 0 || it->__next_index >= da->size) {
         it->item = NULL;
@@ -156,7 +156,7 @@ static PRE(DynArr_Pair) PRE(DynArr_partition) (TYPE *buffer, size_t from, size_t
     return (PRE(DynArr_Pair)){left, right};
 }
 
-void PRE(DynArr_sort_range) (TYPE *buffer, size_t from, size_t to) {
+static void PRE(DynArr_sort_range) (TYPE *buffer, size_t from, size_t to) {
     if (from >= 0 && from < to) {
         PRE(DynArr_Pair) partition_index = PRE(DynArr_partition)(buffer, from, to);
         if (from +1 < partition_index.a) {
@@ -169,7 +169,7 @@ void PRE(DynArr_sort_range) (TYPE *buffer, size_t from, size_t to) {
 }
 
 // sorts it and repositions head to latest
-void PRE(DynArr_sort) (PRE(DynArr) *r) {
+static void PRE(DynArr_sort) (PRE(DynArr) *r) {
     if (r->size == 0) return;
     PRE(DynArr_sort_range) (r->items, 0, r->size-1);
 }

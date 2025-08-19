@@ -14,10 +14,10 @@ typedef struct {
 } NeteBuffer;
 
 
-void NeteBuffer_reset_cursor(NeteBuffer *buffer) {
+static void NeteBuffer_reset_cursor(NeteBuffer *buffer) {
 	buffer->cursor_byte = 0;
 }
-bool NeteBuffer_write_bytes(NeteBuffer *buffer, void *data, uint32_t size) {
+static bool NeteBuffer_write_bytes(NeteBuffer *buffer, void *data, uint32_t size) {
 	if (data == NULL || size == 0) {
 		return false;
 	}
@@ -28,7 +28,7 @@ bool NeteBuffer_write_bytes(NeteBuffer *buffer, void *data, uint32_t size) {
 	buffer->cursor_byte += size;
 	return true;
 }
-bool NeteBuffer_read_bytes(NeteBuffer *buffer, void *destination, uint32_t size) {
+static bool NeteBuffer_read_bytes(NeteBuffer *buffer, void *destination, uint32_t size) {
 	if (destination == NULL || size == 0) {
 		return false;
 	}
@@ -39,7 +39,7 @@ bool NeteBuffer_read_bytes(NeteBuffer *buffer, void *destination, uint32_t size)
 	buffer->cursor_byte += size;
 	return true;
 }
-bool NeteBuffer_bytes_serialize (
+static bool NeteBuffer_bytes_serialize (
 	bool is_reading, NeteBuffer *buffer, void *other, uint32_t size
 ) {
 	if (other == NULL || size == 0) {

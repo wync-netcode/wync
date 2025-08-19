@@ -1,11 +1,7 @@
-#ifndef WYNC_LERP
-#define WYNC_LERP
-
-#include "raylib.h"
-#include "wync/wync_clock.h"
-#include "wync/wync_state_store.h"
-#include "wync/wync_wrapper.h"
-#include "wync_typedef.h"
+#include "wync_private.h"
+#include "wync_wrapper.h"
+#include "math.h"
+#include "assert.h"
 
 
 struct LerpTicks {
@@ -403,6 +399,3 @@ void WyncLerp_interpolate_all (
 		WyncState_free(&lerped_state_to_free);
 	}
 }
-
-
-#endif // !WYNC_LERP

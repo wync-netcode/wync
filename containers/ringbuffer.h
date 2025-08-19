@@ -43,7 +43,7 @@ typedef struct {
 
 // @param   p_size MUST be a power of two
 // @returns        New RingBuffer
-PRE(RinBuf) PRE(RinBuf_create) (size_t p_size, TYPE default_value) {
+static PRE(RinBuf) PRE(RinBuf_create) (size_t p_size, TYPE default_value) {
     PRE(RinBuf) ring = { 0 };
     ring.size = p_size;
     ring.buffer = (TYPE *)malloc(sizeof(TYPE) * ring.size);
@@ -56,7 +56,7 @@ PRE(RinBuf) PRE(RinBuf_create) (size_t p_size, TYPE default_value) {
 
 // @param i    position in the ring
 // @param item 
-void PRE(RinBuf_insert_at) (PRE(RinBuf) *r, size_t index, TYPE item) {
+static void PRE(RinBuf_insert_at) (PRE(RinBuf) *r, size_t index, TYPE item) {
     if (r->size == 0) return;
     r->buffer[FAST_MODULUS(index, r->size)] = item;
 }
@@ -67,7 +67,7 @@ void PRE(RinBuf_insert_at) (PRE(RinBuf) *r, size_t index, TYPE item) {
 /// @param[out] index (Optional) Position for new element
 /// @param[out] old_item (Optional) Pointer to previous item if any
 /// @returns error
-int PRE(RinBuf_push) (PRE(RinBuf) *r, TYPE item, size_t *index, TYPE *old_item) {
+static int PRE(RinBuf_push) (PRE(RinBuf) *r, TYPE item, size_t *index, TYPE *old_item) {
     if (r->size == 0) return -1;
     r->head_pointer = (r->head_pointer + 1) % r->size;
 
@@ -86,29 +86,29 @@ int PRE(RinBuf_push) (PRE(RinBuf) *r, TYPE item, size_t *index, TYPE *old_item) 
 
 /// Returns the item in position relative to head
 /// e.g. get(0) will return head, but get(-1) will return the item before head
-TYPE *PRE(RinBuf_get_relative) (PRE(RinBuf) *r, size_t position) {
+static TYPE *PRE(RinBuf_get_relative) (PRE(RinBuf) *r, size_t position) {
     if (r->size == 0) return NULL;
     return &r->buffer[FAST_MODULUS(r->head_pointer + position, r->size)];
 }
 
 
-TYPE *PRE(RinBuf_get_absolute) (PRE(RinBuf) *r, size_t index) {
+static static TYPE *PRE(RinBuf_get_absolute) (PRE(RinBuf) *r, size_t index) {
     if (r->size == 0) return NULL;
     return &r->buffer[index];
 }
 
 
-TYPE *PRE(RinBuf_get_at) (PRE(RinBuf) *r, size_t position) {
+static TYPE *PRE(RinBuf_get_at) (PRE(RinBuf) *r, size_t position) {
     if (r->size == 0) return NULL;
     return &r->buffer[FAST_MODULUS(position, r->size)];
 }
 
-size_t PRE(RinBuf_get_size) (PRE(RinBuf) *r) {
+static size_t PRE(RinBuf_get_size) (PRE(RinBuf) *r) {
     return r->size;
 }
 
 
-void PRE(RinBuf_clear) (PRE(RinBuf) *r) {
+static void PRE(RinBuf_clear) (PRE(RinBuf) *r) {
     r->head_pointer = 0;
     memset(r->buffer, 0, r->size);
 }
@@ -150,7 +150,7 @@ static PRE(RinBuf_Pair) PRE(RinBuf_partition) (TYPE *buffer, size_t from, size_t
     return (PRE(RinBuf_Pair)){left, right};
 }
 
-void PRE(RinBuf_sort_range) (TYPE *buffer, size_t from, size_t to) {
+static void PRE(RinBuf_sort_range) (TYPE *buffer, size_t from, size_t to) {
     if (from >= 0 && from < to) {
         PRE(RinBuf_Pair) partition_index = PRE(RinBuf_partition)(buffer, from, to);
         if (from +1 < partition_index.a) {
@@ -163,7 +163,7 @@ void PRE(RinBuf_sort_range) (TYPE *buffer, size_t from, size_t to) {
 }
 
 // sorts it and repositions head to latest
-void PRE(RinBuf_sort) (PRE(RinBuf) *r) {
+static void PRE(RinBuf_sort) (PRE(RinBuf) *r) {
     if (r->size == 0) return;
     r->head_pointer = r->size-1;
     PRE(RinBuf_sort_range) (r->buffer, 0, r->size-1);

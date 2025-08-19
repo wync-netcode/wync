@@ -70,7 +70,7 @@ typedef struct {
     TYPE *values;
 } CONMAP_NODE;
 
-void PRE(ConMapNode_init_node) (CONMAP_NODE *node)
+static void PRE(ConMapNode_init_node) (CONMAP_NODE *node)
 {
     node->capacity = CON_MAP_NODE_DEFAULT_SIZE;
     node->size = 0;
@@ -78,7 +78,7 @@ void PRE(ConMapNode_init_node) (CONMAP_NODE *node)
     node->values = (TYPE*)malloc(sizeof(TYPE) * node->capacity);
 }
 
-CONMAP_NODE PRE(ConMapNode_create_node) (void)
+static CONMAP_NODE PRE(ConMapNode_create_node) (void)
 {
     CONMAP_NODE node = { 0 };
     PRE(ConMapNode_init_node)(&node);
@@ -87,7 +87,7 @@ CONMAP_NODE PRE(ConMapNode_create_node) (void)
 
 // TODO: handle realloc error
 /// @returns index
-u32 PRE(ConMapNode_insert) (CONMAP_NODE *node, u32 key, TYPE value)
+static u32 PRE(ConMapNode_insert) (CONMAP_NODE *node, u32 key, TYPE value)
 {
     if (node->size >= node->capacity) {
         node->capacity *= 2;
@@ -102,7 +102,7 @@ u32 PRE(ConMapNode_insert) (CONMAP_NODE *node, u32 key, TYPE value)
 }
 
 /// @returns index
-u32 PRE(ConMapNode_emplace) (CONMAP_NODE *node, u32 key, TYPE value)
+static u32 PRE(ConMapNode_emplace) (CONMAP_NODE *node, u32 key, TYPE value)
 {
     u32 index;
     i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &index);
@@ -117,7 +117,7 @@ u32 PRE(ConMapNode_emplace) (CONMAP_NODE *node, u32 key, TYPE value)
 
 /// @retval  0 OK
 /// @retval -1 Not found
-i32 PRE(ConMapNode_remove_by_key) (CONMAP_NODE *node, u32 key)
+static i32 PRE(ConMapNode_remove_by_key) (CONMAP_NODE *node, u32 key)
 {
     u32 index;
     i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &index);
@@ -151,18 +151,18 @@ static void PRE(__ConMap_init) (CONMAP *map, u32 size) {
 }
 
 
-void PRE(ConMap_init) (CONMAP *map) {
+static void PRE(ConMap_init) (CONMAP *map) {
     PRE(__ConMap_init)(map, CON_MAP_DEFAULT_SIZE);
 }
 
 
-CONMAP* PRE(ConMap_create) (void) {
+static CONMAP* PRE(ConMap_create) (void) {
     CONMAP *map = (CONMAP*)calloc(sizeof(CONMAP), 1);
     PRE(__ConMap_init)(map, CON_MAP_DEFAULT_SIZE);
     return map;
 }
 
-void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value);
+static void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value);
 
 static void PRE(ConMap_rehash_map) (CONMAP *map) {
     u32 old_size = map->size;
@@ -199,7 +199,7 @@ static void PRE(ConMap_rehash_map) (CONMAP *map) {
     old_nodes = NULL;
 }
 
-void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value) {
+static void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value) {
     u32 node_index = (u32)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
 
@@ -217,7 +217,7 @@ void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value) {
 }
 
 
-bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
+static bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
     u32 node_index = (u32)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
     u32 pair_index;
@@ -229,7 +229,7 @@ bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
 /// @param[out] value The found value if any
 /// @retval     0     OK
 /// @retval     1     Not found
-i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE** value) {
+static i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE** value) {
     u32 node_index = (u32)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
     u32 pair_index;
@@ -242,13 +242,13 @@ i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE** value) {
 }
 
 
-u32 PRE(ConMap_get_key_count) (CONMAP *map) {
+static u32 PRE(ConMap_get_key_count) (CONMAP *map) {
     return map->pair_count;
 }
 
 /// @retval 0 OK
 /// @retval 1 Not found
-int PRE(ConMap_remove_by_key) (CONMAP *map, u32 key) {
+static int PRE(ConMap_remove_by_key) (CONMAP *map, u32 key) {
     u32 node_index = (u32)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
     int err = PRE(ConMapNode_remove_by_key)(node, key);
@@ -269,7 +269,7 @@ typedef struct {
 /// @param[out] key No longer valid once end is reached
 /// @retval       0 OK
 /// @retval      -1 End reached
-i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
+static i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
 {
     // check correctness
 

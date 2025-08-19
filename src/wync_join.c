@@ -1,11 +1,8 @@
-#ifndef WYNC_JOIN_H
-#define WYNC_JOIN_H
+#include "wync_private.h"
 
-#include "wync/wync_input.h"
-#include "wync_typedef.h"
-#include "wync_packet_util.h"
-#include "wync_track.h"
-
+bool WyncJoin_is_connected(WyncCtx *ctx){
+	return ctx->common.connected;
+}
 
 /// @param[out] out_peer_id If found
 /// @returns error
@@ -348,5 +345,3 @@ bool WyncJoin_out_client_just_connected_to_server (WyncCtx *ctx) {
 	ctx->common.prev_connected = ctx->common.connected;
 	return just_connected;
 }
-
-#endif // !WYNC_JOIN_H
