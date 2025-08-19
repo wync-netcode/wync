@@ -354,10 +354,10 @@ void WyncClock_set_debug_time_offset(WyncCtx *ctx, u64 time_offset_ms){
 	ctx->common.debug_time_offset_ms = time_offset_ms;
 }
 
-float WyncClock_get_tick_timestamp_ms(WyncCtx ctx, u32 ticks) {
-	float frame = 1000.0f / ctx.common.physic_ticks_per_second;
-	return (ctx.co_pred.current_tick_timestamp +
-			(float)(ticks - ctx.common.ticks) * frame);
+float WyncClock_get_tick_timestamp_ms(WyncCtx *ctx, i32 ticks) {
+	float frame = 1000.0f / ctx->common.physic_ticks_per_second;
+	return (ctx->co_pred.current_tick_timestamp +
+			(float)(ticks - (i32)ctx->common.ticks) * frame);
 }
 
 u32 WyncClock_get_ticks(WyncCtx *ctx) {

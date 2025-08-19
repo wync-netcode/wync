@@ -4,6 +4,7 @@
 #include "wync/wync_debug.h"
 #include "wync/wync_join.h"
 #include "wync/wync_track.h"
+#include "wync/wync_stat.h"
 #include "wync_typedef.h"
 
 

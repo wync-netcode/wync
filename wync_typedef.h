@@ -265,7 +265,7 @@ void WyncPacketOut_free(WyncPacketOut *pkt) {
 }
 
 typedef struct {
-	i32 lerp_ms;
+	u32 lerp_ms;
 } WyncPktClientSetLerpMS;
 
 // what happens if it's expensive to know the size?
@@ -273,7 +273,7 @@ typedef struct {
 bool WyncPktClientSetLerpMS_serialize (
 	bool is_reading, NeteBuffer *buffer, WyncPktClientSetLerpMS *pkt
 ) {
-	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->lerp_ms, sizeof(i32));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->lerp_ms, sizeof(u32));
 	return true;
 }
 
@@ -816,11 +816,11 @@ typedef struct {
 	// Q: Why store state copy?
 	// A: To allow the state buffer to fill and be replaced
 	
-	u32 lerp_left_local_tick;
-	u32 lerp_right_local_tick;
+	i32 lerp_left_local_tick;
+	i32 lerp_right_local_tick;
 	
-	u32 lerp_left_canon_tick;
-	u32 lerp_right_canon_tick;
+	i32 lerp_left_canon_tick;
+	i32 lerp_right_canon_tick;
 	
 	WyncState lerp_left_state;
 	WyncState lerp_right_state;

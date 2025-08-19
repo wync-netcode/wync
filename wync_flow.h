@@ -2,6 +2,7 @@
 #define WYNC_FLOW_H
 
 #include "wync/wync_input.h"
+#include "wync/wync_lerp.h"
 #include "wync/wync_stat.h"
 #include "wync/wync_state_send.h"
 #include "wync/wync_state_set.h"
@@ -203,7 +204,13 @@ i32 wync_flow_wync_feed_packet(
 		case WYNC_PKT_CLIENT_SET_LERP_MS:
 		{
 			if (is_server) {
-				//WyncLerp.wync_handle_packet_client_set_lerp_ms(ctx, wync_pkt.data, from_nete_peer_id)
+				WyncPktClientSetLerpMS pkt = { 0 };
+				if (!WyncPktClientSetLerpMS_serialize(true, &buffer, &pkt)) {
+					LOG_ERR_C(ctx, "couldn't read WyncPktClientSetLerpMS");
+					break;
+				}
+				WyncLerp_handle_packet_client_set_lerp_ms(
+					ctx, pkt, from_nete_peer_id);
 			}
 			break;
 		}
@@ -298,12 +305,6 @@ i32 wync_flow_server_setup(WyncCtx *ctx) {
 }
 
 
-i32 wync_flow_client_init(WyncCtx *ctx) {
-	ctx->common.is_client = true;
-	ctx->common.peers = i32_DynArr_create();
-	return OK;
-}
-
 // ==================================================
 // WRAPPER
 // ==================================================
@@ -375,7 +376,7 @@ void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
 
 	WyncStore_service_cleanup_dummy_props(ctx);
 
-	//WyncLerp.wync_lerp_precompute(ctx)
+	WyncLerp_precompute(ctx);
 }
 
 void wync_flow_wync_system_gather_packets(WyncCtx *ctx) {

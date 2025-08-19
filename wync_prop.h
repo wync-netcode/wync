@@ -25,9 +25,13 @@ i32 WyncProp_enable_interpolation (
 	u16 user_data_type
 ) {
 	WyncProp *prop = WyncTrack_get_prop(ctx, prop_id);
-	if (prop == NULL || prop->lerp_enabled) {
+	if (prop == NULL) {
 		return -1;
 	}
+ 	if (prop->lerp_enabled) {
+		return OK;
+	}
+
 	assert(user_data_type > 0); // avoid accidental default values
 	
 	prop->lerp_enabled = true;
