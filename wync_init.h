@@ -41,7 +41,7 @@ void wync_init_ctx_state_tracking(WyncCtx *ctx) {
 	co_track->prop_id_cursor = 0;
 
 	ConMap_init(&co_track->tracked_entities);
-	co_track->props = calloc (sizeof(*co_track->props), MAX_PROPS);
+	co_track->props = calloc (sizeof(WyncProp), MAX_PROPS);
 	ConMap_init(&co_track->active_prop_ids);
 	u32_DynArr_ConMap_init(&co_track->entity_has_props);
 	ConMap_init(&co_track->entity_is_of_type);

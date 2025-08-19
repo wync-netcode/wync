@@ -182,6 +182,7 @@ static void WyncLerp_precompute_predicted (
 		|| prop->co_xtrap.pred_curr.data.data == NULL
 	){
 		prop->co_lerp.lerp_ready = false;
+		return;
 	}
 
 	prop->co_lerp.lerp_left_local_tick = ctx->common.ticks;
@@ -304,6 +305,8 @@ void WyncLerp_interpolate_all (
 	float delta_lerp_fraction
 ) {
 	float frame = 1000.0 / ctx->common.physic_ticks_per_second;
+	float factor_max = 1 + ctx->co_lerp.max_lerp_factor_symmetric;
+	float factor_min = 0 - ctx->co_lerp.max_lerp_factor_symmetric;
 
 	// Note: substracting one frame to `target_time_conf` to compensate for one
 	// frame added by delta_fraction_ms
@@ -385,12 +388,7 @@ void WyncLerp_interpolate_all (
 			prop->co_lerp.lerp_use_confirmed_state ?
 			target_time_conf : target_time_pred) - left_timestamp_ms)
 			/ (right_timestamp_ms - left_timestamp_ms);
-
-		if (factor < (0 - ctx->co_lerp.max_lerp_factor_symmetric)
-			|| factor > (1 + ctx->co_lerp.max_lerp_factor_symmetric))
-		{
-			continue;
-		}
+		factor = MAX(MIN(factor, factor_max), factor_min);
 
 		lerped_state = (*lerp_func) (
 			(WyncWrapper_Data) { left_value.data_size, left_value.data },

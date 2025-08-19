@@ -145,18 +145,6 @@ void WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
 }
 
 
-static void WyncXtrap_internal_tick_end(WyncCtx *ctx, i32 tick);
-
-
-void WyncXtrap_tick_end(WyncCtx *ctx, i32 tick) {
-	//WyncXtrap_save_lastest_predicted_state(ctx, tick);
-	WyncXtrap_internal_tick_end(ctx, tick);
-	// ...
-}
-
-
-
-
 // private
 /// Extracts data from predicted props
 void WyncXtrap_props_update_predicted_states_data (
@@ -183,12 +171,6 @@ void WyncXtrap_props_update_predicted_states_data (
 
 		pred_curr = &prop->co_xtrap.pred_curr;
 		pred_prev = &prop->co_xtrap.pred_prev;
-
-		// initialize stored predicted state. TODO: Move elsewhere?
-		// Note: They should start being NULL, check for that.
-		//if (pred_curr->data == NULL) {
-			//pred_curr->data = 0;
-		//}
 		
 		getter = &ctx->wrapper->prop_getter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
@@ -199,8 +181,12 @@ void WyncXtrap_props_update_predicted_states_data (
 			continue;
 		}
 
-		pred_prev->data = pred_curr->data;
-		pred_curr->data = (WyncState) { extracted.data_size, extracted.data };
+		WyncState_set_from_buffer(
+			&pred_prev->data, pred_curr->data.data_size, pred_curr->data.data);
+		WyncState_set_from_buffer(
+			&pred_curr->data, extracted.data_size, extracted.data);
+
+		WyncWrapper_Data_free(extracted);
 	}
 }
 
@@ -364,6 +350,12 @@ void WyncXtrap_update_entity_last_tick_received(
 
 	ConMap_set_pair(&ctx->co_pred.entity_last_received_tick,
 		entity_id, last_tick);
+}
+
+
+void WyncXtrap_tick_end(WyncCtx *ctx, i32 tick) {
+	WyncXtrap_save_latest_predicted_state (ctx, tick);
+	WyncXtrap_internal_tick_end(ctx, tick);
 }
 
 

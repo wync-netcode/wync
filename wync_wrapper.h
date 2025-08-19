@@ -39,6 +39,13 @@ typedef struct {
 	void *data;
 } WyncWrapper_Data;
 
+void WyncWrapper_Data_free(WyncWrapper_Data data) {
+	WyncState state = { data.data_size, data.data };
+	WyncState_free(&state);
+	data.data_size = 0;
+	data.data = NULL;
+}
+
 //typedef void* WyncWrapper_UserCtx;
 
 typedef struct {
