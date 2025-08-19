@@ -60,6 +60,7 @@ typedef struct WyncWrapperCtx{
 	WyncWrapper_UserCtx prop_user_ctx[MAX_PROPS];
 	WyncWrapper_Getter prop_getter[MAX_PROPS];
 	WyncWrapper_Setter prop_setter[MAX_PROPS]; // Maybe use a b-tree set?
+	WyncWrapper_Setter prop_setter_lerp[MAX_PROPS]; // Maybe use a b-tree set?
 
 	// Array<user_type_id: int, Any>
 	// use lerp_function[index] directly

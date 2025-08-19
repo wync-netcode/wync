@@ -805,8 +805,6 @@ typedef struct {
 	// any other prop
 	u16 lerp_user_data_type;
 	
-	WyncState interpolated_state;
-	
 	bool lerp_ready;
 	bool lerp_use_confirmed_state;
 	

@@ -331,15 +331,22 @@ void WyncLerp_interpolate_all (
 	float left_timestamp_ms = 0;
 	float right_timestamp_ms = 0;
 	float factor = 0;
+
+	WyncProp *prop = NULL;
+	WyncWrapper_Setter *setter_lerp;
+	WyncWrapper_UserCtx *user_ctx;
+	WyncWrapper_LerpFunc *lerp_func;
+
 	WyncState left_value = { 0 };
 	WyncState right_value = { 0 };
-	WyncProp *prop = NULL;
+	WyncWrapper_Data lerped_state = { 0 };
+	u32 prop_id;
 
 	u32_DynArrIterator it = { 0 };
 	while (u32_DynArr_iterator_get_next(
 		&ctx->co_filter_c.type_state__interpolated_regular_prop_ids, &it) == OK)
 	{
-		u32 prop_id = *it.item;
+		prop_id = *it.item;
 		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
 
 		if (!prop->co_lerp.lerp_ready) { continue; }
@@ -353,13 +360,24 @@ void WyncLerp_interpolate_all (
 			(prop->co_lerp.lerp_left_local_tick - (i32)ctx->common.ticks) * frame;
 		right_timestamp_ms =
 			(prop->co_lerp.lerp_right_local_tick - (i32)ctx->common.ticks) * frame;
+				
+		setter_lerp = &ctx->wrapper->prop_setter_lerp[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		lerp_func =
+			&ctx->wrapper->lerp_function[prop->co_lerp.lerp_user_data_type];
 
-		if (fabs(left_timestamp_ms - right_timestamp_ms) < 1e-5) {
-			WyncState_set_from_buffer (
-				&prop->co_lerp.interpolated_state,
-				right_value.data_size,
-				right_value.data
-			);
+		if (setter_lerp == NULL || user_ctx == NULL || lerp_func == NULL) {
+			LOG_ERR_C(ctx,
+					"Invalid Lerp function, Setter function or User context");
+			continue;
+		}
+		
+		if (fabs(left_timestamp_ms - right_timestamp_ms) < 1e-5)
+		{
+			lerped_state =
+				(WyncWrapper_Data) { right_value.data_size, right_value.data };
+
+			(*setter_lerp)( *user_ctx, lerped_state);
 			continue;
 		}
 
@@ -373,21 +391,14 @@ void WyncLerp_interpolate_all (
 		{
 			continue;
 		}
-				
 
-		WyncWrapper_LerpFunc lerp_func =
-			ctx->wrapper->lerp_function[prop->co_lerp.lerp_user_data_type];
-
-		WyncWrapper_Data lerped_state = (*lerp_func) (
+		lerped_state = (*lerp_func) (
 			(WyncWrapper_Data) { left_value.data_size, left_value.data },
 			(WyncWrapper_Data) { right_value.data_size, right_value.data },
-			factor);
-
-		WyncState_set_from_buffer (
-			&prop->co_lerp.interpolated_state,
-			lerped_state.data_size,
-			lerped_state.data
+			factor
 		);
+
+		(*setter_lerp)( *user_ctx, lerped_state);
 
 		WyncState lerped_state_to_free =
 			(WyncState) {lerped_state.data_size, lerped_state.data};
