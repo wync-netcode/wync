@@ -993,6 +993,7 @@ typedef struct {
 	// peer[0] = -1: it's reserved for the server
 	// List<wync_peer_id: int, nete_peer_id: int> // NOTE: Should be Ring
 	i32_DynArr peers;
+	i32_DynArrIterator active_peers_it;
 	
 	// Array[12] <peer_id: int, PeerLatencyInfo>
 	Wync_PeerLatencyInfo *peer_latency_info;
@@ -1199,6 +1200,7 @@ typedef struct {
 	// setup new connected peer
 	// Array <order: int, nete_peer_id: int>
 	u32_DynArr out_peer_pending_to_setup;
+	u32_DynArrIterator pending_peers_it;
 	
 	// temporary snapshot cache for later packet size optimization
 	// Array < client_id: int, DynArr < WyncPacket > >

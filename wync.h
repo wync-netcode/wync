@@ -43,9 +43,9 @@ typedef struct {
 // it includes the destination nete peer
 
 typedef struct {
-	uint16_t to_nete_peer_id;
-	uint32_t data_size;
-	void *data; // WyncPacket
+    uint16_t to_nete_peer_id;
+    uint32_t data_size;
+    void *data; // WyncPacket
 } WyncPacketOut;
 
 /// ---------------------------------------------------------------------------
@@ -126,6 +126,11 @@ uint32_t WyncClock_get_ticks(WyncCtx *ctx);
 /// WYNC DEBUG
 /// ---------------------------------------------------------------------------
 
+void WyncDebug_get_info_general_text(
+    WyncCtx *server_wctx, WyncCtx *client_wctx, char *lines);
+
+void WyncDebug_get_prop_info_text(WyncCtx *ctx, char *lines);
+
 // void WyncDebug_log_packet_received(WyncCtx *ctx, uint16_t
 // packet_type_id);
 
@@ -143,7 +148,7 @@ int32_t wync_flow_server_setup(WyncCtx *ctx);
 
 void wync_flow_client_setup(WyncCtx *ctx);
 
-//void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
+// void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
 
 void wync_flow_wync_server_tick_start(WyncCtx *ctx);
 
@@ -159,7 +164,8 @@ void WyncFlow_packet_cleanup(WyncCtx *ctx);
 
 int32_t WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
 
-int32_t WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
+int32_t
+WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
 
 /// ---------------------------------------------------------------------------
 /// WYNC INIT
@@ -226,7 +232,15 @@ void WyncJoin_set_server_nete_peer_id(WyncCtx *ctx, uint16_t nete_peer_id);
 // void WyncJoin_handle_pkt_res_client_info(
 // WyncCtx *ctx, WyncPktResClientInfo pkt);
 
-void WyncJoin_clear_peers_pending_to_setup(WyncCtx *ctx);
+void WyncJoin_pending_peers_setup_iteration(WyncCtx *ctx);
+
+int32_t WyncJoin_pending_peers_get_next(WyncCtx *ctx);
+
+void WyncJoin_pending_peers_clear(WyncCtx *ctx);
+
+void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx);
+
+int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx);
 
 // bool WyncJoin_out_client_just_connected_to_server(WyncCtx *ctx);
 

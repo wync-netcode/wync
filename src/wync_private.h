@@ -187,7 +187,7 @@ i32 WyncJoin_handle_pkt_join_req(
 void WyncJoin_handle_pkt_res_client_info(
     WyncCtx *ctx, WyncPktResClientInfo pkt);
 
-void WyncJoin_clear_peers_pending_to_setup(WyncCtx *ctx);
+void WyncJoin_pending_peers_clear(WyncCtx *ctx);
 
 bool WyncJoin_out_client_just_connected_to_server(WyncCtx *ctx);
 

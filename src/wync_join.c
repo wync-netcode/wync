@@ -94,6 +94,11 @@ u16 WyncJoin_peer_register (
 	Wync_ClientInfo client_info = { 0 };
 	ctx->common.client_has_info[peer_id] = client_info;
 
+	WyncThrottle_client_now_can_see_entity(
+	ctx, peer_id, ENTITY_ID_PROB_FOR_ENTITY_UPDATE_DELAY_TICKS);
+	WyncTrack_wync_add_local_existing_entity(
+	ctx, peer_id, ENTITY_ID_PROB_FOR_ENTITY_UPDATE_DELAY_TICKS);
+
 	return peer_id;
 }
 
@@ -340,12 +345,48 @@ void WyncJoin_handle_pkt_res_client_info (
 	ctx->common.was_any_prop_added_deleted = true;
 }
 
-void WyncJoin_clear_peers_pending_to_setup (WyncCtx *ctx) {
-	u32_DynArr_clear_preserving_capacity(&ctx->co_throttling.out_peer_pending_to_setup);
-}
-
 bool WyncJoin_out_client_just_connected_to_server (WyncCtx *ctx) {
 	bool just_connected = ctx->common.connected && !ctx->common.prev_connected;
 	ctx->common.prev_connected = ctx->common.connected;
 	return just_connected;
 }
+
+void WyncJoin_pending_peers_setup_iteration(WyncCtx *ctx) {
+	ctx->co_throttling.pending_peers_it = (u32_DynArrIterator) { 0 };
+}
+
+/// @returns Net Peer ID which is pending to setup
+/// @retval -1 End reached, no more peers
+int32_t WyncJoin_pending_peers_get_next(WyncCtx *ctx) {
+	i32 err = u32_DynArr_iterator_get_next(
+		&ctx->co_throttling.out_peer_pending_to_setup,
+		&ctx->co_throttling.pending_peers_it
+	);
+	if (err != OK) {
+		return -1;
+	}
+	return (i32)(*ctx->co_throttling.pending_peers_it.item);
+}
+
+void WyncJoin_pending_peers_clear (WyncCtx *ctx) {
+	u32_DynArr_clear_preserving_capacity(&ctx->co_throttling.out_peer_pending_to_setup);
+}
+
+void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx) {
+	ctx->common.active_peers_it = (i32_DynArrIterator) { 0 };
+}
+
+/// @returns Wync Peer ID that are active
+/// @retval -1 End reached, no more peers
+int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx) {
+	i32 err = i32_DynArr_iterator_get_next(
+		&ctx->common.peers,
+		&ctx->common.active_peers_it
+	);
+	if (err != OK) {
+		return -1;
+	}
+	return (i32)(ctx->common.active_peers_it.index);
+}
+
+
