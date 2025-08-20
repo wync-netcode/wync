@@ -378,4 +378,49 @@ i32 WyncTrack_wync_add_local_existing_entity (
 	ConMap_remove_by_key(sees_new_entities, entity_id);
 
 	return OK;
+} 
+
+
+/// @returns Entity id
+/// @retval -1 Not found
+i32 WyncTrack_find_owned_entity_by_entity_type_and_prop_name (
+	WyncCtx *ctx,
+	u32 entity_type_to_find,
+	const char *prop_name_to_find
+) {
+	ConMap *owned_props =
+		&ctx->co_clientauth.client_owns_prop[ctx->common.my_peer_id];
+	WyncProp *prop = NULL;
+
+	ConMapIterator it = { 0 };
+	u32 prop_id;
+	i32 error;
+	while (ConMap_iterator_get_next_key(owned_props, &it) == OK) {
+		prop_id = it.key;
+
+		prop = WyncTrack_get_prop(ctx, prop_id);
+		if (prop == NULL) continue;
+
+		const char *prop_name = prop->name_id;
+		u32 entity_id;
+		u32 entity_type;
+
+		error = WyncTrack_prop_get_entity(ctx, prop_id, &entity_id);
+		if (error != OK) continue;
+
+		error = ConMap_get(&ctx->co_track.entity_is_of_type, entity_id, &entity_type);
+		if (error != OK) continue;
+
+		// find a prop that I own
+		// that is called "inputs"
+		// that is of type player
+
+		if (strcmp(prop_name, prop_name_to_find) == OK
+			&& entity_type == entity_type_to_find)
+		{
+			return (i32)entity_id;
+		}
+	}
+	return -1;
 }
+

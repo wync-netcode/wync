@@ -459,6 +459,9 @@ int32_t WyncTrack_prop_get_entity(
 int32_t WyncTrack_wync_add_local_existing_entity(
     WyncCtx *ctx, uint16_t wync_client_id, uint32_t entity_id);
 
+int32_t WyncTrack_find_owned_entity_by_entity_type_and_prop_name(
+    WyncCtx *ctx, uint32_t entity_type_to_find, const char *prop_name_to_find);
+
 /// ---------------------------------------------------------------------------
 /// WYNC XTRAP
 /// ---------------------------------------------------------------------------
