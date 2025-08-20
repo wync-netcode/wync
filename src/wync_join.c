@@ -378,7 +378,8 @@ void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx) {
 
 /// @returns Wync Peer ID that are active
 /// @retval -1 End reached, no more peers
-int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx) {
+i32 WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids)
+{
 	i32 err = i32_DynArr_iterator_get_next(
 		&ctx->common.peers,
 		&ctx->common.active_peers_it
@@ -386,7 +387,10 @@ int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx) {
 	if (err != OK) {
 		return -1;
 	}
-	return (i32)(ctx->common.active_peers_it.index);
+
+	out_peer_ids->wync_peer_id = ctx->common.active_peers_it.index;
+	out_peer_ids->network_peer_id = *ctx->common.active_peers_it.item;
+	return OK;
 }
 
 

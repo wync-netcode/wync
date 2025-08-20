@@ -240,7 +240,12 @@ void WyncJoin_pending_peers_clear(WyncCtx *ctx);
 
 void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx);
 
-int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx);
+typedef struct {
+	int32_t wync_peer_id;
+	int32_t network_peer_id;
+} WyncPeer_ids;
+
+int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids);
 
 // bool WyncJoin_out_client_just_connected_to_server(WyncCtx *ctx);
 
