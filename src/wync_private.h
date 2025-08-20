@@ -403,7 +403,7 @@ i32 WyncTrack_wync_add_local_existing_entity(
 /// WYNC XTRAP
 /// ---------------------------------------------------------------------------
 
-i32 WyncXtrap_preparation(WyncCtx *ctx);
+WyncXtrap_ticks WyncXtrap_preparation(WyncCtx *ctx);
 
 void WyncXtrap_regular_entities_to_predict(WyncCtx *ctx, i32 tick);
 
@@ -411,7 +411,7 @@ void WyncXtrap_termination(WyncCtx *ctx);
 
 bool WyncXtrap_is_entity_predicted(WyncCtx *ctx, u32 entity_id);
 
-void WyncXtrap_tick_init(WyncCtx *ctx, i32 tick);
+WyncXtrap_entities WyncXtrap_tick_init(WyncCtx *ctx, i32 tick);
 
 void WyncXtrap_props_update_predicted_states_data(
     WyncCtx *ctx, u32 *prop_ids, u32 prop_id_amount);

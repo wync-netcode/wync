@@ -1320,7 +1320,8 @@ typedef struct {
 	i32 current_predicted_tick; // only for debugging
 	
 	// tick markers for the prev prediction cycle
-	i32 first_tick_predicted;
+	// TODO: Rename, the actual first tick is = first_tick - threeshold
+	i32 first_tick_predicted; 
 	i32 last_tick_predicted;
 	// markers for the current prediction cycle
 	i32 pred_intented_first_tick;

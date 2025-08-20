@@ -8,33 +8,40 @@
 // PUBLIC API
 // ==================================================
 
-/// @retuns error
-i32 WyncXtrap_preparation(WyncCtx *ctx) {
-	if (ctx->co_pred.last_tick_received == 0) {
-		return -1;
+
+WyncXtrap_ticks WyncXtrap_preparation(WyncCtx *ctx) {
+	CoPredictionData *p = &ctx->co_pred;
+	if (p->last_tick_received == 0) {
+		return (WyncXtrap_ticks) { 0 };
 	}
-	
-	ctx->co_pred.currently_on_predicted_tick = true;
 
 	if (
-		ctx->co_pred.last_tick_received_at_tick_prev != ctx->co_pred.last_tick_received_at_tick
-		|| ctx->co_pred.last_tick_received > ctx->co_pred.first_tick_predicted
+		p->last_tick_received_at_tick_prev != p->last_tick_received_at_tick
+		|| p->last_tick_received > p->first_tick_predicted
 	){
-		ctx->co_pred.pred_intented_first_tick = ctx->co_pred.last_tick_received +1;
-		ctx->co_pred.last_tick_received_at_tick_prev = ctx->co_pred.last_tick_received_at_tick;
+		p->pred_intented_first_tick = p->last_tick_received +1;
+		p->last_tick_received_at_tick_prev = p->last_tick_received_at_tick;
 	} else {
-		ctx->co_pred.pred_intented_first_tick = ctx->co_pred.last_tick_predicted;
+		p->pred_intented_first_tick = p->last_tick_predicted;
 	}
 
-	ctx->co_pred.first_tick_predicted = ctx->co_pred.pred_intented_first_tick;
+	if (p->target_tick <= (i32)ctx->co_ticks.server_ticks) {
+		return (WyncXtrap_ticks) { 0 };
+	}
+	if (p->pred_intented_first_tick - p->max_prediction_tick_threeshold < 0) {
+		return (WyncXtrap_ticks) { 0 };
+	}
 
-	if (ctx->co_pred.target_tick <= ctx->co_ticks.server_ticks) {
-		return -2;
-	}
-	if (ctx->co_pred.pred_intented_first_tick - ctx->co_pred.max_prediction_tick_threeshold < 0) {
-		return -3;
-	}
-	return OK;
+	p->first_tick_predicted = p->pred_intented_first_tick;
+	
+	p->currently_on_predicted_tick = true;
+
+	return (WyncXtrap_ticks) {
+		true,
+		(u32)(ctx->co_pred.pred_intented_first_tick
+			- ctx->co_pred.max_prediction_tick_threeshold),
+		(u32)(ctx->co_pred.target_tick +1)
+	};
 }
 
 /// Composes a list of ids of entities TO PREDICT THIS TICK
@@ -120,7 +127,7 @@ bool WyncXtrap_is_entity_predicted (WyncCtx *ctx, u32 entity_id) {
 // ==================================================
 
 
-void WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
+WyncXtrap_entities WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
 	ctx->co_pred.current_predicted_tick = tick;
 
 	// reset predicted inputs / events
@@ -140,6 +147,11 @@ void WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
 
 	// collect what entities to predict
 	WyncXtrap_regular_entities_to_predict(ctx, tick);
+
+	return (WyncXtrap_entities) {
+		(u32)ctx->co_pred.global_entity_ids_to_predict.size,
+		ctx->co_pred.global_entity_ids_to_predict.items
+	};
 }
 
 

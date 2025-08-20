@@ -466,15 +466,26 @@ int32_t WyncTrack_find_owned_entity_by_entity_type_and_prop_name(
 /// WYNC XTRAP
 /// ---------------------------------------------------------------------------
 
-int32_t WyncXtrap_preparation(WyncCtx *ctx);
+typedef struct {
+	bool should_predict;
+	uint32_t tick_start;
+	uint32_t tick_end;
+} WyncXtrap_ticks;
 
-// void WyncXtrap_regular_entities_to_predict(WyncCtx *ctx, int32_t tick);
+typedef struct {
+	uint32_t entity_ids_amount;
+    uint32_t* entity_ids_to_predict;
+} WyncXtrap_entities;
+
+WyncXtrap_ticks WyncXtrap_preparation(WyncCtx *ctx);
+
+WyncXtrap_entities WyncXtrap_tick_init(WyncCtx *ctx, int32_t tick);
+
+void WyncXtrap_tick_end(WyncCtx *ctx, int32_t tick);
 
 void WyncXtrap_termination(WyncCtx *ctx);
 
 // bool WyncXtrap_is_entity_predicted (WyncCtx *ctx, uint32_t entity_id);
-
-void WyncXtrap_tick_init(WyncCtx *ctx, int32_t tick);
 
 // void WyncXtrap_props_update_predicted_states_data (
 // WyncCtx *ctx,
@@ -506,8 +517,6 @@ void WyncXtrap_tick_init(WyncCtx *ctx, int32_t tick);
 // WyncCtx *ctx,
 // uint32_t prop_id
 //);
-
-void WyncXtrap_tick_end(WyncCtx *ctx, int32_t tick);
 
 /// ---------------------------------------------------------------------------
 /// WYNC WRAPPER UTIL
