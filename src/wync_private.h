@@ -23,6 +23,10 @@ void WyncStat_system_calculate_prob_prop_rate(WyncCtx *ctx);
 
 bool WyncPacket_type_exists(u16 packet_type_id);
 
+/// * [Wrapper]
+void WyncStat_setup_prob_for_entity_update_delay_ticks(
+    WyncCtx *ctx, uint32_t peer_id);
+
 /// Wrapper
 /// vvvvvvv
 
@@ -76,7 +80,7 @@ void WyncClock_advance_ticks(WyncCtx *ctx);
 void WyncClock_peer_set_current_latency(
     WyncCtx *ctx, u16 peer_id, u16 latency_ms);
 
-void WyncClock_wync_client_set_physics_ticks_per_second(WyncCtx *ctx, u16 tps);
+void WyncClock_client_set_physics_ticks_per_second(WyncCtx *ctx, u16 tps);
 
 void WyncClock_set_debug_time_offset(WyncCtx *ctx, u64 time_offset_ms);
 
@@ -99,20 +103,20 @@ void WyncDebug_received_log_prop_id(
 /// WYNC FLOW
 /// ---------------------------------------------------------------------------
 
-i32 wync_flow_wync_feed_packet(
+i32 WyncFlow_feed_packet(
     WyncCtx *ctx, u16 from_nete_peer_id, u32 data_size, void *data);
 
-i32 wync_flow_server_setup(WyncCtx *ctx);
+void WyncFlow_server_setup(WyncCtx *ctx);
 
-void wync_flow_client_setup(WyncCtx *ctx);
+void WyncFlow_client_setup(WyncCtx *ctx);
 
-void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
+void WyncFlow_setup_context(WyncCtx *ctx); // Note: hide it?
 
-void wync_flow_wync_server_tick_start(WyncCtx *ctx);
+void WyncFlow_server_tick_start(WyncCtx *ctx);
 
-void wync_flow_wync_server_tick_end(WyncCtx *ctx);
+void WyncFlow_server_tick_end(WyncCtx *ctx);
 
-void wync_flow_wync_client_tick_end(WyncCtx *ctx);
+void WyncFlow_client_tick_end(WyncCtx *ctx);
 
 void WyncFlow_gather_packets(WyncCtx *ctx);
 
@@ -413,15 +417,15 @@ bool WyncXtrap_is_entity_predicted(WyncCtx *ctx, u32 entity_id);
 
 WyncXtrap_entities WyncXtrap_tick_init(WyncCtx *ctx, i32 tick);
 
-void WyncXtrap_props_update_predicted_states_data(
-    WyncCtx *ctx, u32 *prop_ids, u32 prop_id_amount);
+//void WyncXtrap_props_update_predicted_states_data(
+    //WyncCtx *ctx, u32 *prop_ids, u32 prop_id_amount);
 
 static void WyncXtrap_props_update_predicted_states_ticks(
     WyncCtx *ctx, u32 target_tick, u32 *prop_ids, u32 prop_id_amount);
 
-void WyncXtrap_save_latest_predicted_state(WyncCtx *ctx, i32 tick);
+//void WyncXtrap_save_latest_predicted_state(WyncCtx *ctx, i32 tick);
 
-void WyncXtrap_delta_props_clear_current_delta_events(WyncCtx *ctx);
+//void WyncXtrap_delta_props_clear_current_delta_events(WyncCtx *ctx);
 
 static i32 WyncXtrap_entity_get_last_received_tick_from_pred_props(
     WyncCtx *ctx, u32 entity_id);

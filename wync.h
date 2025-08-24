@@ -52,37 +52,15 @@ typedef struct {
 /// WYNC STATISTICS
 /// ---------------------------------------------------------------------------
 
-// void WyncStat_try_to_update_prob_prop_rate(WyncCtx *ctx);
-
-// void WyncStat_system_calculate_prob_prop_rate(WyncCtx *ctx);
-
-// bool WyncPacket_type_exists(uint16_t packet_type_id);
-
-/// Wrapper
-/// vvvvvvv
-
-#ifdef WYNC_WRAPPER
-void WyncStat_setup_prob_for_entity_update_delay_ticks(
-    WyncCtx *ctx, uint32_t peer_id);
-#endif
-
 /// ---------------------------------------------------------------------------
 /// WYNC PACKET UTIL
 /// ---------------------------------------------------------------------------
 
-// int32_t WyncPacket_wrap_packet_out_alloc(
-// WyncCtx *ctx, uint16_t to_wync_peer_id, uint16_t packet_type_id,
-// uint32_t data_size, void *data, WyncPacketOut *out_packet);
-
-// int32_t WyncPacket_try_to_queue_out_packet(
-// WyncCtx *ctx, WyncPacketOut out_packet, bool reliable,
-// bool already_commited,
-// bool dont_ocuppy // default false
-//);
-
-// void WyncPacket_ocuppy_space_towards_packets_data_size_limit(
-// WyncCtx *ctx, uint32_t bytes);
-
+/// Sets the data limit in bytes for the current frame. Wync will limit the
+/// amount of packages it generates; entities will take turns to be synced.
+/// Beware, too much throttling might cause visual glitches.
+/// 
+/// @param data_limit_bytes Maximum bytes to generate on a frame
 void WyncPacket_set_data_limit_chars_for_out_packets(
     WyncCtx *ctx, uint32_t data_limit_bytes);
 
@@ -90,180 +68,221 @@ void WyncPacket_set_data_limit_chars_for_out_packets(
 /// WYNC CLOCK
 /// ---------------------------------------------------------------------------
 
-// uint64_t WyncClock_get_system_milliseconds(void);
-
-uint64_t WyncClock_get_ms(WyncCtx *ctx);
-
-// void WyncClock_client_handle_pkt_clock(WyncCtx *ctx, WyncPktClock pkt);
-
-// int32_t WyncClock_server_handle_pkt_clock_req(
-// WyncCtx *ctx, WyncPktClock pkt, uint16_t from_nete_peer_id);
-
-// void WyncClock_system_stabilize_latency(
-// WyncCtx *ctx, Wync_PeerLatencyInfo *lat_info);
-
-// void WyncClock_update_prediction_ticks(WyncCtx *ctx);
-
-// int32_t WyncClock_client_ask_for_clock(WyncCtx *ctx);
-
-// void WyncClock_advance_ticks(WyncCtx *ctx);
-
+/// Updates the latency a peer is experiencing. Periodically let Wync know
+/// the updated latency for a peer for better precision when calculating
+/// timing for Interpolation, Extrapolation, Timewarp, etc.
+///
+/// @param peer_id Wync peer identifier
+/// @param latency_ms Perceived latency for peer in milliseconds
 void WyncClock_peer_set_current_latency(
     WyncCtx *ctx, uint16_t peer_id, uint16_t latency_ms);
 
-void WyncClock_wync_client_set_physics_ticks_per_second(
+/// Let Wync know about the physics update rate of your game for timing
+/// calculations.
+///
+/// @param tps Updates per second, e.g. 30, 60.
+void WyncClock_client_set_physics_ticks_per_second(
     WyncCtx *ctx, uint16_t tps);
 
+/// Debug function. Add an artificial offset to your perceived time.
 void WyncClock_set_debug_time_offset(WyncCtx *ctx, uint64_t time_offset_ms);
 
-// float WyncClock_get_tick_timestamp_ms(WyncCtx *ctx, int32_t ticks);
-
+/// Debug function. Modify Wync internal tick value.
 void WyncClock_set_ticks(WyncCtx *ctx, uint32_t ticks);
 
+/// Debug function. Get Wync internal tick value.
+///
+/// @returns Ticks
 uint32_t WyncClock_get_ticks(WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC DEBUG
 /// ---------------------------------------------------------------------------
 
+/// Debug function. Gets you a summary of the current state in text format,
+/// including monitors of relevant data for debugging Interpolation and
+/// Extrapolation.
+///
+/// @param[out] lines Text buffer of at least 4096 bytes
 void WyncDebug_get_info_general_text(
     WyncCtx *server_wctx, WyncCtx *client_wctx, char *lines);
 
+/// Debug function. Gets you a summary in text format of the known props for 
+/// a specified wync context.
+///
+/// @param[out] lines Text buffer of at least 4096 bytes
 void WyncDebug_get_prop_info_text(WyncCtx *ctx, char *lines);
 
-// void WyncDebug_log_packet_received(WyncCtx *ctx, uint16_t
-// packet_type_id);
-
-// void WyncDebug_received_log_prop_id(
-// WyncCtx *ctx, uint16_t packet_type_id, uint32_t prop_id);
+/// Debug function. Gets you a summary in text format of the amount and kind of
+/// packets this instance has consumed.
+///
+/// @param[out] lines Text buffer of at least 4096 bytes
+void WyncDebug_get_packets_received_info_text(
+    WyncCtx *ctx, char *lines, uint16_t prop_amount);
 
 /// ---------------------------------------------------------------------------
 /// WYNC FLOW
 /// ---------------------------------------------------------------------------
 
-int32_t wync_flow_wync_feed_packet(
+/// Feeds a network packet to this instance. Wync will read and consumed it to
+/// update it's internal state. You must free it afterwards.
+///
+/// @param from_nete_peer_id Sender network peer id 
+int32_t WyncFlow_feed_packet(
     WyncCtx *ctx, uint16_t from_nete_peer_id, uint32_t data_size, void *data);
 
-int32_t wync_flow_server_setup(WyncCtx *ctx);
+/// Setups current instance as Wync server
+void WyncFlow_server_setup(WyncCtx *ctx);
 
-void wync_flow_client_setup(WyncCtx *ctx);
+/// Setups current instance as Wync client
+void WyncFlow_client_setup(WyncCtx *ctx);
 
-// void wync_flow_setup_context(WyncCtx *ctx); // Note: hide it?
+/// Main server logic. Call at the start of you logic frame, among other things
+/// this will set the correct state of your client's inputs.
+void WyncFlow_server_tick_start(WyncCtx *ctx);
 
-void wync_flow_wync_server_tick_start(WyncCtx *ctx);
+/// Main server logic end. Call at the end of your logic frame, among other
+/// things this will extract data from your game state for synchronization.
+void WyncFlow_server_tick_end(WyncCtx *ctx);
 
-void wync_flow_wync_server_tick_end(WyncCtx *ctx);
+/// Main client logic. Call at the end of your logic frame.
+void WyncFlow_client_tick_end(WyncCtx *ctx);
 
-void wync_flow_wync_client_tick_end(WyncCtx *ctx);
-
-void wync_flow_wync_system_gather_packets(WyncCtx *ctx);
-
+/// Creates a cache of packets to be sent to other peers respecting the data 
+/// limit set.
 void WyncFlow_gather_packets(WyncCtx *ctx);
 
-void WyncFlow_packet_cleanup(WyncCtx *ctx);
+/// Setup packet iterator. Call before iterating packets to be sent through the
+/// network.
+void WyncFlow_prepare_packet_iterator(WyncCtx *ctx);
 
+/// Obtains next network reliable packet for delivery. 
+///
+/// @param[out] out_pkt Packet to be send through the Network RELIABLY.
+///                     Must be instanced.
+/// @returns error
+/// @retval 0 OK 
+/// @retval -1 End reached
 int32_t WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
 
+/// Obtains next network unreliable packet for delivery. 
+///
+/// @param[out] out_pkt Packet to be send through the Network UNRELIABLY.
+///                     Must be instanced.
+/// @returns error
+/// @retval 0 OK 
+/// @retval -1 End reached
 int32_t
 WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
+
+/// Cleans network packet cache. Call after getting all packets.
+void WyncFlow_packet_cleanup(WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC INIT
 /// ---------------------------------------------------------------------------
 
+/// Creates a new empty Wync Context Instance. Must later be setup as Server or
+/// Client
 WyncCtx *WyncInit_create_context(void);
-// void wync_init_ctx_common(WyncCtx *ctx);
-// void wync_init_ctx_state_tracking(WyncCtx *ctx);
-// void wync_init_ctx_clientauth(WyncCtx *ctx);
-// void wync_init_ctx_events(WyncCtx *ctx);
-// void wync_init_ctx_metrics(WyncCtx *ctx);
-// void wync_init_ctx_spawn(WyncCtx *ctx);
-// void wync_init_ctx_throttling(WyncCtx *ctx);
-// void wync_init_ctx_ticks(WyncCtx *ctx);
-// void wync_init_ctx_prediction_data(WyncCtx *ctx);
-// void wync_init_ctx_lerp(WyncCtx *ctx);
-// void wync_init_ctx_dummy(WyncCtx *ctx);
-// void wync_init_ctx_filter_s(WyncCtx *ctx);
-// void wync_init_ctx_filter_c(WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC INPUT
 /// ---------------------------------------------------------------------------
 
-// int32_t WyncInput_prop_get_peer_owner(WyncCtx *ctx, uint32_t prop_id,
-// uint32_t *out_prop_id);
-
+/// Assigns ownership of an Input Prop to a specified Peer. This peer will have
+/// authority over the Prop's state. Sending updates periodically.
+///
+/// @param prop_id Prop identifier
+/// @param client_id Wync Peer identifier
 int32_t WyncInput_prop_set_client_owner(
     WyncCtx *ctx, uint32_t prop_id, uint16_t client_id);
 
-// void WyncInput_system_sync_client_ownership(WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC JOIN
 /// ---------------------------------------------------------------------------
 
+/// Whether the specified instance is connected to a server. Returns always
+/// True for a server.
 bool WyncJoin_is_connected(WyncCtx *ctx);
 
+
+/// Whether a specified peer is connected on this server.
+///
+/// @param[out] out_peer_id Wync Peer Identifier. Must be instanced.
+/// @returns error
 int32_t WyncJoin_is_peer_registered(
     WyncCtx *ctx, uint16_t nete_peer_id, uint16_t *out_wync_peer_id);
 
-// int32_t WyncJoin_get_nete_peer_id_from_wync_peer_id(
-// WyncCtx *ctx, uint16_t wync_peer_id, int32_t *out_nete_peer_id);
-
-// int32_t WyncJoin_get_wync_peer_id_from_nete_peer_id(
-// WyncCtx *ctx, uint16_t nete_peer_id, uint16_t *out_wync_peer_id);
-
+/// Sets the Network Peer Identifier for the current instance
+///
+/// @param nete_peer_id Network Peer Identifier
 void WyncJoin_set_my_nete_peer_id(WyncCtx *ctx, uint16_t nete_peer_id);
 
+/// (Client only) Sets the target server's Network Peer Identifier
+///
+/// @param nete_peer_id Network Peer Identifier
 void WyncJoin_set_server_nete_peer_id(WyncCtx *ctx, uint16_t nete_peer_id);
 
-// uint16_t WyncJoin_peer_register(WyncCtx *ctx, int32_t nete_peer_id);
-
-// int32_t WyncJoin_service_wync_try_to_connect(WyncCtx *ctx);
-
-// int32_t WyncJoin_client_setup_my_client(WyncCtx *ctx, uint16_t
-// peer_id);
-
-// int32_t WyncJoin_handle_pkt_join_res(WyncCtx *ctx, WyncPktJoinRes pkt);
-
-// int32_t WyncJoin_handle_pkt_join_req(
-// WyncCtx *ctx, WyncPktJoinReq pkt, uint16_t from_nete_peer_id);
-
-// void WyncJoin_handle_pkt_res_client_info(
-// WyncCtx *ctx, WyncPktResClientInfo pkt);
-
+/// (Server only) Setup peer iterator. Call before iterating peers pending to
+/// be setup.
 void WyncJoin_pending_peers_setup_iteration(WyncCtx *ctx);
 
+/// (Server only) Gets the next client peer to be setup.
+///
+/// @returns Network Peer ID which is pending to setup
+/// @retval -1 End reached, no more peers
 int32_t WyncJoin_pending_peers_get_next(WyncCtx *ctx);
 
+/// Call after getting all pending peers
 void WyncJoin_pending_peers_clear(WyncCtx *ctx);
 
+/// Setup peer iterator. Call before iterating all active peers.
 void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx);
 
 typedef struct {
-	int32_t wync_peer_id;
-	int32_t network_peer_id;
+    int32_t wync_peer_id;
+    int32_t network_peer_id;
 } WyncPeer_ids;
 
-int32_t WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids);
 
-// bool WyncJoin_out_client_just_connected_to_server(WyncCtx *ctx);
+/// Gets next active peer.
+///
+/// @param[out] Struct including both `Wync ID` and `Network ID` for Peer.
+///             Must be instanced.
+/// @retval -1 End reached, no more peers
+int32_t
+WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids);
+
 
 /// ---------------------------------------------------------------------------
 /// WYNC LERP
 /// ---------------------------------------------------------------------------
 
+/// Configures the desired amount of lerping.
+///
+/// @param server_tick_rate Rate at which updates are being received from the
+///                         Server. (e.g. 60, 30, 10). Pass 0 for automatic.
+/// @param lerp_ms Milliseconds to interpolate in the past.
 void WyncLerp_client_set_lerp_ms(
     WyncCtx *ctx, float server_tick_rate, uint32_t lerp_ms);
 
+/// Configures the maximum factor for interpolation. Describes how much the
+/// interpolation is allowed to extend (extrapolate) when data is missing. This
+/// range will be applied symmetrically: How much to go in the past, and how
+/// much to go in the future.
+///
+/// @param max_lerp_factor_symmetric 
 void WyncLerp_set_max_lerp_factor_symmetric(
     WyncCtx *ctx, float max_lerp_factor_symmetric);
 
-// void WyncLerp_handle_packet_client_set_lerp_ms(
-// WyncCtx *ctx, WyncPktClientSetLerpMS pkt, uint32_t from_nete_peer_id);
-
-// void WyncLerp_precompute(WyncCtx *ctx);
-
+/// Register a data type for performing interpolation.
+///
+/// @param user_type_id User defined Identifier for this data type
+///                     there is a limit of WYNC_MAX_USER_TYPES.
+/// @param lerp_func Pointer to the lerping function:
+///                  (value1, value2, delta) => result.
 void WyncLerp_register_lerp_type(
     WyncCtx *ctx, uint16_t user_type_id, WyncWrapper_LerpFunc lerp_func);
 
@@ -273,9 +292,19 @@ void WyncLerp_interpolate_all(WyncCtx *ctx, float delta_lerp_fraction);
 /// WYNC PROP
 /// ---------------------------------------------------------------------------
 
+/// Enable Extrapolation for a specified Prop
+///
 /// @returns error
 int32_t WyncProp_enable_prediction(WyncCtx *ctx, uint32_t prop_id);
 
+/// Enable Interpolation for a specified Prop
+///
+/// @param user_type_id Previously register lerp data type identifier.
+/// @param setter_lerp Pointer to function that sets the interpolated state to
+///                    the game state. It will use the user context passed to
+///                    the `Prop register function`:
+///                    (user_contex, lerped_state) => void.
+/// @returns error
 int32_t WyncProp_enable_interpolation(
     WyncCtx *ctx, uint32_t prop_id, uint16_t user_data_type,
     WyncWrapper_Setter setter_lerp);
@@ -284,113 +313,55 @@ int32_t WyncProp_enable_interpolation(
 /// WYNC SPAWN
 /// ---------------------------------------------------------------------------
 
-// void WyncSpawn_handle_pkt_spawn(WyncCtx *ctx, WyncPktSpawn pkt);
-
-// void WyncSpawn_handle_pkt_despawn(WyncCtx *ctx, WyncPktDespawn pkt);
-
+/// Gets next spawn event for spawning user defined game entities.
+///
+/// @param[out] out_spawn_event Struct with info about what to spawn. Struct
+///                             must be instanced.
+/// @returns error
 int32_t WyncSpawn_get_next_entity_event_spawn(
     WyncCtx *ctx, Wync_EntitySpawnEvent *out_spawn_event);
 
+/// Call after successfully consuming an spawn event
 void WyncSpawn_finish_spawning_entity(WyncCtx *ctx, uint32_t entity_id);
 
+/// Clear all spawning events. Call after consuming all.
 void WyncSpawn_system_spawned_props_cleanup(WyncCtx *ctx);
-
-// void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx);
-
-// void WyncSpawn_system_send_entities_to_despawn(WyncCtx *ctx);
-
-// void _wync_confirm_client_can_see_entity(
-// WyncCtx *ctx, uint16_t client_id, uint32_t entity_id);
 
 /// ---------------------------------------------------------------------------
 /// WYNC STATE SEND
 /// ---------------------------------------------------------------------------
 
-// int32_t WyncSend__wync_sync_regular_prop(
-// WyncProp *prop, uint32_t prop_id, uint32_t tick, WyncSnap *out_snap);
-
-// void WyncSend_extracted_data(WyncCtx *ctx);
-
-// void WyncSend_queue_out_snapshots_for_delivery(WyncCtx *ctx);
-
-// void WyncSend_system_update_delta_base_state_tick(WyncCtx *ctx);
-
-// void WyncSend_client_send_inputs(WyncCtx *ctx);
-
 /// ---------------------------------------------------------------------------
 /// WYNC STATE SET
 /// ---------------------------------------------------------------------------
-
-// void WyncState_reset_all_state_to_confirmed_tick_absolute(
-// WyncCtx *ctx, uint32_t *prop_ids, uint32_t prop_id_amount, uint32_t
-// tick);
-
-// void WyncState_reset_all_state_to_confirmed_tick_relative(
-// WyncCtx *ctx, uint32_t *prop_ids, uint32_t prop_id_amount, uint32_t
-// tick);
-
-// void WyncState_reset_props_to_latest_value(WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC STATE STORE
 /// ---------------------------------------------------------------------------
 
-// void WyncStore_prop_state_buffer_insert(
-// WyncCtx *ctx, WyncProp *prop, int32_t tick, WyncState state);
-
-// void WyncStore_prop_state_buffer_insert_in_place(
-// WyncCtx *ctx, WyncProp *prop, int32_t tick, WyncState state);
-
-// int32_t WyncStore_save_confirmed_state(
-// WyncCtx *ctx, uint32_t prop_id, uint32_t tick, WyncState state);
-
-// void WyncStore_client_update_last_tick_received(WyncCtx *ctx, uint32_t
-// tick);
-
-// void WyncStore_handle_pkt_prop_snap(WyncCtx *ctx, WyncPktSnap pkt);
-
-// int32_t WyncStore_save_confirmed_state(
-// WyncCtx *ctx, uint32_t prop_id, uint32_t tick, WyncState state);
-
-// void WyncStore_service_cleanup_dummy_props(WyncCtx *ctx);
-
-// int32_t WyncStore_server_handle_pkt_inputs(
-// WyncCtx *ctx, WyncPktInputs pkt, uint16_t from_nete_peer_id);
-
-// int32_t WyncStore_client_handle_pkt_inputs(WyncCtx *ctx, WyncPktInputs
-// pkt);
-
-// void WyncStore_prop_state_buffer_insert(
-// WyncCtx *ctx, WyncProp *prop, int32_t tick, WyncState state);
-
-// void WyncStore_prop_state_buffer_insert_in_place(
-// WyncCtx *ctx, WyncProp *prop, int32_t tick, WyncState state);
-
-// int32_t WyncStore_insert_state_to_entity_prop(
-// WyncCtx *ctx, uint32_t entity_id, const char *prop_name_id, uint32_t
-// tick, WyncState state);
-
-// WyncState WyncState_prop_state_buffer_get(WyncProp *prop, int32_t tick);
-
-// WyncState WyncState_prop_state_buffer_get_throughout(WyncProp *prop, uint32_t
-// tick);
-
 /// ---------------------------------------------------------------------------
 /// WYNC THROTTLE
 /// ---------------------------------------------------------------------------
 
-// void WyncThrottle__remove_entity_from_sync_queue(
-// WyncCtx *ctx, uint16_t peer_id, uint32_t entity_id);
-
-// void WyncThrottle_system_fill_entity_sync_queue(WyncCtx *ctx);
-
-// void WyncThrottle_compute_entity_sync_order(WyncCtx *ctx);
-
+/// (Server only) Add an entity to client's "vision", will start synchronization
+/// of this entity for the client. Spawn and Snapshot packets will be generated.
+///
+/// @param client_id Wync Peer Identifier
+/// @param entity_id Wync Entity Identifier
 int32_t WyncThrottle_client_now_can_see_entity(
     WyncCtx *ctx, uint16_t client_id, uint32_t entity_id);
 
+/// (Server only) Add an entity to everyone's "vision". Will start
+/// Synchronization of this entity for all connected client peers.
+///
+/// @param entity_id Wync Entity Identifier
 void WyncThrottle_everyone_now_can_see_entity(WyncCtx *ctx, uint32_t entity_id);
 
+/// (Server only) Sets arbitrary data for helping setup an Spawning entity.
+/// Clients will receive this data along the regular Spawn Event.
+///
+/// @param data_size Spawn data bytes
+/// @param data      Pointer to data buffer
 void WyncThrottle_entity_set_spawn_data(
     WyncCtx *ctx, uint32_t entity_id, uint32_t data_size, void *data);
 
@@ -401,43 +372,21 @@ int32_t WyncThrottle_client_no_longer_sees_entity(
 /// WYNC TICK COLLECTION
 /// ---------------------------------------------------------------------------
 
-// void WyncOffsetCollection_replace_value(
-// CoTicks *co_ticks, int32_t find_value, int32_t new_value);
-
-// void WyncOffsetCollection_increase_value(CoTicks *co_ticks, int32_t
-// find_value);
-
-// bool WyncOffsetCollection_value_exists(CoTicks *co_ticks, int32_t ar_value);
-
-// int32_t WyncOffsetCollection_get_most_common(CoTicks *co_ticks);
-
-// int32_t WyncOffsetCollection_get_less_common(CoTicks *co_ticks);
-
-// void WyncOffsetCollection_add_value(CoTicks *co_ticks, int32_t new_value);
-
 /// ---------------------------------------------------------------------------
 /// WYNC TRACK
 /// ---------------------------------------------------------------------------
 
+/// 
 int32_t WyncTrack_track_entity(
     WyncCtx *ctx, uint32_t entity_id, uint32_t entity_type_id);
 
 void WyncTrack_untrack_entity(WyncCtx *ctx, uint32_t entity_id);
 
-// void WyncTrack_delete_prop(WyncCtx *ctx, uint32_t prop_id);
-
 bool WyncTrack_is_entity_tracked(WyncCtx *ctx, uint32_t entity_id);
-
-// int32_t WyncTrack_get_new_prop_id(WyncCtx *ctx, uint32_t *out_prop_id);
 
 int32_t WyncTrack_prop_register_minimal(
     WyncCtx *ctx, uint32_t entity_id, const char *name_id,
     enum WYNC_PROP_TYPE data_type, uint32_t *out_prop_id);
-
-// WyncProp *WyncTrack_get_prop(WyncCtx *ctx, uint32_t prop_id);
-
-// WyncProp *WyncTrack_entity_get_prop(
-// WyncCtx *ctx, uint32_t entity_id, const char *prop_name_id);
 
 int32_t WyncTrack_entity_get_prop_id(
     WyncCtx *ctx, uint32_t entity_id, const char *prop_name_id,
@@ -448,18 +397,6 @@ int32_t WyncTrack_entity_get_prop_id(
 /// @returns error
 int32_t WyncTrack_prop_get_entity(
     WyncCtx *ctx, uint32_t prop_id, uint32_t *out_entity_id);
-
-// bool WyncTrack_is_entity_tracked(WyncCtx *ctx, uint32_t entity_id);
-
-/// @returns Optional WyncProp
-/// @retval NULL Not found / Not enabled
-// WyncProp *WyncTrack_get_prop(WyncCtx *ctx, uint32_t prop_id);
-
-// WyncProp *WyncTrack_get_prop_unsafe(WyncCtx *ctx, uint32_t prop_id);
-
-// int32_t WyncTrack_prop_register_update_dummy(
-// WyncCtx *ctx, uint32_t prop_id, uint32_t last_tick, uint32_t data_size,
-// void *data);
 
 int32_t WyncTrack_wync_add_local_existing_entity(
     WyncCtx *ctx, uint16_t wync_client_id, uint32_t entity_id);
@@ -472,14 +409,14 @@ int32_t WyncTrack_find_owned_entity_by_entity_type_and_prop_name(
 /// ---------------------------------------------------------------------------
 
 typedef struct {
-	bool should_predict;
-	uint32_t tick_start;
-	uint32_t tick_end;
+    bool should_predict;
+    uint32_t tick_start;
+    uint32_t tick_end;
 } WyncXtrap_ticks;
 
 typedef struct {
-	uint32_t entity_ids_amount;
-    uint32_t* entity_ids_to_predict;
+    uint32_t entity_ids_amount;
+    uint32_t *entity_ids_to_predict;
 } WyncXtrap_entities;
 
 WyncXtrap_ticks WyncXtrap_preparation(WyncCtx *ctx);
@@ -490,56 +427,12 @@ void WyncXtrap_tick_end(WyncCtx *ctx, int32_t tick);
 
 void WyncXtrap_termination(WyncCtx *ctx);
 
-// bool WyncXtrap_is_entity_predicted (WyncCtx *ctx, uint32_t entity_id);
-
-// void WyncXtrap_props_update_predicted_states_data (
-// WyncCtx *ctx,
-// uint32_t *prop_ids,
-// uint32_t prop_id_amount
-//);
-
-// static void WyncXtrap_props_update_predicted_states_ticks (
-// WyncCtx *ctx,
-// uint32_t target_tick,
-// uint32_t *prop_ids,
-// uint32_t prop_id_amount
-//);
-
-// void WyncXtrap_save_latest_predicted_state (WyncCtx *ctx, int32_t
-// tick);
-
-// void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx);
-
-// static int32_t WyncXtrap_entity_get_last_received_tick_from_pred_props (
-// WyncCtx *ctx,
-// uint32_t entity_id
-//);
-
-// static void WyncXtrap_internal_tick_end(WyncCtx *ctx, int32_t tick);
-
-/// NOTE: assuming snap props always include all snaps for an entity
-// void WyncXtrap_update_entity_last_tick_received(
-// WyncCtx *ctx,
-// uint32_t prop_id
-//);
-
 /// ---------------------------------------------------------------------------
 /// WYNC WRAPPER UTIL
 /// ---------------------------------------------------------------------------
 
-// void WyncWrapper_initialize(WyncCtx *ctx);
-
 void WyncWrapper_set_prop_callbacks(
     WyncCtx *ctx, uint32_t prop_id, WyncWrapper_UserCtx user_ctx,
     WyncWrapper_Getter getter, WyncWrapper_Setter setter);
-
-// void WyncWrapper_buffer_inputs(WyncCtx *ctx);
-
-// void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, uint32_t
-// save_on_tick);
-
-// void WyncWrapper_server_filter_prop_ids(WyncCtx *ctx);
-
-// void WyncWrapper_client_filter_prop_ids (WyncCtx *ctx);
 
 #endif // !WYNC_H
