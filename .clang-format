@@ -1,0 +1,7 @@
+﻿---
+BasedOnStyle: LLVM
+AlignAfterOpenBracket: AlwaysBreak
+IndentWidth: '4'
+TabWidth: '4'
+
+...
