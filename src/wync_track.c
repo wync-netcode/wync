@@ -25,7 +25,7 @@ i32 WyncTrack_track_entity(
 	u32_DynArr entity_props = u32_DynArr_create();
 	u32_DynArr_ConMap_set_pair
 		(&ctx->co_track.entity_has_props, entity_id, entity_props);
-	ConMap_set_pair(&ctx->co_track.entity_is_of_type, entity_id, entity_type_id);
+	ConMap_set_pair(&ctx->co_track.entity_is_of_type, entity_id, (int)entity_type_id);
 
 	ConMap_set_pair(&ctx->co_pred.entity_last_predicted_tick, entity_id, -1);
 	ConMap_set_pair(&ctx->co_pred.entity_last_received_tick, entity_id, -1);

@@ -1,5 +1,6 @@
 #include "wync_private.h"
 #include "lib/log.h"
+#include <string.h>
 
 /// Increments Total
 void WyncDebug_log_packet_received(WyncCtx *ctx, u16 packet_type_id) {
@@ -164,6 +165,61 @@ void WyncDebug_get_prop_info_text (WyncCtx *ctx, char *lines)
 			strcat(single_line, "\n");
 
 			strcat(lines, single_line);
+		}
+	}
+}
+
+
+void WyncDebug_get_packets_received_info_text (
+	WyncCtx *ctx,
+	char *lines,
+	u16 prop_amount
+) {
+	u32 name_length = 10, number_length = 4;
+
+	static char single_line[200] = "";
+	static char single_line_aux[200] = "";
+	single_line[0] = 0;
+	
+	sprintf(single_line, "Wync Peer %d Received\n", ctx->common.my_peer_id);
+	strcat(lines, single_line);
+	strncat(lines, "                    ", name_length+1);
+	strncat(lines, "Tot    ", number_length);
+
+	for (u16 i = 0; i < prop_amount-1; ++i) {
+		sprintf(single_line, "%d               ", i);
+		strncat(lines, single_line, number_length);
+	}
+
+	for (u16 i = 0; i < WYNC_PKT_AMOUNT; ++i) {
+
+		strcat(lines, "\n");
+
+		// pkt name
+
+		const char *pkt_name = PKT_NAMES[i];
+		u32 pkt_name_length = (u32)strlen(pkt_name);
+
+		if (name_length > pkt_name_length) {
+			for (u16 j = 0; j < (name_length - pkt_name_length); ++j) {
+				strcat(lines, " ");
+			}
+		}
+
+		u32 start_idx = 0;
+		if (name_length < pkt_name_length) {
+			start_idx = pkt_name_length - name_length;
+		}
+		strncat(
+			lines, pkt_name + start_idx, MIN(name_length, strlen(pkt_name)));
+		strcat(lines, " ");
+
+		// amount of packets
+
+		for (u16 j = 0; j < MIN(prop_amount, DEBUG_PACKETS_RECEIVED_MAX); ++j) {
+			u32 received = ctx->co_metrics.debug_packets_received[i][j];
+			sprintf(single_line, "%d               ", received);
+			strncat(lines, single_line, number_length);
 		}
 	}
 }

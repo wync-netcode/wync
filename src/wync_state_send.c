@@ -388,7 +388,7 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 			err = WyncPacket_try_to_queue_out_packet(
 				ctx,
 				packet_out,
-				RELIABLE, true, false
+				UNRELIABLE, true, false
 			);
 			if (err != OK) {
 				LOG_ERR_C(ctx, "Couldn't queue packet");

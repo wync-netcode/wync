@@ -290,9 +290,9 @@ static bool WyncPktClientSetLerpMS_serialize (
 }
 
 typedef struct {
-	u32 tick; // answerer's tick
-	u64 time; // answerer's time
+	u32 tick;    // answerer's tick
 	u32 tick_og; // requester's tick
+	u64 time;    // answerer's time
 	u64 time_og; // requester's time
 } WyncPktClock;
 

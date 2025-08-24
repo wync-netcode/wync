@@ -110,10 +110,10 @@ i32 WyncClock_server_handle_pkt_clock_req (
 		// prepare packet back
 
 		WyncPktClock packet_clock = {
-			.time_og = pkt.time_og,
-			.tick_og = pkt.tick_og,
 			.tick = ctx->common.ticks,
-			.time = WyncClock_get_ms(ctx)
+			.tick_og = pkt.tick_og,
+			.time = WyncClock_get_ms(ctx),
+			.time_og = pkt.time_og,
 		};
 		
 		static NeteBuffer buffer = { 0 };
@@ -122,7 +122,11 @@ i32 WyncClock_server_handle_pkt_clock_req (
 			buffer.data = calloc(1, buffer.size_bytes);
 		}
 		buffer.cursor_byte = 0;
-		WyncPktClock_serialize(false, &buffer, &packet_clock);
+		error = WyncPktClock_serialize(false, &buffer, &packet_clock);
+		if (!error) {
+			LOG_ERR_C(ctx, "Couldn't read WyncPktClock");
+			break;
+		}
 
 		error = WyncPacket_wrap_packet_out_alloc(
 			ctx,
@@ -317,6 +321,7 @@ i32 WyncClock_client_ask_for_clock(WyncCtx *ctx) {
 			return_error = -3;
 			break;
 		}
+		
 	} while (0);
 
 	WyncPacketOut_free(&packet_out);
@@ -334,6 +339,7 @@ void WyncClock_advance_ticks (WyncCtx *ctx) {
 	ctx->co_ticks.lerp_delta_accumulator_ms = 0;
 }
 
+/// NOTE: Rename to 'report'
 /// TODO: Receive nete_peer_id then convert to wync_peer_id
 /// set the latency this peer is experimenting (get it from your transport)
 /// @argument latency_ms: int. Latency in milliseconds
@@ -341,7 +347,7 @@ void WyncClock_peer_set_current_latency (WyncCtx *ctx, u16 peer_id, u16 latency_
 	ctx->common.peer_latency_info[peer_id].latency_raw_latest_ms = latency_ms;
 }
 
-void WyncClock_wync_client_set_physics_ticks_per_second (WyncCtx *ctx, u16 tps){
+void WyncClock_client_set_physics_ticks_per_second (WyncCtx *ctx, u16 tps){
 	ctx->common.physic_ticks_per_second = tps;
 }
 

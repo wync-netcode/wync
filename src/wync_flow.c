@@ -10,7 +10,7 @@
 // High level functions related to logic cycles
 
 
-static void wync_flow_internal_setup_context(WyncCtx *ctx) {
+static void WyncFlow_internal_setup_context(WyncCtx *ctx) {
 	// Misc config
 
 	ctx->max_tick_history_timewarp = (u32)pow(2, 7);
@@ -60,7 +60,7 @@ static void wync_flow_internal_setup_context(WyncCtx *ctx) {
 
 /// param data User must free it manually
 ///
-i32 wync_flow_wync_feed_packet(
+i32 WyncFlow_feed_packet(
 	WyncCtx *ctx, 
 	u16 from_nete_peer_id,
 	u32 data_size,
@@ -76,12 +76,13 @@ i32 wync_flow_wync_feed_packet(
 	WyncPacket wync_pkt = { 0 };
 	if (!WyncPacket_serialize(true, &buffer, &wync_pkt)) {
 		WyncPacket_free(&wync_pkt);
+		LOG_ERR_C(ctx, "Couldn't read WyncPkt");
 		DEBUG_BREAK;
 		return -1;
 	}
 
 	// debug statistics
-	//WyncDebug.log_packet_received(ctx, wync_pkt.packet_type_id)
+	WyncDebug_log_packet_received(ctx, wync_pkt.packet_type_id);
 	bool is_client = ctx->common.is_client, is_server = !is_client;
 
 	// tick rate calculation	
@@ -247,7 +248,7 @@ i32 wync_flow_wync_feed_packet(
 // TODO: Modularize this, make different versions for server/client
 
 
-i32 wync_flow_server_setup(WyncCtx *ctx) {
+void WyncFlow_server_setup(WyncCtx *ctx) {
 	u16 max_peers = ctx->common.max_peers;
 
 	// peer id 0 reserved for server
@@ -281,13 +282,11 @@ i32 wync_flow_server_setup(WyncCtx *ctx) {
 
 	// setup prob prop
 	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, SERVER_PEER_ID);
-
-	return OK;
 }
 
 
 // TODO: Join with client_setup_my_client
-void wync_flow_client_setup(WyncCtx *ctx) {
+void WyncFlow_client_setup(WyncCtx *ctx) {
 	ctx->common.is_client = true;
 	ctx->common.peers = i32_DynArr_create();
 	ctx->common.connected = false;
@@ -306,15 +305,15 @@ void wync_flow_client_setup(WyncCtx *ctx) {
 // WRAPPER
 // ==================================================
 
-void wync_flow_setup_context(WyncCtx *ctx) {
-	wync_flow_internal_setup_context(ctx);
+void WyncFlow_setup_context(WyncCtx *ctx) {
+	WyncFlow_internal_setup_context(ctx);
 	WyncWrapper_initialize(ctx);
 }
 
 
 // Note. Before running this, make sure to receive packets from the network
 
-void wync_flow_wync_server_tick_start(WyncCtx *ctx) {
+void WyncFlow_server_tick_start(WyncCtx *ctx) {
 
 	WyncClock_advance_ticks(ctx);
 
@@ -332,7 +331,7 @@ void wync_flow_wync_server_tick_start(WyncCtx *ctx) {
 }
 
 
-void wync_flow_wync_server_tick_end(WyncCtx *ctx) {
+void WyncFlow_server_tick_end(WyncCtx *ctx) {
 	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
 	for (u16 peer_id = 1; peer_id < peer_amount; ++peer_id) {
 		WyncClock_system_stabilize_latency(ctx, &ctx->common.peer_latency_info[peer_id]);
@@ -350,7 +349,7 @@ void wync_flow_wync_server_tick_end(WyncCtx *ctx) {
 	WyncWrapper_extract_data_to_tick(ctx, ctx->common.ticks); // wrapper function
 }
 
-void wync_flow_wync_client_tick_end(WyncCtx *ctx) {
+void WyncFlow_client_tick_end(WyncCtx *ctx) {
 
 	WyncWrapper_client_filter_prop_ids(ctx);
 	WyncClock_advance_ticks(ctx);
@@ -405,6 +404,11 @@ void WyncFlow_gather_packets(WyncCtx *ctx) {
 	//WyncStateSend.wync_send_pending_rela_props_fullsnapshot(ctx)
 	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
 
+	ctx->common.unrel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
+	ctx->common.rel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
+}
+
+void WyncFlow_prepare_packet_iterator(WyncCtx *ctx) {
 	ctx->common.unrel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
 	ctx->common.rel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
 }

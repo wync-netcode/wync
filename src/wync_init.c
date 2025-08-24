@@ -3,7 +3,7 @@
 
 WyncCtx *WyncInit_create_context (void) {
 	WyncCtx *ctx = calloc(sizeof(WyncCtx), 1);
-	wync_flow_setup_context(ctx);
+	WyncFlow_setup_context(ctx);
 	return ctx;
 }
 

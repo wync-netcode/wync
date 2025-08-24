@@ -198,6 +198,7 @@ static void WyncLerp_precompute_predicted (
 }
 
 
+/// TODO: Cache this TPS
 void WyncLerp_client_set_lerp_ms(
 	WyncCtx *ctx,
 	float server_tick_rate,

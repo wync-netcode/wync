@@ -122,85 +122,6 @@ bool WyncXtrap_is_entity_predicted (WyncCtx *ctx, u32 entity_id) {
 }
 
 
-// ==================================================
-// WRAPPER
-// ==================================================
-
-
-WyncXtrap_entities WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
-	ctx->co_pred.current_predicted_tick = tick;
-
-	// reset predicted inputs / events
-
-	WyncState_reset_all_state_to_confirmed_tick_absolute(
-		ctx,
-		ctx->co_filter_c.type_input_event__predicted_owned_prop_ids.items, 
-		(u32)ctx->co_filter_c.type_input_event__predicted_owned_prop_ids.size, 
-		(u32)tick
-	);
-
-	// clearing delta events before predicting, predicted delta events will be
-	// polled and cached at the end of the predicted tick
-	// WyncXtrapInternal.wync_xtrap_delta_props_clear_current_delta_events(ctx)
-
-	// ...
-
-	// collect what entities to predict
-	WyncXtrap_regular_entities_to_predict(ctx, tick);
-
-	return (WyncXtrap_entities) {
-		(u32)ctx->co_pred.global_entity_ids_to_predict.size,
-		ctx->co_pred.global_entity_ids_to_predict.items
-	};
-}
-
-
-// private
-/// Extracts data from predicted props
-void WyncXtrap_props_update_predicted_states_data (
-	WyncCtx *ctx,
-	u32 *prop_ids,
-	u32 prop_id_amount
-) {
-	WyncWrapper_Getter *getter = NULL;
-	WyncWrapper_UserCtx *user_ctx = NULL;
-	Wync_NetTickData *pred_curr = NULL;
-	Wync_NetTickData *pred_prev = NULL;
-	WyncProp *prop = NULL;
-
-	for (u32 i = 0; i < prop_id_amount; ++i) {
-		u32 prop_id = prop_ids[i];
-
-		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
-		if (prop == NULL) {
-			continue;
-		}
-		if (prop->relative_sync_enabled) {
-			continue;
-		}
-
-		pred_curr = &prop->co_xtrap.pred_curr;
-		pred_prev = &prop->co_xtrap.pred_prev;
-		
-		getter = &ctx->wrapper->prop_getter[prop_id];
-		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
-		if (*getter == NULL) { continue; }
-
-		WyncWrapper_Data extracted = (*getter)(*user_ctx);
-		if (extracted.data_size == 0 || extracted.data == NULL) {
-			continue;
-		}
-
-		WyncState_set_from_buffer(
-			&pred_prev->data, pred_curr->data.data_size, pred_curr->data.data);
-		WyncState_set_from_buffer(
-			&pred_curr->data, extracted.data_size, extracted.data);
-
-		WyncWrapper_Data_free(extracted);
-	}
-}
-
-
 static void WyncXtrap_props_update_predicted_states_ticks (
 	WyncCtx *ctx,
 	u32 target_tick,
@@ -223,46 +144,6 @@ static void WyncXtrap_props_update_predicted_states_ticks (
 		prop->co_xtrap.pred_curr.server_tick = target_tick;
 
 	}
-}
-
-
-void WyncXtrap_save_latest_predicted_state (WyncCtx *ctx, i32 tick) {
-	// (invoke on last two iterations)
-
-	i32 store_predicted_states = tick > (ctx->co_pred.target_tick - 1);
-	if (!store_predicted_states) return;
-
-	u32_DynArr *entity_props = NULL;
-	u32_DynArrIterator it = { 0 };
-
-	while (u32_DynArr_iterator_get_next(
-			&ctx->co_pred.predicted_entity_ids, &it) == OK)
-	{
-		u32 wync_entity_id = *it.item;
-
-		entity_props = NULL;
-		i32 err = u32_DynArr_ConMap_get (&ctx->co_track.entity_has_props,
-				wync_entity_id, &entity_props);
-		if (err != OK) {
-			LOG_ERR_C(ctx, "Couldn't find entity (%d)'s props", wync_entity_id);
-			continue;
-		}
-
-		// TODO: Make this call user-level
-		// 1. store predicted states
-		// 2. store predicted states
-
-		WyncXtrap_props_update_predicted_states_data( ctx,
-			entity_props->items, (u32)entity_props->size);
-
-		WyncXtrap_props_update_predicted_states_ticks( ctx,
-			ctx->co_pred.target_tick, entity_props->items, (u32)entity_props->size);
-	}
-}
-
-
-void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx) {
-	/// ...
 }
 
 
@@ -322,25 +203,6 @@ static i32 WyncXtrap_entity_get_last_received_tick_from_pred_props (
 }
 
 
-static void WyncXtrap_internal_tick_end(WyncCtx *ctx, i32 tick) {
-	
-	// wync bookkeeping
-	// --------------------------------------------------
-
-	// extract / poll for generated predicted _undo delta events_
-
-	u32_DynArrIterator it = { 0 };
-	while(u32_DynArr_iterator_get_next(
-		&ctx->co_filter_c.type_state__predicted_delta_prop_ids, &it) == OK)
-	{
-			// ...
-	}
-
-	ctx->co_pred.last_tick_predicted = tick;
-
-	// NOTE: Integration functions would go here
-}
-
 /// NOTE: assuming snap props always include all snaps for an entity
 void WyncXtrap_update_entity_last_tick_received(
 	WyncCtx *ctx,
@@ -360,6 +222,145 @@ void WyncXtrap_update_entity_last_tick_received(
 
 	ConMap_set_pair(&ctx->co_pred.entity_last_received_tick,
 		entity_id, last_tick);
+}
+
+
+// ==================================================
+// WRAPPER
+// ==================================================
+
+
+WyncXtrap_entities WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
+	ctx->co_pred.current_predicted_tick = tick;
+
+	// reset predicted inputs / events
+
+	WyncState_reset_all_state_to_confirmed_tick_absolute(
+		ctx,
+		ctx->co_filter_c.type_input_event__predicted_owned_prop_ids.items, 
+		(u32)ctx->co_filter_c.type_input_event__predicted_owned_prop_ids.size, 
+		(u32)tick
+	);
+
+	// clearing delta events before predicting, predicted delta events will be
+	// polled and cached at the end of the predicted tick
+	// WyncXtrapInternal.wync_xtrap_delta_props_clear_current_delta_events(ctx)
+
+	// ...
+
+	// collect what entities to predict
+	WyncXtrap_regular_entities_to_predict(ctx, tick);
+
+	return (WyncXtrap_entities) {
+		(u32)ctx->co_pred.global_entity_ids_to_predict.size,
+		ctx->co_pred.global_entity_ids_to_predict.items
+	};
+}
+
+
+// private
+/// Extracts data from predicted props
+static void WyncXtrap_props_update_predicted_states_data (
+	WyncCtx *ctx,
+	u32 *prop_ids,
+	u32 prop_id_amount
+) {
+	WyncWrapper_Getter *getter = NULL;
+	WyncWrapper_UserCtx *user_ctx = NULL;
+	Wync_NetTickData *pred_curr = NULL;
+	Wync_NetTickData *pred_prev = NULL;
+	WyncProp *prop = NULL;
+
+	for (u32 i = 0; i < prop_id_amount; ++i) {
+		u32 prop_id = prop_ids[i];
+
+		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		if (prop == NULL) {
+			continue;
+		}
+		if (prop->relative_sync_enabled) {
+			continue;
+		}
+
+		pred_curr = &prop->co_xtrap.pred_curr;
+		pred_prev = &prop->co_xtrap.pred_prev;
+		
+		getter = &ctx->wrapper->prop_getter[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		if (*getter == NULL) { continue; }
+
+		WyncWrapper_Data extracted = (*getter)(*user_ctx);
+		if (extracted.data_size == 0 || extracted.data == NULL) {
+			continue;
+		}
+
+		WyncState_set_from_buffer(
+			&pred_prev->data, pred_curr->data.data_size, pred_curr->data.data);
+		WyncState_set_from_buffer(
+			&pred_curr->data, extracted.data_size, extracted.data);
+
+		WyncWrapper_Data_free(extracted);
+	}
+}
+
+
+static void WyncXtrap_save_latest_predicted_state (WyncCtx *ctx, i32 tick) {
+	// (invoke on last two iterations)
+
+	i32 store_predicted_states = tick > (ctx->co_pred.target_tick - 1);
+	if (!store_predicted_states) return;
+
+	u32_DynArr *entity_props = NULL;
+	u32_DynArrIterator it = { 0 };
+
+	while (u32_DynArr_iterator_get_next(
+			&ctx->co_pred.predicted_entity_ids, &it) == OK)
+	{
+		u32 wync_entity_id = *it.item;
+
+		entity_props = NULL;
+		i32 err = u32_DynArr_ConMap_get (&ctx->co_track.entity_has_props,
+				wync_entity_id, &entity_props);
+		if (err != OK) {
+			LOG_ERR_C(ctx, "Couldn't find entity (%d)'s props", wync_entity_id);
+			continue;
+		}
+
+		// TODO: Make this call user-level
+		// 1. store predicted states
+		// 2. store predicted states
+
+		WyncXtrap_props_update_predicted_states_data( ctx,
+			entity_props->items, (u32)entity_props->size);
+
+		WyncXtrap_props_update_predicted_states_ticks( ctx,
+			ctx->co_pred.target_tick, entity_props->items, (u32)entity_props->size);
+	}
+}
+
+
+static void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx) {
+	/// ...
+}
+
+
+static void WyncXtrap_internal_tick_end(WyncCtx *ctx, i32 tick) {
+	
+	// wync bookkeeping
+	// --------------------------------------------------
+
+	// extract / poll for generated predicted _undo delta events_
+
+	u32_DynArrIterator it = { 0 };
+	while(u32_DynArr_iterator_get_next(
+		&ctx->co_filter_c.type_state__predicted_delta_prop_ids, &it) == OK)
+	{
+			// ...
+	}
+
+	ctx->co_pred.last_tick_predicted = tick;
+
+	// NOTE: Integration functions would go here
 }
 
 
