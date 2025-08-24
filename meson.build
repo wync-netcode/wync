@@ -39,3 +39,11 @@ wync_dep = declare_dependency(
   include_directories : inc,
   link_with : wync)
 
+# tests
+
+text_exe = executable('tests',
+  './test/tests.c',
+  dependencies: [ wync_dep ]
+)
+test('Main test', text_exe)
+
