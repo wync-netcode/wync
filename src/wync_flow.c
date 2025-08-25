@@ -101,7 +101,7 @@ i32 WyncFlow_feed_packet(
 	/*buffer.size_bytes = wync_pkt.data.data_size;*/
 	/*buffer.data = wync_pkt.data.data;*/
 
-	LOG_OUT_C(ctx, "Received PKT %s", PKT_NAMES[wync_pkt.packet_type_id]);
+	LOG_OUT_C(ctx, "Received PKT %s", GET_PKT_NAME(wync_pkt.packet_type_id));
 
 	switch (wync_pkt.packet_type_id) {
 		case WYNC_PKT_JOIN_REQ:

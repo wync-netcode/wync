@@ -178,5 +178,7 @@ static void PRE(DynArr_sort) (PRE(DynArr) *r) {
 
 #undef PRE
 #undef DYN_ARR_ENABLE_SORT
-//#undef TYPE
-//#undef DYN_ARR_PREFIX
+#undef TYPE
+// don't undef: user generated
+// DYN_ARR_TYPE
+// DYN_ARR_PREFIX

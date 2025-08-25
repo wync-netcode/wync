@@ -403,7 +403,7 @@ i32 WyncTrack_find_owned_entity_by_entity_type_and_prop_name (
 
 		const char *prop_name = prop->name_id;
 		u32 entity_id;
-		u32 entity_type;
+		i32 entity_type;
 
 		error = WyncTrack_prop_get_entity(ctx, prop_id, &entity_id);
 		if (error != OK) continue;
@@ -416,7 +416,7 @@ i32 WyncTrack_find_owned_entity_by_entity_type_and_prop_name (
 		// that is of type player
 
 		if (strcmp(prop_name, prop_name_to_find) == OK
-			&& entity_type == entity_type_to_find)
+			&& entity_type == (i32)entity_type_to_find)
 		{
 			return (i32)entity_id;
 		}

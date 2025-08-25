@@ -92,7 +92,7 @@ static TYPE *PRE(RinBuf_get_relative) (PRE(RinBuf) *r, size_t position) {
 }
 
 
-static static TYPE *PRE(RinBuf_get_absolute) (PRE(RinBuf) *r, size_t index) {
+static TYPE *PRE(RinBuf_get_absolute) (PRE(RinBuf) *r, size_t index) {
     if (r->size == 0) return NULL;
     return &r->buffer[index];
 }
@@ -172,3 +172,9 @@ static void PRE(RinBuf_sort) (PRE(RinBuf) *r) {
 
 #undef TYPE
 #undef RINGBUFFER_ENABLE_SORT
+#undef TOKCAT_
+#undef TOKCAT
+#undef PRE
+// don't undef: user generated
+// RINGBUFFER_TYPE
+// RINGBUFFER_PREFIX

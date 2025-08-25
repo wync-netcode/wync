@@ -56,7 +56,6 @@ void WyncDebug_get_info_general_text (
 	char *lines
 ){
 	static char single_line[200] = "";
-	static char single_line_aux[200] = "";
 
 	float client_time_ms = WyncClock_get_ms(client_wctx);
 	float pred_server_time_ms = client_time_ms + client_wctx->co_pred.clock_offset_mean;
@@ -178,7 +177,6 @@ void WyncDebug_get_packets_received_info_text (
 	u32 name_length = 10, number_length = 4;
 
 	static char single_line[200] = "";
-	static char single_line_aux[200] = "";
 	single_line[0] = 0;
 	
 	sprintf(single_line, "Wync Peer %d Received\n", ctx->common.my_peer_id);
@@ -197,7 +195,7 @@ void WyncDebug_get_packets_received_info_text (
 
 		// pkt name
 
-		const char *pkt_name = PKT_NAMES[i];
+		const char *pkt_name = GET_PKT_NAME(i);
 		u32 pkt_name_length = (u32)strlen(pkt_name);
 
 		if (name_length > pkt_name_length) {

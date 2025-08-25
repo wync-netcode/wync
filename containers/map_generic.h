@@ -40,8 +40,6 @@
 #define CON_MAP_NODE_DEFAULT_SIZE 2
 #define CON_MAP_DEFAULT_SIZE 8
 #define OK 0
-#define i32 int32_t
-#define u32 uint32_t
 
 #ifndef MAP_GENERIC_H
 #define MAP_GENERIC_H
@@ -50,9 +48,9 @@
 /// @returns error
 /// @retval  0 Found
 /// @retval -1 Not found
-inline static i32 ConMap_buffer_find_val (i32 *array, u32 size, i32 value, u32 *index)
+inline static int32_t ConMap_buffer_find_val (uint32_t *array, uint32_t size, uint32_t value, uint32_t *index)
 {
-    for (u32 i = 0; i < size; ++i) {
+    for (uint32_t i = 0; i < size; ++i) {
         if (array[i] == value) {
             *index = i;
             return OK;
@@ -64,9 +62,9 @@ inline static i32 ConMap_buffer_find_val (i32 *array, u32 size, i32 value, u32 *
 
 
 typedef struct {
-    u32   size;
-    u32   capacity;
-    u32  *keys;     // negative keys are OK, casted to u32
+    uint32_t   size;
+    uint32_t   capacity;
+    uint32_t  *keys;     // negative keys are OK, casted to uint32_t
     TYPE *values;
 } CONMAP_NODE;
 
@@ -74,7 +72,7 @@ static void PRE(ConMapNode_init_node) (CONMAP_NODE *node)
 {
     node->capacity = CON_MAP_NODE_DEFAULT_SIZE;
     node->size = 0;
-    node->keys   = (u32*)malloc(sizeof(u32) * node->capacity);
+    node->keys   = (uint32_t*)malloc(sizeof(uint32_t) * node->capacity);
     node->values = (TYPE*)malloc(sizeof(TYPE) * node->capacity);
 }
 
@@ -87,11 +85,11 @@ static CONMAP_NODE PRE(ConMapNode_create_node) (void)
 
 // TODO: handle realloc error
 /// @returns index
-static u32 PRE(ConMapNode_insert) (CONMAP_NODE *node, u32 key, TYPE value)
+static uint32_t PRE(ConMapNode_insert) (CONMAP_NODE *node, uint32_t key, TYPE value)
 {
     if (node->size >= node->capacity) {
         node->capacity *= 2;
-        node->keys   = (u32*)realloc(node->keys, sizeof(u32) * node->capacity);
+        node->keys   = (uint32_t*)realloc(node->keys, sizeof(uint32_t) * node->capacity);
         node->values = (TYPE*)realloc(node->values, sizeof(TYPE) * node->capacity);
     }
 
@@ -102,10 +100,10 @@ static u32 PRE(ConMapNode_insert) (CONMAP_NODE *node, u32 key, TYPE value)
 }
 
 /// @returns index
-static u32 PRE(ConMapNode_emplace) (CONMAP_NODE *node, u32 key, TYPE value)
+static uint32_t PRE(ConMapNode_emplace) (CONMAP_NODE *node, uint32_t key, TYPE value)
 {
-    u32 index;
-    i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &index);
+    uint32_t index;
+    int32_t err = ConMap_buffer_find_val(node->keys, node->size, key, &index);
     if (err != OK) {
         index = PRE(ConMapNode_insert) (node, key, value);
     }
@@ -117,10 +115,10 @@ static u32 PRE(ConMapNode_emplace) (CONMAP_NODE *node, u32 key, TYPE value)
 
 /// @retval  0 OK
 /// @retval -1 Not found
-static i32 PRE(ConMapNode_remove_by_key) (CONMAP_NODE *node, u32 key)
+static int32_t PRE(ConMapNode_remove_by_key) (CONMAP_NODE *node, uint32_t key)
 {
-    u32 index;
-    i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &index);
+    uint32_t index;
+    int32_t err = ConMap_buffer_find_val(node->keys, node->size, key, &index);
     if (err != OK) { // not found
         return -1;
     }
@@ -133,18 +131,18 @@ static i32 PRE(ConMapNode_remove_by_key) (CONMAP_NODE *node, u32 key)
 
 
 typedef struct {
-    u32 pair_count;
-    u32 size;
+    uint32_t pair_count;
+    uint32_t size;
     CONMAP_NODE *nodes;
 } CONMAP;
 
 
-static void PRE(__ConMap_init) (CONMAP *map, u32 size) {
+static void PRE(__ConMap_init) (CONMAP *map, uint32_t size) {
     map->pair_count = 0;
     map->size = size;
     map->nodes = (CONMAP_NODE*)calloc(sizeof(CONMAP_NODE), map->size);
 
-    for (u32 i = 0; i < map->size; ++i) {
+    for (uint32_t i = 0; i < map->size; ++i) {
         CONMAP_NODE *node = &map->nodes[i];
         PRE(ConMapNode_init_node)(node);
     }
@@ -162,23 +160,23 @@ static CONMAP* PRE(ConMap_create) (void) {
     return map;
 }
 
-static void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value);
+static void PRE(ConMap_set_pair) (CONMAP *map, uint32_t key, TYPE value);
 
 static void PRE(ConMap_rehash_map) (CONMAP *map) {
-    u32 old_size = map->size;
+    uint32_t old_size = map->size;
     CONMAP_NODE *old_nodes = map->nodes;
 
     PRE(__ConMap_init)(map, map->size * 2);
 
     // reinsert pars
 
-    u32 key;
+    uint32_t key;
     TYPE value;
 
-    for (u32 i = 0; i < old_size; ++i) {
+    for (uint32_t i = 0; i < old_size; ++i) {
         CONMAP_NODE *node = &old_nodes[i];
 
-        for (u32 j = 0; j < node->size; ++j) {
+        for (uint32_t j = 0; j < node->size; ++j) {
             key = node->keys[j];
             value = node->values[j];
 
@@ -188,7 +186,7 @@ static void PRE(ConMap_rehash_map) (CONMAP *map) {
 
     // free old memory
 
-    for (u32 i = 0; i < old_size; ++i) {
+    for (uint32_t i = 0; i < old_size; ++i) {
         CONMAP_NODE *node = &old_nodes[i];
         free(node->values);
         free(node->keys);
@@ -199,11 +197,11 @@ static void PRE(ConMap_rehash_map) (CONMAP *map) {
     old_nodes = NULL;
 }
 
-static void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value) {
-    u32 node_index = (u32)key % map->size;
+static void PRE(ConMap_set_pair) (CONMAP *map, uint32_t key, TYPE value) {
+    uint32_t node_index = (uint32_t)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
 
-    u32 node_prev_size = node->size;
+    uint32_t node_prev_size = node->size;
     PRE(ConMapNode_emplace)(node, key, value);
     if (node_prev_size != node->size) {
         ++map->pair_count;
@@ -217,11 +215,11 @@ static void PRE(ConMap_set_pair) (CONMAP *map, u32 key, TYPE value) {
 }
 
 
-static bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
-    u32 node_index = (u32)key % map->size;
+static bool PRE(ConMap_has_key) (CONMAP *map, uint32_t key) {
+    uint32_t node_index = (uint32_t)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
-    u32 pair_index;
-    i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &pair_index) == OK;
+    uint32_t pair_index;
+    int32_t err = ConMap_buffer_find_val(node->keys, node->size, key, &pair_index) == OK;
     return err;
 }
 
@@ -229,11 +227,11 @@ static bool PRE(ConMap_has_key) (CONMAP *map, u32 key) {
 /// @param[out] value The found value if any
 /// @retval     0     OK
 /// @retval     1     Not found
-static i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE** value) {
-    u32 node_index = (u32)key % map->size;
+static int32_t PRE(ConMap_get) (CONMAP *map, uint32_t key, TYPE** value) {
+    uint32_t node_index = (uint32_t)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
-    u32 pair_index;
-    i32 err = ConMap_buffer_find_val(node->keys, node->size, key, &pair_index);
+    uint32_t pair_index;
+    int32_t err = ConMap_buffer_find_val(node->keys, node->size, key, &pair_index);
     if (err != OK) {
         return 1;
     }
@@ -242,14 +240,14 @@ static i32 PRE(ConMap_get) (CONMAP *map, u32 key, TYPE** value) {
 }
 
 
-static u32 PRE(ConMap_get_key_count) (CONMAP *map) {
+static uint32_t PRE(ConMap_get_key_count) (CONMAP *map) {
     return map->pair_count;
 }
 
 /// @retval 0 OK
 /// @retval 1 Not found
-static int PRE(ConMap_remove_by_key) (CONMAP *map, u32 key) {
-    u32 node_index = (u32)key % map->size;
+static int PRE(ConMap_remove_by_key) (CONMAP *map, uint32_t key) {
+    uint32_t node_index = (uint32_t)key % map->size;
     CONMAP_NODE *node = &map->nodes[node_index];
     int err = PRE(ConMapNode_remove_by_key)(node, key);
     if (err == OK) {
@@ -260,16 +258,16 @@ static int PRE(ConMap_remove_by_key) (CONMAP *map, u32 key) {
 
 
 typedef struct {
-    u32 node_idx;
-    u32 pair_idx; // inside the node
-    u32 key;
+    uint32_t node_idx;
+    uint32_t pair_idx; // inside the node
+    uint32_t key;
 } CONMAP_IT;
 
 
 /// @param[out] key No longer valid once end is reached
 /// @retval       0 OK
 /// @retval      -1 End reached
-static i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
+static int32_t PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
 {
     // check correctness
 
@@ -297,10 +295,14 @@ static i32 PRE(ConMap_iterator_get_next_key) (CONMAP *map, CONMAP_IT *it)
 }
 
 #undef PRE
-//#undef MAP_GENERIC_TYPE
-//#undef MAP_GENERIC_PREFIX
-//#undef TYPE
-//#undef CONMAP
-//#undef CONMAP_NODE
-//#undef CONMAP_IT
-
+#undef TOKCAT_
+#undef TOKCAT
+#undef TYPE
+#undef CONMAP
+#undef CONMAP_NODE
+#undef CONMAP_IT
+#undef CON_MAP_NODE_DEFAULT_SIZE
+#undef CON_MAP_DEFAULT_SIZE
+// don't undef: user generated
+// MAP_GENERIC_TYPE
+// MAP_GENERIC_PREFIX

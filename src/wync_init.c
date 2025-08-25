@@ -221,7 +221,7 @@ void wync_init_ctx_prediction_data(WyncCtx *ctx) {
 
 	// FUTURE
 	//co_pred->tick_action_history_size = 32;
-	//co_pred->tick_action_history = \
+	//co_pred->tick_action_history = 
 		//RingBuffer.new(co_pred->tick_action_history_size, {});
 	//for i in range(co_pred->tick_action_history_size):
 		//co_pred.tick_action_history.insert_at(i, {} as Dictionary);
