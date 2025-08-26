@@ -1409,6 +1409,10 @@ typedef struct {
 	float server_tick_rate;
 	u32_RinBuf server_tick_rate_sliding_window;
 	u32 tick_last_packet_received_from_server;
+	u32 local_tick_last_packet_received_from_server;
+
+	float snap_tick_delay_mean;
+	u32_RinBuf snap_tick_delay_window;
 
 	
 	// (client only)

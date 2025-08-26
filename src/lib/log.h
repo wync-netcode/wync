@@ -36,6 +36,7 @@ extern int LOG_caller_id;
 
 #define LOG_OUT_INTERNAL(is_client, tick, ...) \
 	do { \
+		printf("%s", ANSI_NRM); \
 		printf("%d ", tick); \
 		printf("%s: ", (is_client) ? "clien" : "serve"); \
 		printf(__VA_ARGS__); \

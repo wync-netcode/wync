@@ -293,6 +293,8 @@ i32 WyncStore_save_confirmed_state(
 
 void WyncStore_client_update_last_tick_received(WyncCtx *ctx, u32 tick);
 
+void WyncStore_client_update_last_pkt_received(WyncCtx *ctx);
+
 void WyncStore_handle_pkt_prop_snap(WyncCtx *ctx, WyncPktSnap pkt);
 
 i32 WyncStore_save_confirmed_state(

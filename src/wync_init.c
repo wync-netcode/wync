@@ -125,6 +125,9 @@ void wync_init_ctx_metrics(WyncCtx *ctx) {
 	co_metrics->server_tick_rate_sliding_window = u32_RinBuf_create
 		(SERVER_TICK_RATE_SLIDING_WINDOW_SIZE, 0);
 
+	co_metrics->snap_tick_delay_window = u32_RinBuf_create
+		(SERVER_TICK_RATE_SLIDING_WINDOW_SIZE, 0);
+
 	co_metrics->low_priority_entity_update_rate_sliding_window = i32_RinBuf_create
 		(co_metrics->low_priority_entity_update_rate_sliding_window_size, 0);
 

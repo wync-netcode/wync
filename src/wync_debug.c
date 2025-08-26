@@ -112,6 +112,9 @@ void WyncDebug_get_info_general_text (
 			client_wctx->co_pred.max_prediction_tick_threeshold);
 	EASY_LINE("(cl)dummy_props %u (lost %u)\n", client_wctx->co_dummy.dummy_props.size,
 			client_wctx->co_dummy.stat_lost_dummy_props);
+	EASY_LINE("snap tick delay %f (expected ~%f)\n",
+		client_wctx->co_metrics.snap_tick_delay_mean,
+		client_wctx->common.peer_latency_info[SERVER_PEER_ID].latency_stable_ms/(1000.0/client_wctx->common.physic_ticks_per_second));
 
 	#undef EASY_LINE
 }

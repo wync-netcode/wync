@@ -88,6 +88,7 @@ i32 WyncFlow_feed_packet(
 	// tick rate calculation	
 	if (is_client) {
 		//WyncStats._wync_report_update_received(ctx)
+		WyncStore_client_update_last_pkt_received(ctx);
 	}
 
 	buffer = (NeteBuffer) {
@@ -133,6 +134,7 @@ i32 WyncFlow_feed_packet(
 		{
 			WyncPktInputs pkt = { 0 };
 			if (!WyncPktInputs_serialize(true, &buffer, &pkt)) {
+				LOG_ERR_C(ctx, "couldn't read WyncPktInputs");
 				WyncPktInputs_free(&pkt);
 				break;
 			}

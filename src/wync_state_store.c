@@ -33,6 +33,25 @@ i32 WyncStore_save_confirmed_state(
 void WyncStore_client_update_last_tick_received(WyncCtx *ctx, u32 tick) {
 	ctx->co_pred.last_tick_received = MAX(ctx->co_pred.last_tick_received, tick);
 	ctx->co_pred.last_tick_received_at_tick = ctx->common.ticks;
+
+	u32_RinBuf_push(&ctx->co_metrics.snap_tick_delay_window,
+			ctx->co_ticks.server_ticks - tick, NULL, NULL);
+	float acc = 1;
+	for (size_t i = 0; i < SERVER_TICK_RATE_SLIDING_WINDOW_SIZE; ++i) {
+		float value = (float)*u32_RinBuf_get_absolute(
+				&ctx->co_metrics.snap_tick_delay_window, i);
+		if (value != 0) acc += value;
+	}
+	ctx->co_metrics.snap_tick_delay_mean =
+		acc / SERVER_TICK_RATE_SLIDING_WINDOW_SIZE;
+
+}
+
+// For measuring delay in network
+void WyncStore_client_update_last_pkt_received(WyncCtx *ctx) {
+	ctx->co_metrics.local_tick_last_packet_received_from_server = MAX(
+		ctx->co_ticks.server_ticks,
+		ctx->co_metrics.local_tick_last_packet_received_from_server);
 }
 
 void WyncStore_handle_pkt_prop_snap(
