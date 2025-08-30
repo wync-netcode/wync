@@ -83,6 +83,7 @@ static bool PRE(FIFOMap_has_item_hash) (FIFOMAP *map, uint32_t item_hash) {
 }
 
 
+/// @returns TYPE* or NULL
 static TYPE *PRE(FIFOMap_get_item_by_hash) (FIFOMAP *map, uint32_t item_hash) {
 	TYPE *item = NULL;
 	int32_t error = MAP_G_PREFIX(ConMap_get)(&map->map_internal, (int32_t)item_hash, &item);
@@ -98,6 +99,9 @@ static TYPE *PRE(FIFOMap_get_item_by_hash) (FIFOMAP *map, uint32_t item_hash) {
 #undef TYPE
 #undef FIFOMAP
 #undef MAP_GENERIC
+#undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
+#undef MAP_GENERIC_PREFIX
 // don't undef: user generated
 // FIFOMAP_TYPE
 // FIFOMAP_PREFIX

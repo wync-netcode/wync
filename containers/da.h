@@ -24,6 +24,7 @@
 #define OK 0
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct {
     size_t size;
@@ -174,7 +175,21 @@ static void PRE(DynArr_sort) (PRE(DynArr) *r) {
     if (r->size == 0) return;
     PRE(DynArr_sort_range) (r->items, 0, r->size-1);
 }
+
+static bool PRE(DynArr_has) (PRE(DynArr) *da, TYPE value) {
+    for (size_t i = 0; i < da->size; ++i) {
+        TYPE *stored_value = PRE(DynArr_get)(da, i);
+        if (stored_value == NULL) {
+            continue;
+        }
+        if (*stored_value == value) {
+            return true;
+        }
+    }
+    return false;
+}
 #endif // !DYN_ARR_ENABLE_SORT
+
 
 #undef PRE
 #undef DYN_ARR_ENABLE_SORT
