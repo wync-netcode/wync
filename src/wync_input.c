@@ -34,12 +34,6 @@ void WyncInput_system_sync_client_ownership(WyncCtx *ctx) {
 	if (!ctx->co_clientauth.client_ownership_updated) return;
 	ctx->co_clientauth.client_ownership_updated = false;
 
-	static NeteBuffer buffer = { 0 };
-	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = sizeof(WyncPktResClientInfo);
-		buffer.data = calloc(1, buffer.size_bytes);
-	}
-
 	// remind all clients about their prop ownership
 	
 	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
@@ -52,40 +46,19 @@ void WyncInput_system_sync_client_ownership(WyncCtx *ctx) {
 		while (ConMap_iterator_get_next_key(owns_props, &it) == OK) {
 
 			u32 prop_id = it.key;
-			WyncPacketOut packet_out = { 0 };
 			WyncPktResClientInfo packet = {
 				.prop_id = prop_id,
 				.peer_id = wync_peer_id
 			};
 
-			buffer.cursor_byte = 0;
-			i32 error = WyncPktResClientInfo_serialize(false, &buffer, &packet);
-			if (error != true) {
-				LOG_ERR_C(ctx, "Couldn't serialize packet");
-				continue;
-			}
-
-			// queue
-			error = WyncPacket_wrap_packet_out_alloc(
+			WyncPacket_wrap_and_queue(
 				ctx,
-				wync_peer_id,
 				WYNC_PKT_RES_CLIENT_INFO,
-				buffer.cursor_byte,
-				buffer.data,
-				&packet_out);
-			if (error == OK) {
-				error = WyncPacket_try_to_queue_out_packet(
-					ctx,
-					packet_out,
-					RELIABLE, true, false
-				);
-				if (error != OK) {
-					LOG_ERR_C(ctx, "Couldn't queue packet");
-				}
-			} else {
-				LOG_ERR_C(ctx, "Couldn't wrap packet");
-			}
-			WyncPacketOut_free(&packet_out);
+				&packet,
+				wync_peer_id,
+				RELIABLE,
+				true
+			);
 		}
 	}
 }

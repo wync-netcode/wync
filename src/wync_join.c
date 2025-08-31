@@ -121,68 +121,30 @@ i32 WyncJoin_service_wync_try_to_connect(WyncCtx *ctx) {
 	// send connect req packet
 	// TODO: Move this elsewhere
 
-	WyncPacketOut packet_out = { 0 };
 	WyncPktJoinReq packet_join = { 0xDEADBEEF };
 
-	static NeteBuffer buffer = { 0 };
-	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = MAX(sizeof(WyncPktJoinReq), sizeof(WyncPktClientSetLerpMS));
-		buffer.data = calloc(1, buffer.size_bytes);
-	}
-	buffer.cursor_byte = 0;
-	WyncPktJoinReq_serialize(false, &buffer, &packet_join);
-
-	error = WyncPacket_wrap_packet_out_alloc (
+	WyncPacket_wrap_and_queue(
 		ctx,
-		SERVER_PEER_ID,
 		WYNC_PKT_JOIN_REQ,
-		buffer.cursor_byte,
-		buffer.data,
-		&packet_out
+		&packet_join,
+		SERVER_PEER_ID,
+		RELIABLE,
+		true
 	);
-	if (error == OK) {
-		error = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
-			RELIABLE, true, false
-		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "Couldn't queue packet");
-		}
-	} else { LOG_ERR_C(ctx, "Couldn't wrap packet"); }
-
-	WyncPacketOut_free(&packet_out);
-
 
 	// TODO: Set lerpms could be moved somewhere else, could be sent anytime
 
-	packet_out = (WyncPacketOut) { 0 };
 	WyncPktClientSetLerpMS packet_lerp = { 0 };
 	packet_lerp.lerp_ms = ctx->co_lerp.lerp_ms;
 
-	buffer.cursor_byte = 0;
-	WyncPktClientSetLerpMS_serialize(false, &buffer, &packet_lerp);
-
-	i32 lerp_error = WyncPacket_wrap_packet_out_alloc (
+	WyncPacket_wrap_and_queue(
 		ctx,
-		SERVER_PEER_ID,
 		WYNC_PKT_CLIENT_SET_LERP_MS,
-		buffer.cursor_byte,
-		buffer.data,
-		&packet_out
+		&packet_lerp,
+		SERVER_PEER_ID,
+		RELIABLE,
+		true
 	);
-	if (lerp_error == OK) {
-		lerp_error = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
-			RELIABLE, true, false
-		);
-		if (lerp_error != OK) {
-			LOG_ERR_C(ctx, "Couldn't queue packet");
-		}
-	} else { LOG_ERR_C(ctx, "Couldn't wrap packet"); }
-
-	WyncPacketOut_free(&packet_out);
 
 	return error;
 }
@@ -224,6 +186,13 @@ i32 WyncJoin_client_setup_my_client (
 		ConMap_init(&ctx->co_throttling.peers_events_to_sync[i]);
 	}
 
+
+	// predict my own global events
+	/*uint channel_id = 0;*/
+	/*uint channel_prop_id =*/
+		/*ctx->co_events.prop_id_by_peer_by_channel[peer_id][channel_id];*/
+	/*WyncProp_enable_prediction(ctx, channel_prop_id);*/
+
 	// TODO
 	// setup peer channels
 	//WyncEventUtils_setup_peer_global_events
@@ -261,15 +230,16 @@ i32 WyncJoin_handle_pkt_join_req (
 	WyncPktJoinReq pkt,
 	u16 from_nete_peer_id
 ) {
-	// NOTE: the criteria to determine wether a client has a valid prop ownership could be user defined
+	// NOTE: the criteria to determine wether a client has a valid prop
+	// ownership could be user defined
 	// NOTE: wync setup must be ran only once per client
 
 	u16 wync_client_id;
 	i32 err;
 	err = WyncJoin_is_peer_registered(ctx, from_nete_peer_id, &wync_client_id);
-	printf("Value %d %d\n", OK, err == OK);
-	if (err == OK) { // OK == already registered
-		LOG_OUT_C(ctx, "Client %hu already setup in Wync as %hu",
+
+	if (err == OK) {
+		LOG_OUT_C(ctx, "Client %hu is already registered in as %hu",
 			from_nete_peer_id, wync_client_id);
 		return -1;
 	}
@@ -278,49 +248,29 @@ i32 WyncJoin_handle_pkt_join_req (
 	// send confirmation
 
 	WyncPktJoinRes packet_res = { 0 };
-	WyncPacketOut packet_out = { 0 };
 
 	packet_res.approved = true;
 	packet_res.wync_client_id = wync_client_id;
 
-	static NeteBuffer buffer = { 0 };
-	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = sizeof(WyncPktJoinRes);
-		buffer.data = calloc(1, buffer.size_bytes);
-	}
-	buffer.cursor_byte = 0;
-	WyncPktJoinRes_serialize(false, &buffer, &packet_res);
-
-	err = WyncPacket_wrap_packet_out_alloc (
+	WyncPacket_wrap_and_queue(
 		ctx,
-		wync_client_id,
 		WYNC_PKT_JOIN_RES,
-		buffer.cursor_byte,
-		buffer.data,
-		&packet_out
+		&packet_res,
+		wync_client_id,
+		RELIABLE,
+		true
 	);
-	if (err == OK) {
-		err = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
-			RELIABLE, true, false
-		);
-		if (err != OK) {
-			LOG_ERR_C(ctx, "Couldn't queue packet");
-		}
-	} else { LOG_ERR_C(ctx, "Couldn't wrap packet"); }
-
-	WyncPacketOut_free(&packet_out);
 
 	// let client own it's own global events
 	// Note: Maybe move this where all channel are defined
 	// WARN: TODO: REFACTOR
+
 	u32 prop_id;
 	u32 global_events_entity_id = ENTITY_ID_GLOBAL_EVENTS + wync_client_id;
 	i32 query_err = WyncTrack_entity_get_prop_id(
 		ctx, global_events_entity_id, "channel_0", &prop_id);
 	if (query_err == OK) {
-		//WyncInput_prop_set_client_owner(ctx, prop_id, wync_client_id);
+		WyncInput_prop_set_client_owner(ctx, prop_id, wync_client_id);
 	}
 
 	// queue as pending for setup

@@ -49,6 +49,16 @@ i32 WyncPacket_try_to_queue_out_packet(
     bool dont_ocuppy // default false
 );
 
+/// @returns error
+int WyncPacket_wrap_and_queue(
+	WyncCtx *ctx,
+	enum WYNC_PKT pkt_type,
+	void *pkt,
+	u16 peer_id,
+	bool reliable,
+	bool already_commited
+);
+
 void WyncPacket_ocuppy_space_towards_packets_data_size_limit(
     WyncCtx *ctx, u32 bytes);
 

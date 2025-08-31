@@ -115,44 +115,15 @@ i32 WyncClock_server_handle_pkt_clock_req (
 			.time = WyncClock_get_ms(ctx),
 			.time_og = pkt.time_og,
 		};
-		
-		static NeteBuffer buffer = { 0 };
-		if (buffer.size_bytes == 0) {
-			buffer.size_bytes = sizeof(WyncPktClock);
-			buffer.data = calloc(1, buffer.size_bytes);
-		}
-		buffer.cursor_byte = 0;
-		error = WyncPktClock_serialize(false, &buffer, &packet_clock);
-		if (!error) {
-			LOG_ERR_C(ctx, "Couldn't read WyncPktClock");
-			break;
-		}
 
-		error = WyncPacket_wrap_packet_out_alloc(
+		WyncPacket_wrap_and_queue(
 			ctx,
-			wync_peer_id,
 			WYNC_PKT_CLOCK,
-			buffer.cursor_byte,
-			buffer.data,
-			&packet_out
-		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
-			return_error = -2;
-			break;
-		}
-
-		error = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
+			&packet_clock,
+			wync_peer_id,
 			UNRELIABLE,
-			false, false
+			false
 		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "couldn't queue packet");
-			return_error = -3;
-			break;
-		}
 	} while (0);
 
 	WyncPacketOut_free(&packet_out);
@@ -288,39 +259,14 @@ i32 WyncClock_client_ask_for_clock(WyncCtx *ctx) {
 			.tick_og = ctx->common.ticks
 		};
 
-		static NeteBuffer buffer = { 0 };
-		if (buffer.size_bytes == 0) {
-			buffer.size_bytes = sizeof(WyncPktClock);
-			buffer.data = calloc(1, buffer.size_bytes);
-		}
-		buffer.cursor_byte = 0;
-		WyncPktClock_serialize(false, &buffer, &packet_clock);
-
-		i32 error = WyncPacket_wrap_packet_out_alloc(
+		WyncPacket_wrap_and_queue(
 			ctx,
-			SERVER_PEER_ID,
 			WYNC_PKT_CLOCK,
-			buffer.cursor_byte,
-			buffer.data,
-			&packet_out
-		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "couldn't wrap packet %p", (void *)&packet_clock);
-			return_error = -2;
-			break;
-		}
-
-		error = WyncPacket_try_to_queue_out_packet(
-			ctx,
-			packet_out,
+			&packet_clock,
+			SERVER_PEER_ID,
 			UNRELIABLE,
-			false, false
+			false
 		);
-		if (error != OK) {
-			LOG_ERR_C(ctx, "couldn't queue packet");
-			return_error = -3;
-			break;
-		}
 		
 	} while (0);
 

@@ -118,6 +118,174 @@ i32 WyncPacket_try_to_queue_out_packet (
 }
 
 
+/// @returns error
+int WyncPacket_wrap_and_queue(
+	WyncCtx *ctx,
+	enum WYNC_PKT pkt_type,
+	void *pkt,
+	u16 peer_id,
+	bool reliable,
+	bool already_commited
+) {
+	static NeteBuffer buffer = { 0 };
+	if (buffer.size_bytes == 0) {
+		buffer.size_bytes = 4096;
+		buffer.data = calloc(1, buffer.size_bytes);
+	}
+	buffer.cursor_byte = 0;
+
+	switch (pkt_type) {
+		case WYNC_PKT_JOIN_REQ:
+		{
+			if (!WyncPktJoinReq_serialize(
+					false, &buffer, (WyncPktJoinReq*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktJoinReq");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_JOIN_RES:
+		{
+			if (!WyncPktJoinRes_serialize(
+					false, &buffer, (WyncPktJoinRes*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktJoinRes");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_EVENT_DATA:
+		{
+			if (!WyncPktEventData_serialize(
+					false, &buffer, (WyncPktEventData*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktEventData");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_INPUTS:
+		{
+			if (!WyncPktInputs_serialize(
+					false, &buffer, (WyncPktInputs*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktInputs");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_PROP_SNAP:
+		{
+			if (!WyncPktSnap_serialize(
+					false, &buffer, (WyncPktSnap*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktSnap");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_RES_CLIENT_INFO:
+		{
+			if (!WyncPktResClientInfo_serialize(
+					false, &buffer, (WyncPktResClientInfo*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktResClientInfo");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_CLOCK:
+		{
+			if (!WyncPktClock_serialize(
+					false, &buffer, (WyncPktClock*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktClock");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_CLIENT_SET_LERP_MS:
+		{
+			if (!WyncPktClientSetLerpMS_serialize(
+					false, &buffer, (WyncPktClientSetLerpMS*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktClientSetLerpMS");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_SPAWN:
+		{
+			if (!WyncPktSpawn_serialize(
+					false, &buffer, (WyncPktSpawn*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktSpawn");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_DESPAWN:
+		{
+			if (!WyncPktDespawn_serialize(
+					false, &buffer, (WyncPktDespawn*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktDespawn");
+				return -1;
+			}
+			break;
+		}
+		case WYNC_PKT_DELTA_PROP_ACK:
+		{
+			if (!WyncPktDeltaPropAck_serialize(
+					false, &buffer, (WyncPktDeltaPropAck*)pkt)
+			) {
+				LOG_ERR_C(ctx, "Couldn't serialize WyncPktDeltaPropAck");
+				return -1;
+			}
+			break;
+		}
+		default:
+			LOG_ERR_C(ctx, "Packet not recognized %u", pkt_type);
+			assert(false);
+			break;
+	}
+
+	// wrap and queue
+
+	WyncPacketOut packet_out = { 0 };
+	i32 err = WyncPacket_wrap_packet_out_alloc(
+		ctx,
+		peer_id,
+		pkt_type,
+		buffer.cursor_byte,
+		buffer.data,
+		&packet_out);
+	if (err == OK) {
+		err = WyncPacket_try_to_queue_out_packet(
+			ctx,
+			packet_out,
+			reliable,
+			already_commited,
+			false
+		);
+		if (err != OK) {
+			LOG_ERR_C(ctx, "Couldn't queue packet");
+		}
+		else {
+			ctx->common.out_packets_size_remaining_chars -=
+				packet_out.data_size;
+		}
+	} else {
+		LOG_ERR_C(ctx, "Couldn't wrap packet");
+	}
+
+	WyncPacketOut_free(&packet_out);
+
+	return OK;
+}
+
+
 void WyncPacket_ocuppy_space_towards_packets_data_size_limit(
 	WyncCtx *ctx,
 	u32 bytes

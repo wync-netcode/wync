@@ -181,7 +181,6 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 		ConMap_init(&ids_to_spawn);
 	}
 
-	u32 data_used = 0;
 	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
 	WyncPktSpawn packet = { 0 };
 
@@ -272,50 +271,20 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 		if ((i + 1) != entity_amount) {
 			truncated_entity_amount = (u16)i + 1;
 		}
+		packet.entity_amount = truncated_entity_amount;
 
-		// TODO: use shared buffer with configurable packet size
-		static NeteBuffer buffer = { 0 };
-		if (buffer.size_bytes == 0) {
-			buffer.size_bytes = 4096; 
-			buffer.data = calloc(1, buffer.size_bytes);
-		}
-		buffer.cursor_byte = 0;
-
-		if (!WyncPktSpawn_serialize(
-				false, &buffer, &packet, truncated_entity_amount)) {
-			LOG_ERR_C(ctx, "Couldn't serialize WyncPktSpawn");
-			continue;
-		}
-
-		// wrap and queue
-
-		WyncPacketOut packet_out = { 0 };
-		error = WyncPacket_wrap_packet_out_alloc(
+		WyncPacket_wrap_and_queue(
 			ctx,
-			client_id,
 			WYNC_PKT_SPAWN,
-			buffer.cursor_byte,
-			buffer.data,
-			&packet_out);
-		if (error == OK) {
-			error = WyncPacket_try_to_queue_out_packet(
-				ctx,
-				packet_out,
-				RELIABLE, true, false
-			);
-			if (error != OK) {
-				LOG_ERR_C(ctx, "Couldn't wrap packet");
-			}
-		} else {
-			LOG_ERR_C(ctx, "Couldn't wrap packet");
-			continue;
-		}
-		WyncPacketOut_free(&packet_out); // fix: memory leak
+			&packet,
+			client_id,
+			RELIABLE,
+			true
+		);
 
 		// data limit
 
-		data_used += buffer.cursor_byte;
-		if (data_used >= ctx->common.out_packets_size_remaining_chars) {
+		if (ctx->common.out_packets_size_remaining_chars <= 0) {
 			break;
 		}
 	}
@@ -328,15 +297,8 @@ void WyncSpawn_system_send_entities_to_spawn(WyncCtx *ctx) {
 void WyncSpawn_system_send_entities_to_despawn(WyncCtx *ctx) {
 
 	static u32_DynArr entity_id_list = { 0 };
-	static NeteBuffer buffer = { 0 };
 
 	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
-
-	// TODO: use shared buffer with configurable packet size
-	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = 4096; 
-		buffer.data = calloc(1, buffer.size_bytes);
-	}
 
 	if (entity_id_list.capacity == 0) {
 		entity_id_list = u32_DynArr_create();
@@ -350,8 +312,6 @@ void WyncSpawn_system_send_entities_to_despawn(WyncCtx *ctx) {
 		u32 entity_amount = 0;
 		u32_DynArrIterator it = { 0 };
 		WyncPktDespawn packet_despawn = { 0 };
-		WyncPacketOut packet_out = { 0 };
-		i32 error;
 
 		while (u32_DynArr_iterator_get_next(
 			&ctx->co_spawn.despawned_entity_ids, &it) == OK)
@@ -375,47 +335,20 @@ void WyncSpawn_system_send_entities_to_despawn(WyncCtx *ctx) {
 
 		// build packet
 
-		buffer.cursor_byte = 0;
-
 		WyncPktDespawn_allocate(&packet_despawn, entity_amount);
-
 		for (u32 i = 0; i < entity_amount; ++i) {
 			packet_despawn.entity_ids[i] = *u32_DynArr_get(&entity_id_list, i);
 		}
 
-		error = WyncPktDespawn_serialize(false, &buffer, &packet_despawn);
-		if (error != true) {
-			LOG_ERR_C(ctx, "Couldn't serialize packet");
-			goto WyncSpawn_send_entities_to_despawn__defer;
-		}
-
-		// queue
-
-		error = WyncPacket_wrap_packet_out_alloc(
+		WyncPacket_wrap_and_queue(
 			ctx,
-			client_id,
-			WYNC_PKT_DESPAWN,
-			buffer.cursor_byte,
-			buffer.data,
-			&packet_out);
-		if (error == OK) {
-			error = WyncPacket_try_to_queue_out_packet(
-				ctx,
-				packet_out,
-				RELIABLE, true, false
-			);
-			if (error != OK) {
-				LOG_ERR_C(ctx, "Couldn't queue packet");
-			}
-		} else {
-			LOG_ERR_C(ctx, "Couldn't wrap packet");
-		}
+			WYNC_PKT_INPUTS,
+			&packet_despawn,
+			SERVER_PEER_ID,
+			UNRELIABLE,
+			true
+		);
 
-		// free
-
-		WyncSpawn_send_entities_to_despawn__defer:
-
-		WyncPacketOut_free(&packet_out);
 		WyncPktDespawn_free(&packet_despawn);
 	}
 }

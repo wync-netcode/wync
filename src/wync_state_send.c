@@ -26,8 +26,6 @@ i32 WyncSend__wync_sync_regular_prop(
 /// This services modifies ctx.client_has_relative_prop_has_last_tick
 void WyncSend_extracted_data(WyncCtx *ctx) {
 
-	u32 data_used = 0;
-
 	u32_DynArr_clear_preserving_capacity(
 		&ctx->co_throttling.rela_prop_ids_for_full_snapshot);
 	Wync_PeerPropPair_DynArr_clear_preserving_capacity(
@@ -41,25 +39,15 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 		WyncSnap_DynArr *unreliable =
 			&ctx->co_throttling.clients_cached_unreliable_snapshots[client_id];
 
-		WyncSnap_DynArrIterator it = { 0 };
-		while (WyncSnap_DynArr_iterator_get_next(reliable, &it) == OK) {
-			//WyncSnap
-			WyncState_free(&it.item->data);
-		}
-		it = (WyncSnap_DynArrIterator){ 0 };
-		while (WyncSnap_DynArr_iterator_get_next(reliable, &it) == OK) {
-			WyncState_free(&it.item->data);
-		}
-
 		WyncSnap_DynArr_clear_preserving_capacity(reliable);
 		WyncSnap_DynArr_clear_preserving_capacity(unreliable);
+
+		// Note: Actual individual packets are freed at
+		// WyncSend_queue_out_snapshots_for_delivery
 	}
 
 	Wync_PeerEntityPair_DynArr *queue =
 		&ctx->co_throttling.queue_entity_pairs_to_sync;
-
-	//u32 pairs_amount = u32_FIFORing_get_size
-	//Wync_PeerEntityPair *pair = NULL;
 
 	Wync_PeerEntityPair_DynArrIterator it = { 0 };
 	while (Wync_PeerEntityPair_DynArr_iterator_get_next(queue, &it) == OK)
@@ -91,6 +79,7 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 
 			if (prop->prop_type == WYNC_PROP_TYPE_STATE) {
 
+				// ========================================
 				// relative syncable Props:
 				// ========================================
 
@@ -100,18 +89,17 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 						continue;
 					}
 
-					err = -1;
-					//err = WyncSend__wync_sync_queue_prop_fullsnap(
-						//ctx, prop_id, client_id);
+					err = WyncSend__wync_sync_queue_rela_prop_fullsnap(
+						ctx, prop_id, client_id);
 					if (err != OK) {
 						LOG_WAR_C(ctx, "Couldn't sync prop %u", prop_id);
 						continue;
 					}
 
-					data_used += 0; // ??? TODO: Get size
 					continue;
 				}
 
+				// ========================================
 				// regular declarative Props:
 				// ========================================
 
@@ -124,23 +112,53 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 				}
 
 				WyncSnap_DynArr_insert(unreliable, snap_prop);
-				data_used += snap_prop.data.data_size + sizeof(u32) * 2;
 				continue;
 			}
 
+			// ========================================
 			// event Props:
 			// ========================================
 
-			if (!ConMap_has_key(
+			// don't send if client owns this prop
+
+			if (ConMap_has_key(
 				&ctx->co_clientauth.client_owns_prop[client_id], prop_id)) {
 				continue;
 			}
 
-			// TODO: ...
+			// this include 'regular' and 'auxiliar' props ???
+
+			WyncPktInputs pkt_input = { 0 };
+			WyncSend_prop_event_send_event_ids_to_peer(
+					ctx, prop, prop_id, &pkt_input);
+
+			WyncPktEventData pkt_event_data =
+				WyncSend_get_event_data_packet(ctx, client_id, &pkt_input);
+
+			WyncPacket_wrap_and_queue(
+				ctx,
+				WYNC_PKT_INPUTS,
+				&pkt_input,
+				client_id,
+				UNRELIABLE,
+				true
+			);
+
+			if (pkt_event_data.event_amount == 0) {
+				continue;
+			}
+			WyncPacket_wrap_and_queue(
+				ctx,
+				WYNC_PKT_EVENT_DATA,
+				&pkt_event_data,
+				client_id,
+				RELIABLE,
+				true
+			);
 
 		}
 
-		if ((i32)data_used >= ctx->common.out_packets_size_remaining_chars) {
+		if (ctx->common.out_packets_size_remaining_chars <= 0) {
 			break;
 		}
 	}
@@ -148,13 +166,6 @@ void WyncSend_extracted_data(WyncCtx *ctx) {
 
 
 void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
-
-	// TOOD: use shared buffer
-	static NeteBuffer buffer = { 0 };
-	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = 4096;
-		buffer.data = calloc(1, buffer.size_bytes);
-	}
 
 	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
 
@@ -165,7 +176,6 @@ void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
 		WyncSnap_DynArr *unreliable =
 			&ctx->co_throttling.clients_cached_unreliable_snapshots[client_id];
 
-		i32 err;
 		WyncPktSnap pkt_rel_snap = { 0 };
 		WyncPktSnap pkt_unrel_snap = { 0 };
 		pkt_rel_snap.tick = ctx->common.ticks;
@@ -173,8 +183,6 @@ void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
 
 		pkt_rel_snap.snap_amount = (u16)WyncSnap_DynArr_get_size(reliable);
 		pkt_unrel_snap.snap_amount = (u16)WyncSnap_DynArr_get_size(unreliable);
-
-		// NOTE: The following segments could be another function
 
 		// reliable
 
@@ -189,36 +197,15 @@ void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
 				pkt_rel_snap.snaps[it.index] = *it.item;
 			}
 
-			buffer.cursor_byte = 0;
-			if (!WyncPktSnap_serialize(false, &buffer, &pkt_rel_snap)) {
-				LOG_ERR_C(ctx, "Couldn't serialize packet");
-				goto WyncSend_queue_reliable_defer;
-			}
-
-			// queue
-
-			WyncPacketOut packet_out = { 0 };
-			err = WyncPacket_wrap_packet_out_alloc(
-				ctx, client_id,
+			WyncPacket_wrap_and_queue(
+				ctx,
 				WYNC_PKT_PROP_SNAP,
-				buffer.cursor_byte,
-				buffer.data,
-				&packet_out);
-			if (err == OK) {
-				err = WyncPacket_try_to_queue_out_packet(
-					ctx,
-					packet_out,
-					RELIABLE, true, false
-				);
-				if (err != OK) {
-					LOG_ERR_C(ctx, "Couldn't queue packet");
-				}
-			} else {
-				LOG_ERR_C(ctx, "Couldn't wrap packet");
-			}
-			WyncPacketOut_free(&packet_out);
+				&pkt_rel_snap,
+				client_id,
+				RELIABLE,
+				true
+			);
 
-			WyncSend_queue_reliable_defer:
 			WyncPktSnap_free(&pkt_rel_snap);
 		}
 
@@ -235,38 +222,20 @@ void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
 				pkt_unrel_snap.snaps[it.index] = *it.item;
 			}
 
-			buffer.cursor_byte = 0;
-			if (!WyncPktSnap_serialize(false, &buffer, &pkt_unrel_snap)) {
-				LOG_ERR_C(ctx, "Couldn't serialize packet");
-				goto WyncSend_queue_unreliable_defer;
-			}
-
-			// queue
-
-			WyncPacketOut packet_out = { 0 };
-			err = WyncPacket_wrap_packet_out_alloc(
-				ctx, client_id,
+			WyncPacket_wrap_and_queue(
+				ctx,
 				WYNC_PKT_PROP_SNAP,
-				buffer.cursor_byte,
-				buffer.data,
-				&packet_out);
-			if (err == OK) {
-				err = WyncPacket_try_to_queue_out_packet(
-					ctx,
-					packet_out,
-					UNRELIABLE, true, false
-				);
-				if (err != OK) {
-					LOG_ERR_C(ctx, "Couldn't queue packet");
-				}
-			} else {
-				LOG_ERR_C(ctx, "Couldn't wrap packet");
-			}
-			WyncPacketOut_free(&packet_out);
+				&pkt_unrel_snap,
+				client_id,
+				UNRELIABLE,
+				true
+			);
 
-			WyncSend_queue_unreliable_defer:
 			WyncPktSnap_free(&pkt_unrel_snap);
 		}
+
+		WyncSnap_DynArr_clear_preserving_capacity(reliable);
+		WyncSnap_DynArr_clear_preserving_capacity(unreliable);
 	}
 }
 
@@ -299,11 +268,6 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 	static WyncTickDecorator_DynArr input_list = { 0 };
 	if (input_list.capacity == 0) {
 		input_list = WyncTickDecorator_DynArr_create();
-	}
-	static NeteBuffer buffer = { 0 };
-	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = 4096;
-		buffer.data = calloc(1, buffer.size_bytes);
 	}
 	static WyncPktInputs pkt_inputs = { 0 };
 
@@ -361,6 +325,8 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 		pkt_inputs.amount = (u32)WyncTickDecorator_DynArr_get_size(&input_list);
 		pkt_inputs.inputs = calloc(sizeof(WyncTickDecorator), pkt_inputs.amount);
 
+		input_it = (WyncTickDecorator_DynArrIterator ) { 0 };
+
 		while(WyncTickDecorator_DynArr_iterator_get_next(
 			&input_list, &input_it) == OK)
 		{
@@ -368,35 +334,13 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 			pkt_inputs.inputs[input_it.index] = tick_input;
 		}
 
-		// wrap and queue
-
-		buffer.cursor_byte = 0;
-		if (!WyncPktInputs_serialize(false, &buffer, &pkt_inputs)) {
-			LOG_ERR_C(ctx, "Couldn't queue packet");
-			continue;
-		}
-
-		WyncPacketOut packet_out = { 0 };
-		i32 err = WyncPacket_wrap_packet_out_alloc(
+		WyncPacket_wrap_and_queue(
 			ctx,
-			SERVER_PEER_ID,
 			WYNC_PKT_INPUTS,
-			buffer.cursor_byte,
-			buffer.data,
-			&packet_out);
-		if (err == OK) {
-			err = WyncPacket_try_to_queue_out_packet(
-				ctx,
-				packet_out,
-				UNRELIABLE, true, false
-			);
-			if (err != OK) {
-				LOG_ERR_C(ctx, "Couldn't queue packet");
-			}
-		} else {
-			LOG_ERR_C(ctx, "Couldn't wrap packet");
-		}
-
-		WyncPacketOut_free(&packet_out);
+			&pkt_inputs,
+			SERVER_PEER_ID,
+			UNRELIABLE,
+			true
+		);
 	}
 }
