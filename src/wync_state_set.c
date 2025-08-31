@@ -201,7 +201,7 @@ void WyncState_delta_props_update_and_apply_delta_events (WyncCtx *ctx)
 
 			for (uint k = 0; k < event_list.event_amount; ++k) {
 				uint event_id = event_list.event_ids[k];
-				if (WyncDelta_is_event_healthy (ctx, event_id)) {
+				if (!WyncDelta_is_event_healthy (ctx, event_id)) {
 					has_all_event_data = false;
 					LOG_ERR_C(ctx,
 						"Some delta event data is missing from this tick"
