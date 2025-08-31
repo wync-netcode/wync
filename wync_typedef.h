@@ -355,7 +355,7 @@ typedef struct {
 } WyncPktDespawn;
 static void WyncPktDespawn_allocate(WyncPktDespawn *pkt, u32 size) {
 	pkt->entity_amount = size;
-	pkt->entity_ids = calloc(sizeof(u32), size);
+	pkt->entity_ids = (u32*) calloc(sizeof(u32), size);
 }
 static void WyncPktDespawn_free(WyncPktDespawn *pkt) {
 	free(pkt->entity_ids);
@@ -372,7 +372,7 @@ static bool WyncPktDespawn_serialize(
 		is_reading, buffer, &pkt->entity_amount, sizeof(u32));
 	if (is_reading) {
 		// TODO: limit
-		pkt->entity_ids = calloc(sizeof(u32), pkt->entity_amount);
+		pkt->entity_ids = (u32*) calloc(sizeof(u32), pkt->entity_amount);
 	}
 	for (u32 i = 0; i < pkt->entity_amount; ++i) {
 		NETEBUFFER_BYTES_SERIALIZE(
@@ -433,7 +433,8 @@ static bool WyncPktInputs_serialize (
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buff, &pkt->amount, sizeof(u32));
 
 	if (is_reading) {
-		pkt->inputs = calloc(sizeof(WyncTickDecorator), pkt->amount);
+		pkt->inputs = (WyncTickDecorator*)
+			calloc(sizeof(WyncTickDecorator), pkt->amount);
 	}
 
 	WyncTickDecorator *input = NULL;
@@ -531,7 +532,8 @@ static bool WyncPktSnap_serialize(
 			is_reading, buffer, &pkt->snap_amount, sizeof(u16));
 	if (is_reading) {
 		// TODO: limit
-		pkt->snaps = calloc(sizeof(WyncSnap), pkt->snap_amount);
+		pkt->snaps = (WyncSnap*) 
+			calloc(sizeof(WyncSnap), pkt->snap_amount);
 	}
 	for (u16 i = 0; i < pkt->snap_amount; ++i) {
 		if (!WyncSnap_serialize(is_reading, buffer, &pkt->snaps[i])) {
@@ -562,12 +564,12 @@ typedef struct {
 
 static void WyncPktSpawn_calloc(WyncPktSpawn *pkt, u16 size) {
 	pkt->entity_amount = size;
-	pkt->entity_ids = calloc(sizeof(u32), size);
-	pkt->entity_type_ids = calloc(sizeof(u16), size);
+	pkt->entity_ids = (u32*) calloc(sizeof(u32), size);
+	pkt->entity_type_ids = (u16*) calloc(sizeof(u16), size);
 
-	pkt->entity_prop_id_start = calloc(sizeof(u32), size);
-	pkt->entity_prop_id_end = calloc(sizeof(u32), size);
-	pkt->entity_spawn_data = calloc(sizeof(WyncState), size);
+	pkt->entity_prop_id_start = (u32*) calloc(sizeof(u32), size);
+	pkt->entity_prop_id_end = (u32*) calloc(sizeof(u32), size);
+	pkt->entity_spawn_data = (WyncState*) calloc(sizeof(WyncState), size);
 }
 static void WyncPktSpawn_free(WyncPktSpawn *pkt) {
 	if (pkt->entity_ids != NULL) free(pkt->entity_ids);
@@ -643,8 +645,8 @@ static bool WyncPktEventData_serialize(
 		buffer, &pkt->event_amount, sizeof(u16));
 
 	if (is_reading) {
-		pkt->events = calloc(
-				sizeof(WyncPktEventData_EventData), pkt->event_amount);
+		pkt->events = (WyncPktEventData_EventData*)
+			calloc(sizeof(WyncPktEventData_EventData), pkt->event_amount);
 	}
 
 	for (u32 i = 0; i < pkt->event_amount; ++i)
@@ -687,7 +689,7 @@ static bool WyncEventList_serialize(
 	NETEBUFFER_BYTES_SERIALIZE(is_reading,
 		buffer, &list->event_amount, sizeof(u32));
 	if (is_reading) {
-		list->event_ids = malloc(sizeof(u32) * list->event_amount);
+		list->event_ids = (u32*) malloc(sizeof(u32) * list->event_amount);
 	}
 	for (u32 i = 0; i < list->event_amount; ++i) {
 		NETEBUFFER_BYTES_SERIALIZE(is_reading,

@@ -50,8 +50,8 @@ static void ConMapNode_init_node (ConMapNode *node)
 {
     node->capacity = CON_MAP_NODE_DEFAULT_SIZE;
     node->size = 0;
-    node->keys   = malloc(sizeof(u32) * node->capacity);
-    node->values = malloc(sizeof(TYPE) * node->capacity);
+    node->keys   = (u32*) malloc(sizeof(u32) * node->capacity);
+    node->values = (TYPE*) malloc(sizeof(TYPE) * node->capacity);
 }
 
 static ConMapNode ConMapNode_create_node (void)
@@ -81,8 +81,8 @@ static u32 ConMapNode_insert (ConMapNode *node, u32 key, TYPE value)
 {
     if (node->size >= node->capacity) {
         node->capacity *= 2;
-        node->keys   = realloc(node->keys, sizeof(u32) * node->capacity);
-        node->values = realloc(node->values, sizeof(TYPE) * node->capacity);
+        node->keys   = (u32*) realloc(node->keys, sizeof(u32) * node->capacity);
+        node->values = (TYPE*) realloc(node->values, sizeof(TYPE) * node->capacity);
     }
 
     node->keys[node->size] = key;
@@ -136,7 +136,7 @@ typedef struct {
 static void __ConMap_init (ConMap *map, u32 size) {
     map->pair_count = 0;
     map->size = size;
-    map->nodes = calloc(sizeof(ConMapNode), map->size);
+    map->nodes = (ConMapNode*) calloc(sizeof(ConMapNode), map->size);
 
     for (u32 i = 0; i < map->size; ++i) {
         ConMapNode *node = &map->nodes[i];
@@ -151,7 +151,7 @@ static void ConMap_init (ConMap *map) {
 
 
 static ConMap* ConMap_create (void) {
-    ConMap *map = calloc(sizeof(ConMap), 1);
+    ConMap *map = (ConMap*) calloc(sizeof(ConMap), 1);
     __ConMap_init(map, CON_MAP_DEFAULT_SIZE);
     return map;
 }

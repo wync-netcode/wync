@@ -200,7 +200,8 @@ static i32 WyncEventUtils_system_send_events_to_peer (
 	WyncPktEventData data = { 0 };
 
 	data.event_amount = event_amount;
-	data.events = calloc(sizeof(WyncPktEventData_EventData), event_amount);
+	data.events = (WyncPktEventData_EventData*)
+		calloc(sizeof(WyncPktEventData_EventData), event_amount);
 
 	ConMapIterator it = { 0 };
 	while (ConMap_iterator_get_next_key(events, &it) == OK)
@@ -450,7 +451,7 @@ WyncWrapper_Data WyncEventUtil_event_getter (
 
 	WyncEventList event_list = { 0 };
 	event_list.event_amount = (u32)u32_DynArr_get_size(events);
-	event_list.event_ids = malloc(sizeof(u32) * event_list.event_amount);
+	event_list.event_ids = (u32*) malloc(sizeof(u32) * event_list.event_amount);
 
 	u32_DynArrIterator it = { 0 };
 	while (u32_DynArr_iterator_get_next(events, &it) == OK) {
@@ -496,7 +497,8 @@ i32 WyncEventUtils_setup_peer_global_events (WyncCtx *ctx, u32 peer_id) {
 	);
 	if (error != OK) { return -1; }
 
-	WyncEventUtil_EventCtx *event_ctx = calloc(1, sizeof(WyncEventUtil_EventCtx));
+	WyncEventUtil_EventCtx *event_ctx = (WyncEventUtil_EventCtx*)
+		calloc(1, sizeof(WyncEventUtil_EventCtx));
 	event_ctx->list = &ctx->co_events.peer_has_channel_has_events[
 		peer_id][channel_id];
 

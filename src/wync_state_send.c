@@ -163,7 +163,8 @@ void WyncSend_prop_event_send_event_ids_to_peer(
 	pkt_inputs = (WyncPktInputs) { 0 };
 	pkt_inputs.prop_id = prop_id;
 	pkt_inputs.amount = (u32)WyncTickDecorator_DynArr_get_size(&input_list);
-	pkt_inputs.inputs = calloc(sizeof(WyncTickDecorator), pkt_inputs.amount);
+	pkt_inputs.inputs = (WyncTickDecorator*)
+		calloc(sizeof(WyncTickDecorator), pkt_inputs.amount);
 
 	WyncTickDecorator_DynArrIterator input_it = { 0 };
 	while(WyncTickDecorator_DynArr_iterator_get_next(
@@ -186,7 +187,8 @@ WyncPktEventData WyncSend_get_event_data_packet (
 	static NeteBuffer buffer = { 0 };
 	WyncPktEventData pkt_data = { 0 };
 	pkt_data.event_amount = pkt_input->amount;
-	pkt_data.events = calloc(sizeof(uint), pkt_data.event_amount);
+	pkt_data.events = (WyncPktEventData_EventData*) 
+		calloc(sizeof(WyncPktEventData_EventData), pkt_data.event_amount);
 
 	uint actual_event_count = 0;
 
@@ -417,7 +419,7 @@ void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
 
 		if (pkt_rel_snap.snap_amount > 0) {
 
-			pkt_rel_snap.snaps =
+			pkt_rel_snap.snaps = (WyncSnap*)
 				calloc(sizeof(WyncSnap), pkt_rel_snap.snap_amount);
 
 			WyncSnap_DynArrIterator it = { 0 };
@@ -442,7 +444,7 @@ void WyncSend_queue_out_snapshots_for_delivery (WyncCtx *ctx) {
 
 		if (pkt_unrel_snap.snap_amount > 0) {
 
-			pkt_unrel_snap.snaps =
+			pkt_unrel_snap.snaps = (WyncSnap*)
 				calloc(sizeof(WyncSnap), pkt_unrel_snap.snap_amount);
 
 			WyncSnap_DynArrIterator it = { 0 };
@@ -563,7 +565,8 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 		pkt_inputs = (WyncPktInputs) { 0 };
 		pkt_inputs.prop_id = prop_id;
 		pkt_inputs.amount = (u32)WyncTickDecorator_DynArr_get_size(&input_list);
-		pkt_inputs.inputs = calloc(sizeof(WyncTickDecorator), pkt_inputs.amount);
+		pkt_inputs.inputs = (WyncTickDecorator*)
+			calloc(sizeof(WyncTickDecorator), pkt_inputs.amount);
 
 		input_it = (WyncTickDecorator_DynArrIterator ) { 0 };
 

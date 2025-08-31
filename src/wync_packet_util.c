@@ -41,7 +41,7 @@ i32 WyncPacket_wrap_packet_out_alloc (
 	WyncPacketOut wync_pkt_out = { 0 };
 
 	buffer.size_bytes = data_size + sizeof(WyncPacket) + sizeof(WyncPacketOut);
-	buffer.data = calloc(sizeof(char), buffer.size_bytes);
+	buffer.data = (char*) calloc(sizeof(char), buffer.size_bytes);
 
 	wync_pkt.packet_type_id = packet_type_id;
 	wync_pkt.data.data_size = data_size;
@@ -54,7 +54,7 @@ i32 WyncPacket_wrap_packet_out_alloc (
 
 	wync_pkt_out.to_nete_peer_id = nete_peer_id;
 	wync_pkt_out.data_size = buffer.cursor_byte;
-	wync_pkt_out.data = calloc(sizeof(char), wync_pkt_out.data_size);
+	wync_pkt_out.data = (char*) calloc(sizeof(char), wync_pkt_out.data_size);
 
 	memcpy(wync_pkt_out.data, buffer.data, wync_pkt_out.data_size);
 
@@ -129,7 +129,7 @@ int WyncPacket_wrap_and_queue(
 ) {
 	static NeteBuffer buffer = { 0 };
 	if (buffer.size_bytes == 0) {
-		buffer.size_bytes = 4096;
+		buffer.size_bytes = 65536;
 		buffer.data = calloc(1, buffer.size_bytes);
 	}
 	buffer.cursor_byte = 0;

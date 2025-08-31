@@ -135,7 +135,8 @@ int WyncProp_enable_relative_sync (
 	prop->co_rela.current_delta_events = u32_DynArr_create();
 	prop->co_rela.current_undo_delta_events = u32_DynArr_create();
 
-	WyncEventUtil_EventCtx *event_ctx = calloc(1, sizeof(WyncEventUtil_EventCtx));
+	WyncEventUtil_EventCtx *event_ctx =
+		(WyncEventUtil_EventCtx*) calloc(1, sizeof(WyncEventUtil_EventCtx));
 	event_ctx->list = &prop->co_rela.current_delta_events;
 
 	uint events_prop_id;

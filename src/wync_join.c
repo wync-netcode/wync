@@ -171,7 +171,7 @@ i32 WyncJoin_client_setup_my_client (
 	ctx->co_events.events_hash_to_id = u32_FIFOMap_init_calloc(
 		ctx->common.max_amount_cache_events);
 	ctx->co_events.to_peers_i_sent_events =
-		calloc(sizeof(u32_FIFOMap), max_peers);
+		(u32_FIFOMap*) calloc(sizeof(u32_FIFOMap), max_peers);
 
 	for (u16 i = 0; i < max_peers; ++i) {
 		ctx->co_events.to_peers_i_sent_events[i] =
@@ -181,7 +181,7 @@ i32 WyncJoin_client_setup_my_client (
 	// setup relative synchronization
 
 	ctx->co_throttling.peers_events_to_sync =
-		calloc(sizeof(ConMap), max_peers);
+		(ConMap*) calloc(sizeof(ConMap), max_peers);
 	for (u16 i = 0; i < max_peers; ++i) {
 		ConMap_init(&ctx->co_throttling.peers_events_to_sync[i]);
 	}

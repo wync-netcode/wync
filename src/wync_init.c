@@ -2,7 +2,7 @@
 
 
 WyncCtx *WyncInit_create_context (void) {
-	WyncCtx *ctx = calloc(sizeof(WyncCtx), 1);
+	WyncCtx *ctx = (WyncCtx*) calloc(sizeof(WyncCtx), 1);
 	WyncFlow_setup_context(ctx);
 	return ctx;
 }
@@ -21,10 +21,10 @@ void wync_init_ctx_common(WyncCtx *ctx) {
 	common->out_reliable_packets = WyncPacketOut_DynArr_create();
 	common->out_unreliable_packets = WyncPacketOut_DynArr_create();
 
-	common->peer_latency_info = calloc
-		(sizeof(*common->peer_latency_info), common->max_peers);
-	common->client_has_info = calloc
-		(sizeof(*common->client_has_info), common->max_peers);
+	common->peer_latency_info = (Wync_PeerLatencyInfo*)
+		calloc (sizeof(*common->peer_latency_info), common->max_peers);
+	common->client_has_info = (Wync_ClientInfo*)
+		calloc (sizeof(*common->client_has_info), common->max_peers);
 }
 
 
@@ -36,14 +36,14 @@ void wync_init_ctx_state_tracking(WyncCtx *ctx) {
 	co_track->prop_id_cursor = 0;
 
 	ConMap_init(&co_track->tracked_entities);
-	co_track->props = calloc (sizeof(WyncProp), MAX_PROPS);
+	co_track->props = (WyncProp*) calloc (sizeof(WyncProp), MAX_PROPS);
 	ConMap_init(&co_track->active_prop_ids);
 	u32_DynArr_ConMap_init(&co_track->entity_has_props);
 	ConMap_init(&co_track->entity_is_of_type);
 
 	// NOTE: index 0 not used
 	co_track->client_has_relative_prop_has_last_tick =
-		calloc (sizeof(ConMap), max_peers);
+		(ConMap*) calloc (sizeof(ConMap), max_peers);
 
 	ConMap *map;
 	for (u32 peer_id = 0; peer_id < max_peers; ++peer_id) {
@@ -54,7 +54,8 @@ void wync_init_ctx_state_tracking(WyncCtx *ctx) {
 
 void wync_init_ctx_clientauth(WyncCtx *ctx) {
 	u16 max_peers = ctx->common.max_peers;
-	ctx->co_clientauth.client_owns_prop = calloc (sizeof(ConMap), max_peers);
+	ctx->co_clientauth.client_owns_prop =
+		(ConMap*) calloc (sizeof(ConMap), max_peers);
 
 	ConMap *map = NULL;
 	for (u32 peer_id = 0; peer_id < max_peers; ++peer_id) {
@@ -70,9 +71,9 @@ void wync_init_ctx_events(WyncCtx *ctx) {
 
 	WyncEvent_ConMap_init(&co_events->events);
 
-	co_events->peer_has_channel_has_events =
+	co_events->peer_has_channel_has_events = (u32_DynArr(*)[MAX_CHANNELS])
 		calloc (sizeof(*co_events->peer_has_channel_has_events), max_peers);
-	co_events->prop_id_by_peer_by_channel =
+	co_events->prop_id_by_peer_by_channel = (u32(*)[MAX_CHANNELS])
 		calloc (sizeof(*co_events->prop_id_by_peer_by_channel), max_peers);
 
 	//i32[MAX_CHANNELS] *channels_prop_id;
@@ -132,8 +133,8 @@ void wync_init_ctx_metrics(WyncCtx *ctx) {
 		(co_metrics->low_priority_entity_update_rate_sliding_window_size, 0);
 
 	for (u32 i = 0; i < WYNC_PKT_AMOUNT; ++i) {
-		co_metrics->debug_packets_received[i] = calloc
-			(sizeof(u32), DEBUG_PACKETS_RECEIVED_MAX);
+		co_metrics->debug_packets_received[i] =
+			(u32*) calloc (sizeof(u32), DEBUG_PACKETS_RECEIVED_MAX);
 	}
 }
 
@@ -153,9 +154,9 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 	u32 max_peers = ctx->common.max_peers;
 	CoThrottling *co_throt = &ctx->co_throttling;
 
-	co_throt->clients_sees_entities = calloc (sizeof(ConMap), max_peers);
-	co_throt->clients_sees_new_entities = calloc (sizeof(ConMap), max_peers);
-	co_throt->clients_no_longer_sees_entities = calloc (sizeof(ConMap), max_peers);
+	co_throt->clients_sees_entities = (ConMap*) calloc (sizeof(ConMap), max_peers);
+	co_throt->clients_sees_new_entities = (ConMap*) calloc (sizeof(ConMap), max_peers);
+	co_throt->clients_no_longer_sees_entities = (ConMap*) calloc (sizeof(ConMap), max_peers);
 
 	for (u32 peer_id = 0; peer_id < max_peers; ++peer_id) {
 		ConMap_init(&co_throt->clients_sees_entities[peer_id]);
@@ -166,9 +167,9 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 	// Queues
 	// vvv
 	
-	co_throt->queue_clients_entities_to_sync = calloc
+	co_throt->queue_clients_entities_to_sync = (u32_FIFORing*) calloc
 		(sizeof(u32_FIFORing), max_peers);
-	co_throt->entities_synced_last_time = calloc
+	co_throt->entities_synced_last_time = (ConMap*) calloc
 		(sizeof(ConMap), max_peers);
 	co_throt->queue_entity_pairs_to_sync = Wync_PeerEntityPair_DynArr_create();
 
@@ -177,12 +178,13 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 		Wync_PeerPropPair_DynArr_create();
 	co_throt->out_peer_pending_to_setup = u32_DynArr_create();
 	
-	co_throt->clients_cached_reliable_snapshots =
+	co_throt->clients_cached_reliable_snapshots = (WyncSnap_DynArr*)
 		calloc(sizeof(WyncSnap_DynArr), max_peers);
-	co_throt->clients_cached_unreliable_snapshots =
+	co_throt->clients_cached_unreliable_snapshots = (WyncSnap_DynArr*)
 		calloc(sizeof(WyncSnap_DynArr), max_peers);
 	
-	co_throt->peers_events_to_sync = calloc (sizeof(ConMap), max_peers);
+	co_throt->peers_events_to_sync = (ConMap*)
+		calloc (sizeof(ConMap), max_peers);
 
 	for (u32 peer_id = 0; peer_id < max_peers; ++peer_id) {
 		co_throt->queue_clients_entities_to_sync[peer_id] =
@@ -200,7 +202,7 @@ void wync_init_ctx_throttling (WyncCtx *ctx){
 
 
 void wync_init_ctx_ticks(WyncCtx *ctx) {
-	ctx->co_ticks.server_tick_offset_collection = 
+	ctx->co_ticks.server_tick_offset_collection = (Wync_i32Pair*)
 		calloc(sizeof(Wync_i32Pair), SERVER_TICK_OFFSET_COLLECTION_SIZE);
 	ctx->co_ticks.start_time_ms = WyncClock_get_system_milliseconds();
 }

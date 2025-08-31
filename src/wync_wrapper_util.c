@@ -2,7 +2,7 @@
 #include "wync_wrapper.h"
 
 void WyncWrapper_initialize(WyncCtx *ctx) {
-	ctx->wrapper = calloc(sizeof(WyncWrapperCtx), 1);
+	ctx->wrapper = (WyncWrapperCtx *) calloc(sizeof(WyncWrapperCtx), 1);
 }
 
 void WyncWrapper_set_prop_callbacks(
