@@ -333,7 +333,7 @@ void WyncFlow_server_tick_start(WyncCtx *ctx) {
 
 	WyncClock_advance_ticks(ctx);
 
-	/*WyncActions_module_events_consumed_advance_tick(ctx);*/
+	WyncConsumed_advance_tick(ctx); // Required for consuming peer client events
 
 	// player inputs
 	WyncState_reset_all_state_to_confirmed_tick_absolute (
@@ -377,7 +377,7 @@ void WyncFlow_client_tick_end(WyncCtx *ctx) {
 	// CANNOT reset events BEFORE polling inputs, WHERE do we put this?
 	
 	WyncDelta_props_clear_current_delta_events(ctx);
-	WyncDelta_predicted_event_props_clear_events (ctx);
+	WyncDelta_predicted_event_props_clear_events(ctx);
 
 	WyncState_reset_props_to_latest_value(ctx);
 	

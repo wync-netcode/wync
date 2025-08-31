@@ -66,6 +66,12 @@ typedef struct {
     void *data; // WyncPacket
 } WyncPacketOut;
 
+/// state data type for WYNC_PROP_TYPE_EVENT
+typedef struct {
+	uint32_t event_amount;
+	uint32_t *event_ids;
+} WyncEventList;
+
 /// ---------------------------------------------------------------------------
 /// WYNC STATISTICS
 /// ---------------------------------------------------------------------------
@@ -493,6 +499,34 @@ int WyncDelta_prop_push_event_to_current (
 int WyncDelta_merge_event_to_state_real_state (
 	WyncCtx *ctx,
 	uint32_t prop_id,
+	uint32_t event_id
+);
+
+int32_t WyncEventUtils_publish_global_event_as_client (
+	WyncCtx *ctx,
+	uint16_t channel,
+	uint32_t event_id
+);
+
+int32_t WyncEventUtils_get_events_from_channel_from_peer(
+	WyncCtx *ctx,
+	uint16_t wync_peer_id,
+	uint16_t channel,
+	uint32_t tick,
+	WyncEventList *out_event_list
+);
+
+int WyncEventUtils_get_event_data(
+	WyncCtx *ctx,
+	uint32_t event_id,
+	WyncEvent_EventData *out_event_data
+);
+
+int WyncConsumed_global_event_consume_tick (
+	WyncCtx *ctx,
+	uint32_t wync_peer_id,
+	uint32_t channel,
+	uint32_t tick,
 	uint32_t event_id
 );
 

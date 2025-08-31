@@ -193,10 +193,6 @@ i32 WyncJoin_client_setup_my_client (
 		/*ctx->co_events.prop_id_by_peer_by_channel[peer_id][channel_id];*/
 	/*WyncProp_enable_prediction(ctx, channel_prop_id);*/
 
-	// TODO
-	// setup peer channels
-	//WyncEventUtils_setup_peer_global_events
-
 	return OK;
 }
 

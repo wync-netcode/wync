@@ -1,5 +1,6 @@
 #include "wync_private.h"
 #include "wync_wrapper.h"
+#include "assert.h"
 
 void WyncWrapper_initialize(WyncCtx *ctx) {
 	ctx->wrapper = (WyncWrapperCtx *) calloc(sizeof(WyncWrapperCtx), 1);
@@ -40,7 +41,6 @@ void WyncWrapper_buffer_inputs(WyncCtx *ctx) {
 				ctx, input_prop, ctx->co_pred.target_tick,
 				(WyncState) {new_state.data_size, new_state.data});
 	}
-
 }
 
 void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
@@ -87,7 +87,6 @@ void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 		WyncStore_prop_state_buffer_insert(
 			ctx, prop_aux, save_on_tick, (WyncState){data.data_size, data.data});
 	}
-
 }
 
 // TODO: Move to WyncFlow

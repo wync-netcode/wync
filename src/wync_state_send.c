@@ -178,7 +178,8 @@ void WyncSend_prop_event_send_event_ids_to_peer(
 }
 
 
-// This system writes state
+/// This system writes state
+/// * TODO: merge with WyncEventUtils_system_send_events_to_peer
 WyncPktEventData WyncSend_get_event_data_packet (
 	WyncCtx *ctx,
 	uint peer_id,
@@ -239,6 +240,7 @@ WyncPktEventData WyncSend_get_event_data_packet (
 				event->data.data.data
 			);
 
+			assert(actual_event_count < pkt_data.event_amount);
 			pkt_data.events[actual_event_count] = event_data;
 			++actual_event_count;
 

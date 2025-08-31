@@ -45,23 +45,23 @@ extern int LOG_caller_id;
 
 #define LOG_ERR_INTERNAL(is_client, tick, ...) \
 	do { \
-		fprintf(stderr, "%s", ANSI_RED); \
-		fprintf(stderr, "%d ", tick); \
-		fprintf(stderr, "%s: ", (is_client) ? "clien" : "serve"); \
-		fprintf(stderr, __VA_ARGS__); \
-		fprintf(stderr, "%s", ANSI_GRAY); \
-		fprintf(stderr, " %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
+		printf("%s", ANSI_RED); \
+		printf("%d ", tick); \
+		printf("%s ERR: ", (is_client) ? "clien" : "serve"); \
+		printf(__VA_ARGS__); \
+		printf("%s", ANSI_GRAY); \
+		printf(" %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
 		LOG_DEBUG_BREAK; \
 	} while (0)
 
 #define LOG_WAR_INTERNAL(is_client, tick, ...) \
 	do { \
-		fprintf(stderr, "%s", ANSI_RED); \
-		fprintf(stderr, "%d ", tick); \
-		fprintf(stderr, "%s: ", (is_client) ? "clien" : "serve"); \
-		fprintf(stderr, __VA_ARGS__); \
-		fprintf(stderr, "%s", ANSI_GRAY); \
-		fprintf(stderr, " %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
+		printf("%s", ANSI_RED); \
+		printf("%d ", tick); \
+		printf("%s WAR: ", (is_client) ? "clien" : "serve"); \
+		printf(__VA_ARGS__); \
+		printf("%s", ANSI_GRAY); \
+		printf(" %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
 	} while (0)
 
 #define LOG_OUT_STATIC(...) LOG_OUT_INTERNAL(LOG_caller_id, 0, __VA_ARGS__)

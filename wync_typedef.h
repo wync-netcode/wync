@@ -665,12 +665,6 @@ static bool WyncPktEventData_serialize(
 	return true;
 }
 
-/// state data type for WYNC_PROP_TYPE_EVENT
-typedef struct {
-	u32 event_amount;
-	u32 *event_ids;
-} WyncEventList;
-
 static uint WyncEventList_get_size (WyncEventList *list) {
 	return sizeof(u32) * (1 + list->event_amount);
 }

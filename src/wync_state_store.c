@@ -343,8 +343,13 @@ void WyncStore_prop_state_buffer_insert_in_place(
 		return;
 	}
 
+	// TODO: deleteme
 	i32_RinBuf_insert_at(&prop->statebff.state_id_to_tick, state_id, tick);
-	i32_RinBuf_insert_at(&prop->statebff.tick_to_state_id, tick, state_id);
+
+	WyncState replaced_state = { 0 };
+	WyncState_RinBuf_insert_at(&prop->statebff.saved_states, state_id, state);
+
+	// TODO: reuse existing memory instead of using a new one
 }
 
 /// Transfers ownership of the data pointers

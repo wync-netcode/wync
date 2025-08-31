@@ -6,12 +6,6 @@
 #include "../wync.h"
 #include "wync_typedef.h"
 
-/*
-   WyncCtx
-   Wrapper**
-   Wync_EntitySpawnEvent
-   enum WYNC_PROP_TYPE
-   */
 
 /// ---------------------------------------------------------------------------
 /// WYNC STATISTICS
@@ -531,5 +525,11 @@ void WyncEventUtil_event_setter(
 );
 
 WyncWrapper_Data WyncEventUtil_event_get_zeroed (void);
+
+int WyncEventUtils_get_events_from_event_prop(
+	WyncProp *prop, i32 tick, WyncEventList *event_list
+);
+
+void WyncConsumed_advance_tick(WyncCtx *ctx);
 
 #endif // !WYNC_PRIVATE_H

@@ -180,6 +180,7 @@ i32 WyncEventUtils_publish_global_event_as_server (
 // Sending events
 
 
+/// * TODO: merge with WyncSend_get_event_data_packet
 /// This system writes state. It should run just after
 /// queue_delta_event_data_to_be_synced_to_peers. All queued events must be sent
 /// , they're already commited, so no throttling here
@@ -238,7 +239,9 @@ static i32 WyncEventUtils_system_send_events_to_peer (
 		event_data.event_id = event_id;
 		event_data.event_type_id = event->data.event_type_id;
 		event_data.data = WyncState_copy_from_buffer(
-				event->data.data.data_size, event->data.data.data);
+			event->data.data.data_size,
+			event->data.data.data
+		);
 
 		data.events[appended_events_count] = event_data;
 		++appended_events_count;
@@ -274,12 +277,14 @@ void WyncEventUtils_wync_send_event_data (WyncCtx *ctx) {
 
 	if (ctx->common.is_client) {
 		WyncEventUtils_system_send_events_to_peer(ctx, SERVER_PEER_ID);
-	} else { // server
-		size_t peers_size = i32_DynArr_get_size(&ctx->common.peers);
-		for (u16 wync_peer_id = 0; wync_peer_id < peers_size; ++wync_peer_id) {
-			WyncEventUtils_system_send_events_to_peer(ctx, wync_peer_id);
-		}
 	}
+	// It seems the server never calls this function
+	/*} else { // server*/
+		/*size_t peers_size = i32_DynArr_get_size(&ctx->common.peers);*/
+		/*for (u16 wync_peer_id = 0; wync_peer_id < peers_size; ++wync_peer_id) {*/
+			/*WyncEventUtils_system_send_events_to_peer(ctx, wync_peer_id);*/
+		/*}*/
+	/*}*/
 }
 
 /// @returns error
@@ -293,6 +298,12 @@ i32 WyncEventUtils_handle_pkt_event_data (WyncCtx *ctx, WyncPktEventData data) {
 		WyncState event_data = WyncState_copy_from_buffer(
 				data.events[i].data.data_size, 
 				data.events[i].data.data);
+		if (event_data.data == NULL || event_data.data_size == 0) {
+			LOG_WAR_C(ctx, "Got empty event data for event %u",
+					data.events[i].event_id);
+			continue;
+		}
+
 		event.data.data.data = event_data.data;
 		event.data.data.data_size = event_data.data_size;
 
@@ -307,25 +318,38 @@ i32 WyncEventUtils_handle_pkt_event_data (WyncCtx *ctx, WyncPktEventData data) {
 	return OK;
 }
 
-/// @returns optional<u32_DynArr>
-u32_DynArr *WyncEventUtils_get_events_from_event_prop(
-	WyncProp *prop, i32 tick
+/// @param[out] event_list (instanced) to return list of events
+/// @returns error
+int WyncEventUtils_get_events_from_event_prop(
+	WyncProp *prop, i32 tick, WyncEventList *event_list
 ) {
 	if (prop->prop_type != WYNC_PROP_TYPE_EVENT) {
 		assert(false);
-		return NULL;
+		return -1;
 	}
 	WyncState state = WyncState_prop_state_buffer_get(prop, tick);
 	if (state.data_size == 0 || state.data == NULL) {
-		assert(false);
-		return NULL;
+		return -2;
 	}
-	u32_DynArr *event_list = (u32_DynArr*)state.data;
 
-	return event_list;
+	// read saved WyncEventList
+
+	NeteBuffer buffer = { 0 };
+	buffer.data = state.data;
+	buffer.size_bytes = state.data_size;
+	buffer.cursor_byte = 0;
+
+	WyncEventList saved_event_list = { 0 };
+	if (!WyncEventList_serialize(true, &buffer, &saved_event_list)) {
+		return -3;
+		assert(false);
+	}
+
+	*event_list = saved_event_list;
+	return OK;
 }
 
-/// @param[out] out_event_list (instance) for returning an event list
+/// @param[out] out_event_list (instance) for returning a list of events ids
 /// @returns error
 i32 WyncEventUtils_get_events_from_channel_from_peer(
 	WyncCtx *ctx,
@@ -334,59 +358,124 @@ i32 WyncEventUtils_get_events_from_channel_from_peer(
 	u32 tick,
 	WyncEventList *out_event_list
 ) {
-	// Q: Is it possible that event_ids accumulate infinitely if they are never
-	// consumed? A: No, if events are never consumed they remain in the
-	// confirmed_states buffer until eventually replaced.
-
 	static u32_DynArr event_ids = { 0 };
 	if (event_ids.capacity == 0) {
 		event_ids = u32_DynArr_create();
 	}
 	u32_DynArr_clear_preserving_capacity(&event_ids);
 
+	// Q: Is it possible that event_ids accumulate infinitely if they are never
+	// consumed? A: No, if events are never consumed they remain in the
+	// confirmed_states buffer until eventually replaced.
+	// TODO: This function can be rewritten better
+
 	u32 prop_id = ctx->co_events.prop_id_by_peer_by_channel[wync_peer_id][channel];
 	WyncProp *prop_channel = WyncTrack_get_prop_unsafe(ctx, prop_id);
 
-	i32 consumed_event_ids_tick = *i32_RinBuf_get_at(
-		&prop_channel->co_consumed.events_consumed_at_tick_tick, tick);
-
-	if (consumed_event_ids_tick != tick) {
-		return -1;
-	}
-
 	u32_DynArr *consumed_event_ids = NULL;
-	consumed_event_ids = u32_DynArr_RinBuf_get_at(
-		&prop_channel->co_consumed.events_consumed_at_tick, tick);
 
-	u32_DynArr *confirmed_event_ids = NULL;
-	if (tick != ctx->common.ticks) {
-		confirmed_event_ids =
-			&ctx->co_events.peer_has_channel_has_events[wync_peer_id][channel];
-	} else {
-		confirmed_event_ids = WyncEventUtils_get_events_from_event_prop(
-				prop_channel, tick);
-		if (confirmed_event_ids == NULL) {
+	if (prop_channel->consumed_events_enabled) {
+		i32 consumed_event_ids_tick = *i32_RinBuf_get_at(
+			&prop_channel->co_consumed.events_consumed_at_tick_tick, tick);
+
+		if (consumed_event_ids_tick != tick) {
 			return -1;
 		}
+
+		consumed_event_ids = u32_DynArr_RinBuf_get_at(
+			&prop_channel->co_consumed.events_consumed_at_tick, tick);
 	}
 
-	for (size_t i = 0; i < u32_DynArr_get_size(confirmed_event_ids); ++i) {
-		u32 event_id = *u32_DynArr_get(confirmed_event_ids, i);
-		if (u32_DynArr_has(consumed_event_ids, event_id)) {
-			continue;
+	if (tick == ctx->common.ticks) { // current
+
+		u32_DynArr *confirmed_event_ids = NULL;
+		confirmed_event_ids =
+			&ctx->co_events.peer_has_channel_has_events[wync_peer_id][channel];
+
+		for (size_t i = 0; i < u32_DynArr_get_size(confirmed_event_ids); ++i) {
+			u32 event_id = *u32_DynArr_get(confirmed_event_ids, i);
+			if (prop_channel->consumed_events_enabled) {
+				if (u32_DynArr_has(consumed_event_ids, event_id)) {
+					continue;
+				}
+			}
+			if (!WyncEvent_ConMap_has_key(&ctx->co_events.events, event_id)) {
+				continue;
+			}
+
+			u32_DynArr_insert(&event_ids, event_id);
 		}
-		if (!WyncEvent_ConMap_has_key(&ctx->co_events.events, event_id)) {
-			continue;
+	} else { // stored tick
+		WyncEventList saved_event_list = { 0 };
+		int error = WyncEventUtils_get_events_from_event_prop(
+				prop_channel, tick, &saved_event_list);
+		if (error != OK) {
+			return -2;
 		}
 
-		u32_DynArr_insert(&event_ids, event_id);
+		for (size_t i = 0; i < saved_event_list.event_amount; ++i) {
+			u32 event_id = saved_event_list.event_ids[i];
+			if (prop_channel->consumed_events_enabled) {
+				if (u32_DynArr_has(consumed_event_ids, event_id)) {
+					continue;
+				}
+			}
+			if (!WyncEvent_ConMap_has_key(&ctx->co_events.events, event_id)) {
+				continue;
+			}
+
+			u32_DynArr_insert(&event_ids, event_id);
+		}
+
 	}
 
 	*out_event_list = (WyncEventList) {
 		.event_amount = event_ids.size,
 		.event_ids = event_ids.items
 	};
+
 	return OK;
+}
+
+
+/// @returns event data, Wync owns this data, don't free.
+int WyncEventUtils_get_event_data(
+	WyncCtx *ctx,
+	uint event_id,
+	WyncEvent_EventData *out_event_data
+) {
+	WyncEvent *event = NULL;
+	int error = WyncEvent_ConMap_get(
+		&ctx->co_events.events, event_id, &event);
+
+	if (error != OK || event == NULL) {
+		return -1;
+	}
+
+	*out_event_data = event->data;
+	return OK;
+}
+
+/// Serialized empty WyncEventList
+WyncWrapper_Data WyncEventUtil_event_get_zeroed (void) {
+
+	WyncEventList event_list = { 0 };
+	WyncWrapper_Data data;
+	data.data_size = WyncEventList_get_size(&event_list);
+	data.data = malloc(data.data_size);
+
+	NeteBuffer buffer = { 0 };
+	buffer.data = data.data;
+	buffer.size_bytes = data.data_size;
+	buffer.cursor_byte = 0;
+
+	if (!WyncEventList_serialize(false, &buffer, &event_list)) {
+		assert(false);
+	}
+	assert(buffer.cursor_byte == data.data_size);
+	free(event_list.event_ids);
+
+	return data;
 }
 
 
@@ -417,27 +506,6 @@ void WyncEventUtil_event_setter(
 	for (u32 i = 0; i < event_list.event_amount; ++i) {
 		u32_DynArr_insert(events, event_list.event_ids[i]);
 	}
-}
-
-WyncWrapper_Data WyncEventUtil_event_get_zeroed (void) {
-
-	WyncEventList event_list = { 0 };
-	WyncWrapper_Data data;
-	data.data_size = WyncEventList_get_size(&event_list);
-	data.data = malloc(data.data_size);
-
-	NeteBuffer buffer = { 0 };
-	buffer.data = data.data;
-	buffer.size_bytes = data.data_size;
-	buffer.cursor_byte = 0;
-
-	if (!WyncEventList_serialize(false, &buffer, &event_list)) {
-		assert(false);
-	}
-	assert(buffer.cursor_byte == data.data_size);
-	free(event_list.event_ids);
-
-	return data;
 }
 
 WyncWrapper_Data WyncEventUtil_event_getter (

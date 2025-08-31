@@ -19,8 +19,8 @@ int WyncConsumed_global_event_consume_tick (
 	uint tick,
 	uint event_id
 ) {
-	if (channel < MAX_CHANNELS ||
-		wync_peer_id < ctx->common.max_peers
+	if (channel >= MAX_CHANNELS ||
+		wync_peer_id >= ctx->common.max_peers
 	){ 
 		return -1;
 	}
@@ -54,8 +54,7 @@ void WyncConsumed_advance_tick(WyncCtx *ctx) {
 	while (ConMap_iterator_get_next_key(
 		&ctx->co_track.active_prop_ids, &it) == OK)
 	{
-		int prop_id;
-		ConMap_get(&ctx->co_track.active_prop_ids, it.key, &prop_id);
+		int prop_id = it.key;
 
 		WyncProp *prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
 		if (!prop->consumed_events_enabled) {

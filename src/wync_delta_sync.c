@@ -191,6 +191,8 @@ int WyncDelta_merge_event_to_state_real_state (
 }
 
 
+// TODO: Make a separate version for only "clear_events_nonpredicted_owned_events"
+// So that it doens't interfere with Xtrap tick end
 void WyncDelta_predicted_event_props_clear_events (WyncCtx *ctx) {
 	WyncWrapper_Setter *setter;
 	WyncWrapper_UserCtx *user_ctx;
@@ -201,6 +203,23 @@ void WyncDelta_predicted_event_props_clear_events (WyncCtx *ctx) {
 		&ctx->co_filter_c.type_event__predicted_prop_ids, &it) == OK)
 	{
 		uint prop_id = *it.item;
+
+		setter = &ctx->wrapper->prop_setter[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		if (*setter == NULL) continue;
+
+		(*setter)(*user_ctx, event_list_zeroed_blob);
+	}
+
+	// TODO: Index prop_ids which are owned of event type
+	it = (u32_DynArrIterator) { 0 };
+	while (u32_DynArr_iterator_get_next(
+		&ctx->co_filter_c.type_input_event__owned_prop_ids, &it) == OK)
+	{
+		uint prop_id = *it.item;
+		WyncProp *prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		if (prop == NULL) continue;
+		if (prop->prop_type != WYNC_PROP_TYPE_EVENT) continue;
 
 		setter = &ctx->wrapper->prop_setter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
