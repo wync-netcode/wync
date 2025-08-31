@@ -236,6 +236,11 @@ i32 WyncProp_enable_interpolation(
     WyncCtx *ctx, u32 prop_id, u16 user_data_type,
     WyncWrapper_Setter setter_lerp);
 
+i32 WyncProp_enable_module_events_consumed (
+	WyncCtx *ctx,
+	u32 prop_id
+);
+
 /// ---------------------------------------------------------------------------
 /// WYNC SPAWN
 /// ---------------------------------------------------------------------------
@@ -466,5 +471,65 @@ void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick);
 void WyncWrapper_server_filter_prop_ids(WyncCtx *ctx);
 
 void WyncWrapper_client_filter_prop_ids(WyncCtx *ctx);
+
+/// ---------------------------------------------------------------------------
+/// WYNC DELTA
+/// ---------------------------------------------------------------------------
+
+void WyncSend_send_pending_rela_props_fullsnapshot (WyncCtx *ctx);
+
+void WyncSend_system_update_delta_base_state_tick(WyncCtx *ctx);
+
+void WyncEventUtils_wync_send_event_data (WyncCtx *ctx);
+
+i32 WyncEventUtils_handle_pkt_event_data (WyncCtx *ctx, WyncPktEventData data);
+
+i32 WyncEventUtils_setup_peer_global_events (WyncCtx *ctx, u32 peer_id);
+
+void WyncDelta_predicted_event_props_clear_events (WyncCtx *ctx);
+
+void WyncDelta_props_clear_current_delta_events(WyncCtx *ctx);
+
+void WyncDelta_system_client_send_delta_prop_acks (WyncCtx *ctx);
+
+int WyncDelta_handle_pkt_delta_prop_ack (
+	WyncCtx *ctx,
+	WyncPktDeltaPropAck pkt,
+	u16 from_nete_peer_id
+);
+
+int WyncDelta_merge_event_to_state_real_state (
+	WyncCtx *ctx,
+	uint prop_id,
+	uint event_id
+);
+
+bool WyncDelta_is_event_healthy (WyncCtx *ctx, uint event_id);
+
+void WyncWrapper_extract_rela_prop_fullsnapshot_to_tick (
+	WyncCtx *ctx, int save_on_tick
+);
+
+bool WyncDelta_blueprint_exists (WyncCtx *ctx, uint delta_blueprint_id);
+
+typedef struct {
+	u32_DynArr *list;
+} WyncEventUtil_EventCtx;
+
+typedef struct {
+	u32 event_amount;
+	u32 *events;
+} WyncEventUtil_EventData; // TODO: merge with WyncEventList
+
+WyncWrapper_Data WyncEventUtil_event_getter (
+	WyncWrapper_UserCtx user_ctx
+);
+
+void WyncEventUtil_event_setter(
+	WyncWrapper_UserCtx user_ctx,
+	WyncWrapper_Data data
+);
+
+WyncWrapper_Data WyncEventUtil_event_get_zeroed (void);
 
 #endif // !WYNC_PRIVATE_H

@@ -91,8 +91,9 @@ void WyncXtrap_regular_entities_to_predict(WyncCtx *ctx, i32 tick) {
 
 
 void WyncXtrap_termination (WyncCtx *ctx) {
-	//WyncDeltaSyncUtilsInternal.delta_props_clear_current_delta_events(ctx)
-	//WyncDeltaSyncUtils.predicted_event_props_clear_events(ctx)
+	WyncDelta_props_clear_current_delta_events(ctx);
+	WyncDelta_predicted_event_props_clear_events (ctx);
+
 	ctx->co_pred.currently_on_predicted_tick = false;
 	u32_DynArr_clear_preserving_capacity(
 		&ctx->co_pred.global_entity_ids_to_predict);

@@ -21,6 +21,235 @@ i32 WyncSend__wync_sync_regular_prop(
 	return OK;
 }
 
+/// @returns error
+i32 WyncSend__wync_sync_queue_rela_prop_fullsnap(
+	WyncCtx *ctx,
+	u32 prop_id,
+	uint client_id
+) {
+
+	// FIXME: Optimization ideas:
+	// 1. (probably not) Adelantar ticks en los que no pasó nada. Es decir
+	// automaticamente aumentar el número del tick de un peer
+	// 'last_tick_confirmed'. Esto trae problemas por el determinismo, pues no
+	// se enviaría ticks intermedios, es decir, el cliente debe saber. send
+	// fullsnapshot if client doesn't have history, or if it's too old.
+	// 2. Podriamos evitar enviar actualizaciones si se detecta que el cliente
+	// está desconectado temporalmente (1-3 mins); Wync actualmente no sabe
+	// cuando un peer está sufriendo desconexión temporal; se podría crear un
+	// mecanismo para esto o usar _last_tick_.
+
+	Wync_PeerLatencyInfo *lat_info = &ctx->common.peer_latency_info[client_id];
+	float latency_ticks = ((float)lat_info->latency_stable_ms) /
+		(1000.0f / ctx->common.physic_ticks_per_second);
+
+	ConMap *client_prop_last_tick =
+		&ctx->co_track.client_has_relative_prop_has_last_tick[client_id];
+
+	int last_tick = -1;
+	ConMap_get(client_prop_last_tick, prop_id, &last_tick);
+
+	if ((float)(ctx->co_events.delta_base_state_tick - last_tick)
+			< (latency_ticks * 4)
+	){
+		return -1;
+	}
+
+
+	// queue to sync later (+ queue for state extraction)
+
+	Wync_PeerPropPair peer_prop_pair = {
+		.peer_id = client_id,
+		.prop_id = prop_id
+	};
+
+	Wync_PeerPropPair_DynArr_insert(
+		&ctx->co_throttling.pending_rela_props_to_sync_to_peer, peer_prop_pair);
+	u32_DynArr_insert(
+		&ctx->co_throttling.rela_prop_ids_for_full_snapshot, prop_id);
+
+	return OK;
+}
+
+
+void WyncSend_send_pending_rela_props_fullsnapshot (WyncCtx *ctx) {
+	Wync_PeerPropPair_DynArrIterator it = { 0 };
+
+	while (Wync_PeerPropPair_DynArr_iterator_get_next(
+		&ctx->co_throttling.pending_rela_props_to_sync_to_peer, &it) == OK)
+	{
+		uint prop_id = it.item->prop_id;
+		uint peer_id = it.item->peer_id;
+		WyncProp *prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+
+		WyncSnap snap_prop = { 0 };
+		int error = WyncSend__wync_sync_regular_prop(
+				prop, prop_id, ctx->common.ticks, &snap_prop);
+		if (error != OK) {
+			LOG_WAR_C(ctx, "Couldn't extract state for prop_id %u", prop_id);
+			continue;
+		}
+
+		WyncSnap_DynArr *reliable_snaps = 
+			&ctx->co_throttling.clients_cached_reliable_snapshots[peer_id];
+		ConMap *rela_prop_last_tick =
+			&ctx->co_track.client_has_relative_prop_has_last_tick[peer_id];
+
+		WyncSnap_DynArr_insert(reliable_snaps, snap_prop);
+		ConMap_set_pair(rela_prop_last_tick, prop_id, (int)ctx->common.ticks);
+
+		// Note: data consumed was already calculated before when queueing
+	}	
+}
+
+
+
+// TODO: Make a separate version only for _event_ids_ different from _inputs any_
+// TODO: Make a separate version only for _delta event_ids_
+
+/// @param[out] out_pkt_inputs Instace, returns filled packet (with new alloc's)
+void WyncSend_prop_event_send_event_ids_to_peer(
+	WyncCtx *ctx,
+	WyncProp *prop,
+	uint prop_id,
+	WyncPktInputs *out_pkt_inputs
+) {
+	static NeteBuffer buffer = { 0 };
+	static WyncTickDecorator_DynArr input_list = { 0 };
+	if (input_list.capacity == 0) {
+		input_list = WyncTickDecorator_DynArr_create();
+	}
+	static WyncPktInputs pkt_inputs = { 0 };
+
+	// collect inputs
+
+	WyncTickDecorator_DynArr_clear_preserving_capacity(&input_list);
+	
+	for (uint tick = ctx->common.ticks - INPUT_AMOUNT_TO_SEND;
+		tick < ctx->common.ticks +1; ++tick)
+	{
+		WyncState input = WyncState_prop_state_buffer_get(prop, tick);
+		if (input.data == NULL || input.data_size == 0) {
+			LOG_ERR_C(ctx, "deltasync, Can't extract event data from prop %u", prop_id);
+			continue;
+		}
+
+		// check is valid
+
+		buffer.data = input.data;
+		buffer.size_bytes = input.data_size;
+		buffer.cursor_byte = 0;
+
+		WyncEventList event_list = { 0 };
+		if (!WyncEventList_serialize(true, &buffer, &event_list)) {
+			WyncEventList_free(&event_list);
+			LOG_ERR_C(ctx, "deltasync, couldn't read WyncEventList");
+			continue;
+		}
+
+		// collect events
+
+		WyncTickDecorator tick_input_wrap = { 0 };
+		tick_input_wrap.tick = tick;
+		tick_input_wrap.state = WyncState_copy_from_buffer(
+			input.data_size, input.data);
+
+		WyncTickDecorator_DynArr_insert(&input_list, tick_input_wrap);
+	}
+
+	// dump collection into packet
+
+	WyncPktInputs_free(&pkt_inputs);
+	pkt_inputs = (WyncPktInputs) { 0 };
+	pkt_inputs.prop_id = prop_id;
+	pkt_inputs.amount = (u32)WyncTickDecorator_DynArr_get_size(&input_list);
+	pkt_inputs.inputs = calloc(sizeof(WyncTickDecorator), pkt_inputs.amount);
+
+	WyncTickDecorator_DynArrIterator input_it = { 0 };
+	while(WyncTickDecorator_DynArr_iterator_get_next(
+		&input_list, &input_it) == OK)
+	{
+		WyncTickDecorator tick_input = *input_it.item;
+		pkt_inputs.inputs[input_it.index] = tick_input;
+	}
+
+	*out_pkt_inputs = pkt_inputs;
+}
+
+
+// This system writes state
+WyncPktEventData WyncSend_get_event_data_packet (
+	WyncCtx *ctx,
+	uint peer_id,
+	WyncPktInputs *pkt_input
+) {
+	static NeteBuffer buffer = { 0 };
+	WyncPktEventData pkt_data = { 0 };
+	pkt_data.event_amount = pkt_input->amount;
+	pkt_data.events = calloc(sizeof(uint), pkt_data.event_amount);
+
+	uint actual_event_count = 0;
+
+	for (uint i = 0; i < pkt_input->amount; ++i) {
+		WyncTickDecorator input = pkt_input->inputs[i];
+		
+		buffer.data = input.state.data;
+		buffer.size_bytes = input.state.data_size;
+		buffer.cursor_byte = 0;
+
+		WyncEventList event_list = { 0 };
+		if (!WyncEventList_serialize(true, &buffer, &event_list)) {
+			WyncEventList_free(&event_list);
+			LOG_ERR_C(ctx, "deltasync, couldn't read WyncEventList");
+			continue;
+		}
+
+		for (uint k = 0; k < event_list.event_amount; ++k) {
+			uint event_id = event_list.event_ids[k];
+
+			WyncEvent *event;
+			int error = WyncEvent_ConMap_get(
+				&ctx->co_events.events, event_id, &event);
+			if (error != OK) {
+				LOG_ERR_C(ctx, "couldn't find event_id %u", event_id);
+				continue;
+			}
+			
+			// check if peer already has it (avoid resending)
+
+			uint *cached_event_id = u32_FIFOMap_get_item_by_hash(
+				&ctx->co_events.events_hash_to_id, event->data_hash);
+			if (cached_event_id != NULL) {
+				bool peer_has_it = u32_FIFOMap_has_item_hash(
+					&ctx->co_events.to_peers_i_sent_events[peer_id], *cached_event_id);
+				if (peer_has_it) {
+					continue;
+				}
+			}
+
+			// package it
+
+			WyncPktEventData_EventData event_data = { 0 };
+			event_data.event_id = event_id;
+			event_data.event_type_id = event->data.event_type_id;
+			event_data.data = WyncState_copy_from_buffer(
+				event->data.data.data_size,
+				event->data.data.data
+			);
+
+			pkt_data.events[actual_event_count] = event_data;
+			++actual_event_count;
+
+			// since peer doesn't have it, then mark it as sent
+			u32_FIFOMap_push_head_hash_and_item(
+				&ctx->co_events.to_peers_i_sent_events[peer_id], event_id, true);
+		}
+	}
+
+	pkt_data.event_amount = actual_event_count;
+	return pkt_data;
+}
+
 
 /// Builds packets
 /// This services modifies ctx.client_has_relative_prop_has_last_tick
@@ -248,10 +477,10 @@ void WyncSend_system_update_delta_base_state_tick(WyncCtx *ctx) {
 
 	// move base_state_tick forward
 
-	u32 new_base_tick =
-		ctx->common.ticks - ctx->common.max_prop_relative_sync_history_ticks +1;
+	i32 new_base_tick = (i32)ctx->common.ticks
+		- (i32)ctx->common.max_prop_relative_sync_history_ticks +1;
 
-	if (!(ctx->co_events.delta_base_state_tick < new_base_tick)){
+	if (ctx->co_events.delta_base_state_tick >= new_base_tick){
 		return;
 	}
 	ctx->co_events.delta_base_state_tick = new_base_tick;
@@ -309,12 +538,23 @@ void WyncSend_client_send_inputs (WyncCtx *ctx) {
 			WyncTickDecorator_DynArr_insert(&input_list, tick_input);
 
 			// collect event ids
-			// TODO .....
-			//
-			//if (input_prop->prop_type == WYNC_PROP_TYPE_EVENT) {
-				//input = input as Array
-				//for event_id: int in input:
-					//event_set[event_id] = true
+
+			if (input_prop->prop_type == WYNC_PROP_TYPE_EVENT) {
+				WyncEventList event_list = { 0 };
+				NeteBuffer buffer = { 0 };
+				buffer.size_bytes = input.data_size;
+				buffer.data = input.data;
+
+				if (!WyncEventList_serialize(true, &buffer, &event_list)) {
+					LOG_ERR_C(ctx, "Couldn't read PROP_TYPE_EVENT contents");
+					continue;
+				}
+
+				for (uint k = 0; k < event_list.event_amount; ++k) {
+					uint event_id = event_list.event_ids[k];
+					ConMap_set_pair(event_set, event_id, true);
+				}
+			}
 		}
 
 		// dump collection into packet

@@ -341,6 +341,7 @@ i32 WyncTrack_prop_register_update_dummy (
 	return OK;
 }
 
+/// * SERVER ONLY for now
 /// * Use it after setting up an entity and it's props
 /// * Use it to add entities that already exist on the server & client
 /// * Useful for map provided entities.

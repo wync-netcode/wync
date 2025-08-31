@@ -127,7 +127,13 @@ i32 WyncFlow_feed_packet(
 		}
 		case WYNC_PKT_EVENT_DATA:
 		{
-			//WyncEventUtils.wync_handle_pkt_event_data(ctx, wync_pkt.data)
+			WyncPktEventData pkt = { 0 };
+			if (!WyncPktEventData_serialize(true, &buffer, &pkt)) {
+				LOG_ERR_C(ctx, "couldn't read WyncPktEventData");
+				WyncPktEventData_free(&pkt);
+				break;
+			}
+			WyncEventUtils_handle_pkt_event_data (ctx, pkt);
 			break;
 		}
 		case WYNC_PKT_INPUTS:
@@ -200,7 +206,7 @@ i32 WyncFlow_feed_packet(
 		{
 			if (is_client) {
 				WyncPktSpawn pkt = { 0 };
-				if (!WyncPktSpawn_serialize(true, &buffer, &pkt, 0)) {
+				if (!WyncPktSpawn_serialize(true, &buffer, &pkt)) {
 					WyncPktSpawn_free(&pkt);
 					LOG_WAR_C(ctx, "flow, couldn't deserialize packet");
 					break;
@@ -229,7 +235,13 @@ i32 WyncFlow_feed_packet(
 		case WYNC_PKT_DELTA_PROP_ACK:
 		{
 			if (is_server) {
-				//WyncDeltaSyncUtilsInternal.wync_handle_pkt_delta_prop_ack(ctx, wync_pkt.data, from_nete_peer_id)
+				WyncPktDeltaPropAck pkt = { 0 };
+				if (!WyncPktDeltaPropAck_serialize(true, &buffer, &pkt)) {
+					WyncPktDeltaPropAck_free(&pkt);
+					LOG_WAR_C(ctx, "flow, couldn't deserialize WyncPktDeltaPropAck");
+					break;
+				}
+				WyncDelta_handle_pkt_delta_prop_ack (ctx, pkt, from_nete_peer_id);
 			}
 			break;
 		}
@@ -278,9 +290,9 @@ void WyncFlow_server_setup(WyncCtx *ctx) {
 	}
 
 	// setup peer channels
-	//WyncEventUtils.setup_peer_global_events(ctx, WyncCtx.SERVER_PEER_ID)
-	//for i in range(1, ctx.common.max_peers):
-		//WyncEventUtils.setup_peer_global_events(ctx, i)
+	for (uint i = 0; i < ctx->common.max_peers; ++i) {
+		WyncEventUtils_setup_peer_global_events (ctx, i);
+	}
 
 	// setup prob prop
 	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, SERVER_PEER_ID);
@@ -294,7 +306,9 @@ void WyncFlow_client_setup(WyncCtx *ctx) {
 	ctx->common.connected = false;
 
 	// setup peer channels
-	// ...
+	for (uint i = 0; i < ctx->common.max_peers; ++i) {
+		WyncEventUtils_setup_peer_global_events (ctx, i);
+	}
 
 	// setup prob
 	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, 0);
@@ -319,7 +333,7 @@ void WyncFlow_server_tick_start(WyncCtx *ctx) {
 
 	WyncClock_advance_ticks(ctx);
 
-	//WyncActions.module_events_consumed_advance_tick(ctx)
+	/*WyncActions_module_events_consumed_advance_tick(ctx);*/
 
 	// player inputs
 	WyncState_reset_all_state_to_confirmed_tick_absolute (
@@ -329,7 +343,7 @@ void WyncFlow_server_tick_start(WyncCtx *ctx) {
 		ctx->common.ticks
 	);
 
-	//WyncDeltaSyncUtilsInternal.delta_props_clear_current_delta_events(ctx)
+	WyncDelta_props_clear_current_delta_events(ctx);
 }
 
 
@@ -341,7 +355,7 @@ void WyncFlow_server_tick_end(WyncCtx *ctx) {
 
 	WyncWrapper_server_filter_prop_ids(ctx);
 
-	//WyncStateSend.system_update_delta_base_state_tick(ctx)
+	WyncSend_system_update_delta_base_state_tick(ctx);
 
 	// NOTE: maybe a way to extract data but only events, since that is unskippable?
 	// (shouldn't be throttled)
@@ -362,8 +376,8 @@ void WyncFlow_client_tick_end(WyncCtx *ctx) {
 
 	// CANNOT reset events BEFORE polling inputs, WHERE do we put this?
 	
-	//WyncDeltaSyncUtilsInternal.delta_props_clear_current_delta_events(ctx)
-	//WyncDeltaSyncUtils.predicted_event_props_clear_events(ctx)
+	WyncDelta_props_clear_current_delta_events(ctx);
+	WyncDelta_predicted_event_props_clear_events (ctx);
 
 	WyncState_reset_props_to_latest_value(ctx);
 	
@@ -386,9 +400,9 @@ void WyncFlow_gather_packets(WyncCtx *ctx) {
 			WyncJoin_service_wync_try_to_connect(ctx);  // reliable, commited
 		} else {
 			WyncClock_client_ask_for_clock(ctx);   // unreliable
-			//WyncDeltaSyncUtilsInternal.wync_system_client_send_delta_prop_acks(ctx) // unreliable
+			WyncDelta_system_client_send_delta_prop_acks(ctx); // unreliable
 			WyncSend_client_send_inputs(ctx); // unreliable
-			//WyncEventUtils_send_event_data(ctx)   // reliable, commited
+			WyncEventUtils_wync_send_event_data (ctx); // reliable, commited
 		}
 	} else {
 		WyncSpawn_system_send_entities_to_despawn(ctx); // reliable, commited
@@ -399,11 +413,11 @@ void WyncFlow_gather_packets(WyncCtx *ctx) {
 		WyncThrottle_compute_entity_sync_order(ctx);
 		WyncSend_extracted_data(ctx); // both reliable/unreliable
 
-		/*WyncWrapper.extract_rela_prop_fullsnapshot_to_tick(ctx, ctx.common.ticks);*/
+		WyncWrapper_extract_rela_prop_fullsnapshot_to_tick(ctx, ctx->common.ticks);
 	}
 
 	// pending delta props fullsnapshots should be extracted by now
-	//WyncStateSend.wync_send_pending_rela_props_fullsnapshot(ctx)
+	WyncSend_send_pending_rela_props_fullsnapshot (ctx);
 	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
 
 	ctx->common.unrel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };

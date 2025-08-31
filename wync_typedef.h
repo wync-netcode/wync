@@ -40,6 +40,10 @@
 
 
 typedef struct {
+	char name[40];
+} WyncName;
+
+typedef struct {
 	u32 data_size;
 	void *data;
 } WyncState;
@@ -156,27 +160,22 @@ static void Wync_DummyProp_free (Wync_DummyProp *self) {
 	WyncState_free(&self->data);
 }
 
-// NOTE: Do not confuse with WyncPktEventData.EventData
-// TODO: define data types somewhere + merge with WyncProp
-
-typedef struct {
-	u32 event_type_id;
-	u32 data_size;
-	void *event_data;
-} WyncEvent_EventData;
-
-static WyncEvent_EventData WyncEvent_EventData_duplicate(WyncEvent_EventData *self) {
+static WyncEvent_EventData WyncEvent_EventData_duplicate(
+	WyncEvent_EventData *self
+) {
 	WyncEvent_EventData newi = { 0 };
 	memcpy(&newi, self, sizeof(WyncEvent_EventData));
 
-	newi.event_data = calloc(sizeof(char), newi.data_size);
-	memcpy(newi.event_data, self->event_data, newi.data_size);
+	WyncState data = WyncState_copy_from_buffer(
+			self->data.data_size, self->data.data);
+	newi.data.data = data.data;
+	newi.data.data_size = data.data_size;
 	return newi;
 }
 
 typedef struct {
 	WyncEvent_EventData data;
-	u64 data_hash;
+	u32 data_hash;
 } WyncEvent;
 
 //enum WYNC_PROP_TYPE {
@@ -317,8 +316,17 @@ typedef struct {
 
 	u32 prop_amount;
 	u32 *delta_prop_ids;
-	u32 *last_tick_received;
+	i32 *last_tick_received;
 } WyncPktDeltaPropAck;
+
+static void WyncPktDeltaPropAck_free (WyncPktDeltaPropAck *pkt) {
+	free(pkt->delta_prop_ids);
+	free(pkt->last_tick_received);
+
+	pkt->prop_amount = 0;
+	pkt->delta_prop_ids = NULL;
+	pkt->last_tick_received = NULL;
+}
 
 static bool WyncPktDeltaPropAck_serialize (
 	bool is_reading, NeteBuffer *buffer, WyncPktDeltaPropAck *pkt
@@ -327,7 +335,7 @@ static bool WyncPktDeltaPropAck_serialize (
 
 	if (is_reading) {
 		pkt->delta_prop_ids = (u32*)calloc(sizeof(u32), pkt->prop_amount);
-		pkt->last_tick_received = (u32*)calloc(sizeof(u32), pkt->prop_amount);
+		pkt->last_tick_received = (i32*)calloc(sizeof(i32), pkt->prop_amount);
 	}
 
 	for (u32 k = 0; k < pkt->prop_amount; ++k) {
@@ -336,7 +344,7 @@ static bool WyncPktDeltaPropAck_serialize (
 	}
 	for (u32 k = 0; k < pkt->prop_amount; ++k) {
 		NETEBUFFER_BYTES_SERIALIZE(
-			is_reading, buffer, &pkt->last_tick_received[k], sizeof(u32));
+			is_reading, buffer, &pkt->last_tick_received[k], sizeof(i32));
 	}
 	return true;
 }
@@ -378,14 +386,20 @@ static bool WyncPktDespawn_serialize(
 typedef struct {
 	u32 event_id;
 	u32 event_type_id;
-	u32 data_size;
-	void *event_data;
+	WyncState data;
 } WyncPktEventData_EventData;
 
 typedef struct {
-	u32 events_amount;
+	u32 event_amount;
 	WyncPktEventData_EventData *events;
 } WyncPktEventData;
+
+static void WyncPktEventData_free (WyncPktEventData *pkt) {
+	for (u32 i = 0; i < pkt->event_amount; ++i) {
+		WyncState_free(&pkt->events[i].data);
+	}
+	free(pkt->events);
+}
 
 typedef struct {
 	u32 tick;
@@ -530,6 +544,9 @@ static void WyncPktSnap_free(WyncPktSnap *pkt) {
 	for (u16 i = 0; i < pkt->snap_amount; ++i) {
 		WyncSnap_free(&pkt->snaps[i]);
 	}
+	free(pkt->snaps);
+	pkt->snaps = NULL;
+	pkt->snap_amount = 0;
 }
 
 typedef struct {
@@ -572,13 +589,9 @@ static void WyncPktSpawn_free(WyncPktSpawn *pkt) {
 static bool WyncPktSpawn_serialize(
 	bool is_reading,
 	NeteBuffer *buffer,
-	WyncPktSpawn *pkt,
-	u16 p_write_entity_amount // only for writting
+	WyncPktSpawn *pkt
 ) {
 	u16 entity_amount = pkt->entity_amount;
-	if (!is_reading) {
-		entity_amount = p_write_entity_amount;
-	}
 
 	if (is_reading) {
 		NETEBUFFER_BYTES_SERIALIZE(is_reading,
@@ -615,6 +628,71 @@ static bool WyncPktSpawn_serialize(
 	}
 	#undef WYNC_PKT_SPAWN_EASY_LOOP
 
+	return true;
+}
+
+/// allocates when reading
+///
+/// @param pkt Must be an instance
+static bool WyncPktEventData_serialize(
+	bool is_reading,
+	NeteBuffer *buffer,
+	WyncPktEventData *pkt
+) {
+	NETEBUFFER_BYTES_SERIALIZE(is_reading,
+		buffer, &pkt->event_amount, sizeof(u16));
+
+	if (is_reading) {
+		pkt->events = calloc(
+				sizeof(WyncPktEventData_EventData), pkt->event_amount);
+	}
+
+	for (u32 i = 0; i < pkt->event_amount; ++i)
+	{
+		WyncPktEventData_EventData *event_data = &pkt->events[i];
+
+		NETEBUFFER_BYTES_SERIALIZE(is_reading,
+			buffer, &event_data->event_id, sizeof(u32));
+		NETEBUFFER_BYTES_SERIALIZE(is_reading,
+			buffer, &event_data->event_type_id, sizeof(u32));
+		if (!WyncState_serialize(is_reading, buffer, &event_data->data)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/// state data type for WYNC_PROP_TYPE_EVENT
+typedef struct {
+	u32 event_amount;
+	u32 *event_ids;
+} WyncEventList;
+
+static uint WyncEventList_get_size (WyncEventList *list) {
+	return sizeof(u32) * (1 + list->event_amount);
+}
+
+static void WyncEventList_free (WyncEventList *list){
+	list->event_amount = 0;
+	free(list->event_ids);
+	list->event_ids = NULL;
+}
+
+static bool WyncEventList_serialize(
+	bool is_reading,
+	NeteBuffer *buffer,
+	WyncEventList *list
+) {
+	NETEBUFFER_BYTES_SERIALIZE(is_reading,
+		buffer, &list->event_amount, sizeof(u32));
+	if (is_reading) {
+		list->event_ids = malloc(sizeof(u32) * list->event_amount);
+	}
+	for (u32 i = 0; i < list->event_amount; ++i) {
+		NETEBUFFER_BYTES_SERIALIZE(is_reading,
+			buffer, &list->event_ids[i], sizeof(u32));
+	}
 	return true;
 }
 
@@ -716,30 +794,35 @@ static bool WyncPktSpawn_serialize(
 #undef MAP_GENERIC_PREFIX
 #include "containers/map_generic.h"
 #undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
 #undef MAP_GENERIC_PREFIX
 
 #define MAP_GENERIC_TYPE Wync_DummyProp
 #define MAP_GENERIC_PREFIX DummyProp_
 #include "containers/map_generic.h"
 #undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
 #undef MAP_GENERIC_PREFIX
 
 #define MAP_GENERIC_TYPE WyncState
 #undef MAP_GENERIC_PREFIX
 #include "containers/map_generic.h"
 #undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
 #undef MAP_GENERIC_PREFIX
 
 #define MAP_GENERIC_TYPE WyncEvent
 #undef MAP_GENERIC_PREFIX
 #include "containers/map_generic.h"
 #undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
 #undef MAP_GENERIC_PREFIX
 
 #define MAP_GENERIC_TYPE EntitySpawnPropRange
 #undef MAP_GENERIC_PREFIX
 #include "containers/map_generic.h"
 #undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
 #undef MAP_GENERIC_PREFIX
 
 #define FIFORING_TYPE Wync_EntitySpawnEvent
@@ -764,7 +847,27 @@ static bool WyncPktSpawn_serialize(
 #undef FIFOMAP_TYPE
 #undef FIFOMAP_PREFIX
 
+#define MAP_GENERIC_TYPE u32
+#define MAP_GENERIC_KEY_TYPE WyncName
+#define MAP_GENERIC_PREFIX Name_
+#include "containers/map_generic.h"
+#undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
+#undef MAP_GENERIC_PREFIX
 
+#define RINGBUFFER_TYPE Name_ConMap
+#undef RINGBUFFER_PREFIX
+#include "containers/ringbuffer.h"
+#undef RINGBUFFER_TYPE
+#undef RINGBUFFER_PREFIX
+
+#define MAP_GENERIC_TYPE WyncBlueprintHandler
+#undef MAP_GENERIC_KEY_TYPE
+#undef MAP_GENERIC_PREFIX
+#include "containers/map_generic.h"
+#undef MAP_GENERIC_TYPE
+#undef MAP_GENERIC_KEY_TYPE
+#undef MAP_GENERIC_PREFIX
 
 // ============================================================
 //
@@ -851,7 +954,7 @@ typedef struct {
 	
 	// if relative_sync_enabled: points to auxiliar prop
 	// if is_auxiliar_prop: points to delta prop
-	u32 auxiliar_delta_events_prop_id;
+	//u32 auxiliar_delta_events_prop_id;
 	
 	// A place to insert current delta events
 	u32_DynArr current_delta_events;
@@ -867,7 +970,7 @@ typedef struct {
 	u32_DynArr_RinBuf confirmed_states_undo;
 	
 	// Rela Aux: what tick corresponds to any saved state
-	u32_RinBuf confirmed_states_undo_tick;
+	i32_RinBuf confirmed_states_undo_tick;
 
 } WyncProp_Rela;
 
@@ -881,7 +984,7 @@ typedef struct {
 	// * Used mainly for the server to consume late client events
 	// Ring <tick: id, event_ids: Array[int]>
 	u32_DynArr_RinBuf events_consumed_at_tick;
-	u32_RinBuf events_consumed_at_tick_tick;
+	i32_RinBuf events_consumed_at_tick_tick;
 } WyncProp_Consumed;
 
 
@@ -1049,8 +1152,8 @@ typedef struct {
 	
 	// SizedBufferList[int]
 	// Set[int]
-	// TODO: Proper set type
-	ConMap active_prop_ids;
+	// TODO: Proper set type, TODO: Use u32_ConMap instead
+	ConMap active_prop_ids; 
 	
 	// Map<entity_id: int, Array<prop_id>>
 	// TODO: Make it a map of sets
@@ -1230,7 +1333,7 @@ typedef struct {
 	
 	// TODO: Rename all the table-like containers
 	// Array< peer_id: int, Array< channel: int, prop_id: prop_id > >
-	i32 (*prop_id_by_peer_by_channel)[MAX_CHANNELS]; // Array[Array]
+	u32 (*prop_id_by_peer_by_channel)[MAX_CHANNELS]; // Array[Array]
 	
 	
 	// --------------------------------------------------------
@@ -1247,7 +1350,7 @@ typedef struct {
 	
 	// how far in the past we can go
 	// Updated every frame, should correspond to current_tick - max_history_ticks
-	u32 delta_base_state_tick; // -1
+	i32 delta_base_state_tick; // -1
 } CoEvents;
 
 
@@ -1364,7 +1467,7 @@ typedef struct {
 	// Ring < predicted_tick: int, Set <action_id: String> >
 	// RingBuffer < tick: int, Dictionary <action_id: String, unused_bool: bool> >
 	// RingBuffer [ Dictionary ]
-	ConMap_RinBuf tick_action_history;
+	Name_ConMap_RinBuf tick_action_history;
 } CoPredictionData;
 
 typedef struct {

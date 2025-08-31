@@ -18,6 +18,7 @@ typedef struct {
     uint32_t data_size;
     void *data;
 } WyncWrapper_Data;
+// TODO: Rename to WyncWrapper_NetDataBlob for user setters and getters
 
 typedef struct {
     void *ctx;
@@ -29,7 +30,24 @@ typedef WyncWrapper_Data (*WyncWrapper_Getter)(WyncWrapper_UserCtx ctx);
 typedef void (*WyncWrapper_Setter)(WyncWrapper_UserCtx, WyncWrapper_Data data);
 
 typedef WyncWrapper_Data (*WyncWrapper_LerpFunc)(
-    WyncWrapper_Data from, WyncWrapper_Data to, float delta);
+    WyncWrapper_Data from,
+    WyncWrapper_Data to,
+    float delta
+);
+
+typedef struct {
+	uint32_t event_type_id;
+	WyncWrapper_Data data;
+} WyncEvent_EventData;
+
+/// if requires_undo is FALSE must return -1,
+/// else create an "undo event" and return the EVENT_ID
+typedef int (*WyncBlueprintHandler) (
+	WyncCtx *ctx,
+	WyncWrapper_UserCtx user_ctx,
+	WyncEvent_EventData event,
+	bool requires_undo
+);
 
 typedef struct {
     bool spawn; // wether to spawn or to dispawn
@@ -434,5 +452,48 @@ void WyncXtrap_termination(WyncCtx *ctx);
 void WyncWrapper_set_prop_callbacks(
     WyncCtx *ctx, uint32_t prop_id, WyncWrapper_UserCtx user_ctx,
     WyncWrapper_Getter getter, WyncWrapper_Setter setter);
+
+/// ---------------------------------------------------------------------------
+/// WYNC DELTA SYNC
+/// ---------------------------------------------------------------------------
+
+uint32_t WyncDelta_create_blueprint (WyncCtx *ctx);
+
+/// @returns error
+int WyncDelta_blueprint_register_event (
+	WyncCtx *ctx,
+	uint32_t delta_blueprint_id,
+	uint32_t event_type_id,
+	WyncBlueprintHandler handler
+);
+
+int WyncEventUtils_new_event_wrap_up (
+	WyncCtx *ctx,
+	uint16_t event_user_type_id,
+	uint32_t data_size,
+	void *event_data,
+	uint32_t *out_event_id
+);
+
+int WyncProp_enable_relative_sync (
+	WyncCtx *ctx,
+	uint32_t entity_id,
+	uint32_t prop_id,
+	uint32_t delta_blueprint_id,
+	bool predictable
+);
+
+int WyncDelta_prop_push_event_to_current (
+	WyncCtx *ctx,
+	uint32_t prop_id,
+	uint32_t event_type_id,
+	uint32_t event_id
+);
+
+int WyncDelta_merge_event_to_state_real_state (
+	WyncCtx *ctx,
+	uint32_t prop_id,
+	uint32_t event_id
+);
 
 #endif // !WYNC_H

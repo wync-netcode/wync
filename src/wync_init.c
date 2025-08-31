@@ -222,12 +222,14 @@ void wync_init_ctx_prediction_data(WyncCtx *ctx) {
 	co_pred->first_tick_predicted = 1;
 	co_pred->last_tick_predicted = 0;
 
-	// FUTURE
-	//co_pred->tick_action_history_size = 32;
-	//co_pred->tick_action_history = 
-		//RingBuffer.new(co_pred->tick_action_history_size, {});
-	//for i in range(co_pred->tick_action_history_size):
-		//co_pred.tick_action_history.insert_at(i, {} as Dictionary);
+	co_pred->tick_action_history_size = 32;
+	co_pred->tick_action_history = 
+		Name_ConMap_RinBuf_create(co_pred->tick_action_history_size, (Name_ConMap) {0});
+	for (size_t i = 0; i < co_pred->tick_action_history_size; ++i) {
+		Name_ConMap *map = Name_ConMap_RinBuf_get_at(
+			&co_pred->tick_action_history, i);
+		*map = *Name_ConMap_create();
+	}
 }
 
 

@@ -110,7 +110,7 @@ void WyncDebug_get_info_general_text (
 	EASY_LINE("1 update arrives each %.2fms\n", prob_prop_ms);
 	EASY_LINE("(cl)max_pred_threeshold %d\n",
 			client_wctx->co_pred.max_prediction_tick_threeshold);
-	EASY_LINE("(cl)dummy_props %u (lost %u)\n", client_wctx->co_dummy.dummy_props.size,
+	EASY_LINE("(cl)dummy_props %u (lost %u)\n", DummyProp_ConMap_get_key_count(&client_wctx->co_dummy.dummy_props),
 			client_wctx->co_dummy.stat_lost_dummy_props);
 	EASY_LINE("snap tick delay %f (expected ~%f)\n",
 		client_wctx->co_metrics.snap_tick_delay_mean,

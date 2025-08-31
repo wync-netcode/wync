@@ -4,6 +4,7 @@
 #include "../wync.h"
 #include "wync_private.h"
 #include "containers/map.h"
+#include "wync_typedef.h"
 
 typedef struct{
 
@@ -15,8 +16,8 @@ typedef struct{
 	// * Stores Callables
 	// * Allows to check if a given event_type_id is supported
 	// Map <event_type_id: int, handler: Callable>
-	//var event_handlers: Dictionary
-	i32 dummy;
+	// f (user_ctx: Variant, event: WyncCtx.WyncEventEventData, requires_undo: bool, ctx: WyncCtx) -> Array[int]:
+	WyncBlueprintHandler_ConMap event_handlers;
 	
 	// Callable interface
 	// 'first time' is another name for 'requires_undo'
@@ -74,6 +75,7 @@ typedef struct WyncWrapperCtx{
 
 	// Array<delta_blueprint_id: int, Blueprint>
 	WyncWrapper_DeltaBlueprint delta_blueprints[WYNC_MAX_BLUEPRINTS];
+	uint delta_blueprint_id_counter;
 
 	// TODO(Future): Physics integration functions
 	//// Maybe this is the user's responsibility

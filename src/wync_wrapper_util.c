@@ -45,6 +45,7 @@ void WyncWrapper_buffer_inputs(WyncCtx *ctx) {
 
 void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 	WyncProp *prop = NULL;
+	WyncProp *prop_aux = NULL;
 	WyncWrapper_Getter *getter = NULL;
 	WyncWrapper_UserCtx *user_ctx = NULL;
 
@@ -54,6 +55,7 @@ void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 	while(u32_DynArr_iterator_get_next(
 		&ctx->co_filter_s.filtered_regular_extractable_prop_ids, &it) == OK) {
 		u32 prop_id = *it.item;
+
 		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
 		getter = &ctx->wrapper->prop_getter[prop_id];
 		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
@@ -65,7 +67,27 @@ void WyncWrapper_extract_data_to_tick(WyncCtx *ctx, u32 save_on_tick) {
 			ctx, prop, save_on_tick, (WyncState){data.data_size, data.data});
 	}
 
-	// TODO: Delta props here ....
+	// extracts events ids (from auxiliar props)
+
+	it = (u32_DynArrIterator) { 0 };
+	while(u32_DynArr_iterator_get_next(
+		&ctx->co_filter_s.filtered_delta_prop_ids, &it) == OK) {
+		u32 prop_id = *it.item;
+
+		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		prop_aux = WyncTrack_get_prop_unsafe(
+									ctx, prop->auxiliar_delta_events_prop_id);
+
+		getter = &ctx->wrapper->prop_getter[prop->auxiliar_delta_events_prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop->auxiliar_delta_events_prop_id];
+
+		if (*getter == NULL) continue;
+		WyncWrapper_Data data = (*getter)(*user_ctx);
+
+		WyncStore_prop_state_buffer_insert(
+			ctx, prop_aux, save_on_tick, (WyncState){data.data_size, data.data});
+	}
+
 }
 
 // TODO: Move to WyncFlow
@@ -232,5 +254,39 @@ void WyncWrapper_client_filter_prop_ids (WyncCtx *ctx) {
 		u32 wync_entity_id = it.key;
 		if (!WyncXtrap_is_entity_predicted(ctx, wync_entity_id)) continue;
 		u32_DynArr_insert(&ctx->co_pred.predicted_entity_ids, wync_entity_id);
+	}
+}
+
+void WyncWrapper_extract_rela_prop_fullsnapshot_to_tick (
+	WyncCtx *ctx, int save_on_tick
+) {
+	WyncProp *prop = NULL;
+	WyncWrapper_Getter *getter = NULL;
+	WyncWrapper_UserCtx *user_ctx = NULL;
+
+	u32_DynArr_sort(&ctx->co_throttling.rela_prop_ids_for_full_snapshot);
+	uint last_prop_id = 0;
+
+	// save state history per tick
+
+	u32_DynArrIterator it = { 0 };
+	while(u32_DynArr_iterator_get_next(
+			&ctx->co_throttling.rela_prop_ids_for_full_snapshot, &it) == OK) {
+
+		u32 prop_id = *it.item;
+		if (prop_id == last_prop_id && it.index != 0) {
+			continue;
+		}
+		last_prop_id = prop_id;
+
+		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		getter = &ctx->wrapper->prop_getter[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+
+		if (*getter == NULL) continue;
+		WyncWrapper_Data data = (*getter)(*user_ctx);
+
+		WyncStore_prop_state_buffer_insert(
+			ctx, prop, save_on_tick, (WyncState){data.data_size, data.data});
 	}
 }

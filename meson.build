@@ -21,6 +21,7 @@ source_files = [
   './src/wync_state_store.c',
   './src/wync_wrapper_util.c',
   './src/wync_tick_collection.c',
+  './src/wync_delta_sync.c',
 ]
 
 cc = meson.get_compiler('c')
