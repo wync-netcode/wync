@@ -94,3 +94,61 @@ void WyncStat_setup_prob_for_entity_update_delay_ticks(
 		WyncTrack_wync_add_local_existing_entity(ctx, peer_id, entity_id);
 	}
 }
+
+/*
+static func wync_system_calculate_data_per_tick(ctx: WyncCtx):
+
+	var data_sent = ctx.common.out_packets_size_limit - ctx.common.out_packets_size_remaining_chars
+	ctx.co_metrics.debug_data_per_tick_current = data_sent
+
+	ctx.co_metrics.debug_ticks_sent += 1
+	ctx.co_metrics.debug_data_per_tick_total_mean = (
+		ctx.co_metrics.debug_data_per_tick_total_mean
+ 			* (ctx.co_metrics.debug_ticks_sent -1)
+		+ data_sent) / float(ctx.co_metrics.debug_ticks_sent)
+
+	ctx.co_metrics.debug_data_per_tick_sliding_window.push(data_sent)
+	var data_sent_acc = 0
+	for i in range(ctx.co_metrics.debug_data_per_tick_sliding_window_size):
+		var value = ctx.co_metrics.debug_data_per_tick_sliding_window.get_at(i)
+		if value is int:
+			data_sent_acc +=
+				ctx.co_metrics.debug_data_per_tick_sliding_window.get_at(i)
+	ctx.co_metrics.debug_data_per_tick_sliding_window_mean =
+		data_sent_acc / ctx.co_metrics.debug_data_per_tick_sliding_window_size
+
+*/
+
+void WyncStat_calculate_data_per_tick (WyncCtx *ctx) {
+	LOG_OUT_C(ctx, "debugrate, remaining %d consumed %d",
+		ctx->common.out_packets_size_remaining_chars,
+		ctx->common.out_packets_size_limit
+			- ctx->common.out_packets_size_remaining_chars
+	);
+
+	CoMetrics *metrics = &ctx->co_metrics;
+
+	float data_sent = (float)ctx->common.out_packets_size_limit
+			- (float)ctx->common.out_packets_size_remaining_chars;
+	metrics->debug_data_per_tick_current = data_sent;
+
+	metrics->debug_ticks_sent += 1;
+	metrics->debug_data_per_tick_total_mean = (
+		metrics->debug_data_per_tick_total_mean 
+			* (metrics->debug_ticks_sent -1) + data_sent)
+		/ metrics->debug_ticks_sent;
+	;
+	
+	u32_RinBuf_push( &metrics->debug_data_per_tick_sliding_window,
+			(uint)data_sent, NULL, NULL);
+
+	uint data_sent_acc = 1;
+	for (uint i = 0; i < metrics->debug_data_per_tick_sliding_window_size; ++i){
+		uint value = *u32_RinBuf_get_at(
+			&ctx->co_metrics.debug_data_per_tick_sliding_window, i);
+		data_sent_acc += value;
+	}
+
+	metrics->debug_data_per_tick_sliding_window_mean = (float)data_sent_acc
+		/ (float)ctx->co_metrics.debug_data_per_tick_sliding_window_size;
+}

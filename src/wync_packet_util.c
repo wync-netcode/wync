@@ -97,7 +97,7 @@ i32 WyncPacket_try_to_queue_out_packet (
 			LOG_ERR_C(ctx, "DROPPED, Packet too big (%u), remaining data (%u), d(%u)",
 				packet_size,
 				ctx->common.out_packets_size_remaining_chars,
-				packet_size-ctx->common.out_packets_size_remaining_chars);
+				packet_size -ctx->common.out_packets_size_remaining_chars);
 
 			WyncPacketOut_free(&out_packet);
 			return -1;
@@ -271,10 +271,6 @@ int WyncPacket_wrap_and_queue(
 		);
 		if (err != OK) {
 			LOG_ERR_C(ctx, "Couldn't queue packet");
-		}
-		else {
-			ctx->common.out_packets_size_remaining_chars -=
-				packet_out.data_size;
 		}
 	} else {
 		LOG_ERR_C(ctx, "Couldn't wrap packet");

@@ -21,6 +21,8 @@ bool WyncPacket_type_exists(u16 packet_type_id);
 void WyncStat_setup_prob_for_entity_update_delay_ticks(
     WyncCtx *ctx, uint32_t peer_id);
 
+void WyncStat_calculate_data_per_tick (WyncCtx *ctx);
+
 /// Wrapper
 /// vvvvvvv
 

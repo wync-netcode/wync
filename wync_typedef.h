@@ -1495,7 +1495,7 @@ typedef struct {
 	float debug_data_per_tick_total_mean;
 	float debug_data_per_tick_sliding_window_mean;
 	float debug_data_per_tick_current;
-	u32 debug_ticks_sent;
+	float debug_ticks_sent;
 	
 	float debug_lerp_prev_curr_time;
 	float debug_lerp_prev_target;

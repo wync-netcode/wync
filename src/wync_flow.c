@@ -419,6 +419,7 @@ void WyncFlow_gather_packets(WyncCtx *ctx) {
 	// pending delta props fullsnapshots should be extracted by now
 	WyncSend_send_pending_rela_props_fullsnapshot (ctx);
 	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
+	WyncStat_calculate_data_per_tick (ctx);
 
 	ctx->common.unrel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
 	ctx->common.rel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };

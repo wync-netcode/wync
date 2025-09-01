@@ -239,6 +239,7 @@ void WyncLerp_handle_packet_client_set_lerp_ms(
 	i32 err = WyncJoin_is_peer_registered(ctx, from_nete_peer_id, &wync_peer_id);
 	if (err != OK) {
 		LOG_ERR_C(ctx, "client %u is not registered", wync_peer_id);
+		return;
 	}
 
 	Wync_ClientInfo *client_info = &ctx->common.client_has_info[wync_peer_id];
