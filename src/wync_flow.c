@@ -97,12 +97,16 @@ i32 WyncFlow_feed_packet(
 		.data = wync_pkt.data.data
 	};
 
-	/*static NeteBuffer buffer = { 0 };*/
-	/*buffer.cursor_byte = 0;*/
-	/*buffer.size_bytes = wync_pkt.data.data_size;*/
-	/*buffer.data = wync_pkt.data.data;*/
-
-	LOG_OUT_C(ctx, "Received PKT %s", GET_PKT_NAME(wync_pkt.packet_type_id));
+	switch (wync_pkt.packet_type_id) {
+		case WYNC_PKT_EVENT_DATA:
+		case WYNC_PKT_INPUTS:
+		case WYNC_PKT_PROP_SNAP:
+			break;
+		default:
+			LOG_OUT_C(ctx, "Received PKT %s",
+					GET_PKT_NAME(wync_pkt.packet_type_id));
+			break;
+	}
 
 	switch (wync_pkt.packet_type_id) {
 		case WYNC_PKT_JOIN_REQ:
@@ -414,11 +418,12 @@ void WyncFlow_gather_packets(WyncCtx *ctx) {
 		WyncSend_extracted_data(ctx); // both reliable/unreliable
 
 		WyncWrapper_extract_rela_prop_fullsnapshot_to_tick(ctx, ctx->common.ticks);
+
+		// pending delta props fullsnapshots should be extracted by now
+		WyncSend_send_pending_rela_props_fullsnapshot (ctx);
+		WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
 	}
 
-	// pending delta props fullsnapshots should be extracted by now
-	WyncSend_send_pending_rela_props_fullsnapshot (ctx);
-	WyncSend_queue_out_snapshots_for_delivery(ctx); // both reliable/unreliable
 	WyncStat_calculate_data_per_tick (ctx);
 
 	ctx->common.unrel_pkt_it = (WyncPacketOut_DynArrIterator) { 0 };
