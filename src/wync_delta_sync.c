@@ -278,6 +278,9 @@ void WyncDelta_system_client_send_delta_prop_acks (WyncCtx *ctx) {
 		last_tick_received = i32_DynArr_create();
 	}
 
+	u32_DynArr_clear_preserving_capacity(&delta_prop_ids);
+	i32_DynArr_clear_preserving_capacity(&last_tick_received);
+
 	ConMap *delta_props_last_tick = 
 		&ctx->co_track.client_has_relative_prop_has_last_tick[
 			ctx->common.my_peer_id];
