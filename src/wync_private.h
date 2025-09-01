@@ -438,8 +438,6 @@ static void WyncXtrap_props_update_predicted_states_ticks(
 
 //void WyncXtrap_save_latest_predicted_state(WyncCtx *ctx, i32 tick);
 
-//void WyncXtrap_delta_props_clear_current_delta_events(WyncCtx *ctx);
-
 static i32 WyncXtrap_entity_get_last_received_tick_from_pred_props(
     WyncCtx *ctx, u32 entity_id);
 
@@ -449,6 +447,8 @@ static void WyncXtrap_internal_tick_end(WyncCtx *ctx, i32 tick);
 void WyncXtrap_update_entity_last_tick_received(WyncCtx *ctx, u32 prop_id);
 
 void WyncXtrap_tick_end(WyncCtx *ctx, i32 tick);
+
+void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC WRAPPER UTIL

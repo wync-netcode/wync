@@ -451,6 +451,8 @@ void WyncXtrap_tick_end(WyncCtx *ctx, int32_t tick);
 
 void WyncXtrap_termination(WyncCtx *ctx);
 
+bool WyncXtrap_allowed_to_predict_entity(WyncCtx *ctx, uint32_t entity_id);
+
 /// ---------------------------------------------------------------------------
 /// WYNC WRAPPER UTIL
 /// ---------------------------------------------------------------------------

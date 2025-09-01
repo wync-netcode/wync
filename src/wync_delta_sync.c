@@ -111,9 +111,10 @@ static int WyncDelta_internal_merge_event_to_state (
 		return -14;
 	}
 
-	WyncEvent *event;
+	WyncEvent *event_unstable_reference;
 	WyncEvent_ConMap_get(
-		&ctx->co_events.events, event_id, &event);
+		&ctx->co_events.events, event_id, &event_unstable_reference);
+	uint event_type_id = event_unstable_reference->data.event_type_id;
 
 	// Note: Maybe confirm this prop's blueprint supports this event_type
 
@@ -122,16 +123,18 @@ static int WyncDelta_internal_merge_event_to_state (
 
 	WyncBlueprintHandler *handler;
 	int error = WyncBlueprintHandler_ConMap_get(
-		&blueprint->event_handlers, event->data.event_type_id, &handler);
+		&blueprint->event_handlers, event_type_id, &handler);
 	if (error != OK) {
 		LOG_ERR_C(ctx, "deltasync | invalid event id %u for blueprint %u",
-			event->data.event_type_id, prop->co_rela.delta_blueprint_id);
+			event_type_id, prop->co_rela.delta_blueprint_id);
 		return -15;
 	}
 
 	int handler_result = (*handler)(
-		ctx, user_ctx, event->data, requires_undo
+		ctx, user_ctx, event_unstable_reference->data, requires_undo
 	);
+	LOG_OUT_C(ctx, "debugsimu | applied event_type_id %u id %u",
+			event_type_id, event_id);
 	if (!requires_undo) {
 		return OK;
 	}
@@ -139,7 +142,7 @@ static int WyncDelta_internal_merge_event_to_state (
 	if (handler_result < 0) { // expected undo_event_id, yet didn't get it
 		LOG_ERR_C(ctx, "deltasync | expected undo_event_id yet didn't get it"
 			" blueprint %u event_type_id %u",
-			event->data.event_type_id, prop->co_rela.delta_blueprint_id);
+			event_type_id, prop->co_rela.delta_blueprint_id);
 		return -16;
 	}
 
@@ -184,7 +187,7 @@ int WyncDelta_merge_event_to_state_real_state (
 	if (is_client_predicting) {
 		u32_DynArr_insert(
 			&prop->co_rela.current_undo_delta_events, out_undo_event_id);
-		LOG_OUT_C(ctx, "deltasync, produced undo delta event %u", out_undo_event_id);
+		LOG_OUT_C(ctx, "deltasimu, produced undo delta event %u", out_undo_event_id);
 	}
 
 	return OK;
@@ -228,6 +231,27 @@ void WyncDelta_predicted_event_props_clear_events (WyncCtx *ctx) {
 		(*setter)(*user_ctx, event_list_zeroed_blob);
 	}
 }
+// TODO: rename
+void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx) {
+	WyncWrapper_Setter *setter;
+	WyncWrapper_UserCtx *user_ctx;
+	u32_DynArrIterator it = { 0 };
+	WyncWrapper_Data event_list_zeroed_blob = WyncEventUtil_event_get_zeroed();
+
+	while (u32_DynArr_iterator_get_next(
+		&ctx->co_filter_c.type_state__delta_prop_ids, &it) == OK)
+	{
+		uint prop_id = *it.item;
+
+		setter = &ctx->wrapper->prop_setter[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		if (*setter == NULL) continue;
+
+		(*setter)(*user_ctx, event_list_zeroed_blob);
+	}
+}
+
+
 
 
 // ==================================================

@@ -246,6 +246,7 @@ WyncXtrap_entities WyncXtrap_tick_init (WyncCtx *ctx, i32 tick) {
 	// clearing delta events before predicting, predicted delta events will be
 	// polled and cached at the end of the predicted tick
 	// WyncXtrapInternal.wync_xtrap_delta_props_clear_current_delta_events(ctx)
+	WyncXtrap_delta_props_clear_current_delta_events(ctx);
 
 	// ...
 
@@ -340,11 +341,6 @@ static void WyncXtrap_save_latest_predicted_state (WyncCtx *ctx, i32 tick) {
 }
 
 
-static void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx) {
-	/// ...
-}
-
-
 static void WyncXtrap_internal_tick_end(WyncCtx *ctx, i32 tick) {
 	
 	// wync bookkeeping
@@ -368,4 +364,14 @@ static void WyncXtrap_internal_tick_end(WyncCtx *ctx, i32 tick) {
 void WyncXtrap_tick_end(WyncCtx *ctx, i32 tick) {
 	WyncXtrap_save_latest_predicted_state (ctx, tick);
 	WyncXtrap_internal_tick_end(ctx, tick);
+}
+
+
+
+bool WyncXtrap_allowed_to_predict_entity(WyncCtx *ctx, uint entity_id) {
+	if (ctx->common.is_client) {
+		return u32_DynArr_has(
+				&ctx->co_pred.global_entity_ids_to_predict, entity_id);
+	}
+	return true;
 }
