@@ -5,9 +5,13 @@
 #include "stdio.h" // printf
 #include "stdlib.h" // abort
 
-#define ANSI_NRM  "\x1B[0m"
-#define ANSI_RED  "\x1B[31m"
-#define ANSI_GRN  "\x1B[32m"
+#define ANSI_RESET   "\x1b[0m"
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_GREEN   "\x1b[32m"
+#define ANSI_YELLOW  "\x1b[33m"
+#define ANSI_BLUE    "\x1b[34m"
+#define ANSI_MAGENTA "\x1b[35m"
+#define ANSI_CYAN    "\x1b[36m"
 #define ANSI_GRAY "\x1b[90m"
 
 #ifdef WYNC_LOG_GLOBAL_STATE
@@ -36,11 +40,11 @@ extern int LOG_caller_id;
 
 #define LOG_OUT_INTERNAL(is_client, tick, ...) \
 	do { \
-		printf("%s", ANSI_NRM); \
+		printf("%s", is_client ? ANSI_YELLOW : ANSI_MAGENTA); \
 		printf("%d ", tick); \
 		printf("%s: ", (is_client) ? "clien" : "serve"); \
 		printf(__VA_ARGS__); \
-		printf(" %s%s|%s:%d%s\n", ANSI_GRAY, __func__, __FILE__, __LINE__, ANSI_NRM); \
+		printf(" %s%s|%s:%d%s\n", ANSI_GRAY, __func__, __FILE__, __LINE__, ANSI_RESET); \
 	} while (0)
 
 #define LOG_ERR_INTERNAL(is_client, tick, ...) \
@@ -50,7 +54,7 @@ extern int LOG_caller_id;
 		printf("%s ERR: ", (is_client) ? "clien" : "serve"); \
 		printf(__VA_ARGS__); \
 		printf("%s", ANSI_GRAY); \
-		printf(" %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
+		printf(" %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_RESET); \
 		LOG_DEBUG_BREAK; \
 	} while (0)
 
@@ -61,7 +65,7 @@ extern int LOG_caller_id;
 		printf("%s WAR: ", (is_client) ? "clien" : "serve"); \
 		printf(__VA_ARGS__); \
 		printf("%s", ANSI_GRAY); \
-		printf(" %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_NRM); \
+		printf(" %s|%s:%d%s\n", __func__, __FILE__, __LINE__, ANSI_RESET); \
 	} while (0)
 
 #define LOG_OUT_STATIC(...) LOG_OUT_INTERNAL(LOG_caller_id, 0, __VA_ARGS__)
