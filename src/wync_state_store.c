@@ -31,7 +31,7 @@ i32 WyncStore_save_confirmed_state(
 );
 
 void WyncStore_client_update_last_tick_received(WyncCtx *ctx, u32 tick) {
-	ctx->co_pred.last_tick_received = MAX(ctx->co_pred.last_tick_received, tick);
+	ctx->co_pred.last_tick_received = MAX(ctx->co_pred.last_tick_received, (i32)tick);
 	ctx->co_pred.last_tick_received_at_tick = ctx->common.ticks;
 
 	u32_RinBuf_push(&ctx->co_metrics.snap_tick_delay_window,
@@ -274,6 +274,9 @@ i32 WyncStore_client_handle_pkt_inputs(
 
 		WyncStore_prop_state_buffer_insert(
 			ctx, prop_input, input->tick, state_copy);
+
+		i32_RinBuf_push(&prop_input->statebff.last_ticks_received, input->tick,
+				NULL, NULL);
 			
 		max_tick = MAX(max_tick, input->tick);
 	}
