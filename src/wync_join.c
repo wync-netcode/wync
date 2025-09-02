@@ -19,6 +19,10 @@ i32 WyncJoin_is_peer_registered (WyncCtx *ctx, u16 nete_peer_id, u16 *out_wync_p
 	return -1;
 }
 
+bool WyncJoin_is_client(WyncCtx *ctx){
+	return ctx->common.is_client;
+}
+
 
 /// Gets nete_peer_id from a given wync_peer_id
 /// Used to know to whom to send packets

@@ -6,7 +6,6 @@
 #include "../wync.h"
 #include "wync_typedef.h"
 
-
 /// ---------------------------------------------------------------------------
 /// WYNC STATISTICS
 /// ---------------------------------------------------------------------------
@@ -21,7 +20,7 @@ bool WyncPacket_type_exists(u16 packet_type_id);
 void WyncStat_setup_prob_for_entity_update_delay_ticks(
     WyncCtx *ctx, uint32_t peer_id);
 
-void WyncStat_calculate_data_per_tick (WyncCtx *ctx);
+void WyncStat_calculate_data_per_tick(WyncCtx *ctx);
 
 /// Wrapper
 /// vvvvvvv
@@ -47,13 +46,8 @@ i32 WyncPacket_try_to_queue_out_packet(
 
 /// @returns error
 int WyncPacket_wrap_and_queue(
-	WyncCtx *ctx,
-	enum WYNC_PKT pkt_type,
-	void *pkt,
-	u16 peer_id,
-	bool reliable,
-	bool already_commited
-);
+    WyncCtx *ctx, enum WYNC_PKT pkt_type, void *pkt, u16 peer_id, bool reliable,
+    bool already_commited);
 
 void WyncPacket_ocuppy_space_towards_packets_data_size_limit(
     WyncCtx *ctx, u32 bytes);
@@ -131,7 +125,6 @@ void WyncFlow_packet_cleanup(WyncCtx *ctx);
 i32 WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
 
 i32 WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
-
 
 /// ---------------------------------------------------------------------------
 /// WYNC INIT
@@ -221,6 +214,10 @@ void WyncLerp_register_lerp_type(
 
 void WyncLerp_interpolate_all(WyncCtx *ctx, float delta_lerp_fraction);
 
+void WyncLerp_reset_to_interpolated_absolute(
+    WyncCtx *ctx, uint *prop_ids, uint prop_amount, uint tick_left,
+    float lerp_delta_ms);
+
 /// ---------------------------------------------------------------------------
 /// WYNC PROP
 /// ---------------------------------------------------------------------------
@@ -232,10 +229,7 @@ i32 WyncProp_enable_interpolation(
     WyncCtx *ctx, u32 prop_id, u16 user_data_type,
     WyncWrapper_Setter setter_lerp);
 
-i32 WyncProp_enable_module_events_consumed (
-	WyncCtx *ctx,
-	u32 prop_id
-);
+i32 WyncProp_enable_module_events_consumed(WyncCtx *ctx, u32 prop_id);
 
 /// ---------------------------------------------------------------------------
 /// WYNC SPAWN
@@ -430,13 +424,13 @@ bool WyncXtrap_is_entity_predicted(WyncCtx *ctx, u32 entity_id);
 
 WyncXtrap_entities WyncXtrap_tick_init(WyncCtx *ctx, i32 tick);
 
-//void WyncXtrap_props_update_predicted_states_data(
-    //WyncCtx *ctx, u32 *prop_ids, u32 prop_id_amount);
+// void WyncXtrap_props_update_predicted_states_data(
+// WyncCtx *ctx, u32 *prop_ids, u32 prop_id_amount);
 
 static void WyncXtrap_props_update_predicted_states_ticks(
     WyncCtx *ctx, u32 target_tick, u32 *prop_ids, u32 prop_id_amount);
 
-//void WyncXtrap_save_latest_predicted_state(WyncCtx *ctx, i32 tick);
+// void WyncXtrap_save_latest_predicted_state(WyncCtx *ctx, i32 tick);
 
 static i32 WyncXtrap_entity_get_last_received_tick_from_pred_props(
     WyncCtx *ctx, u32 entity_id);
@@ -448,7 +442,7 @@ void WyncXtrap_update_entity_last_tick_received(WyncCtx *ctx, u32 prop_id);
 
 void WyncXtrap_tick_end(WyncCtx *ctx, i32 tick);
 
-void WyncXtrap_delta_props_clear_current_delta_events (WyncCtx *ctx);
+void WyncXtrap_delta_props_clear_current_delta_events(WyncCtx *ctx);
 
 /// ---------------------------------------------------------------------------
 /// WYNC WRAPPER UTIL
@@ -468,69 +462,60 @@ void WyncWrapper_server_filter_prop_ids(WyncCtx *ctx);
 
 void WyncWrapper_client_filter_prop_ids(WyncCtx *ctx);
 
+void WyncWrapper_extract_prop_snapshot_to_tick(
+    WyncCtx *ctx, int save_on_tick, uint32_t prop_amount, uint32_t *prop_ids);
+
 /// ---------------------------------------------------------------------------
 /// WYNC DELTA
 /// ---------------------------------------------------------------------------
 
-void WyncSend_send_pending_rela_props_fullsnapshot (WyncCtx *ctx);
+void WyncSend_send_pending_rela_props_fullsnapshot(WyncCtx *ctx);
 
 void WyncSend_system_update_delta_base_state_tick(WyncCtx *ctx);
 
-void WyncEventUtils_wync_send_event_data (WyncCtx *ctx);
+void WyncEventUtils_wync_send_event_data(WyncCtx *ctx);
 
-i32 WyncEventUtils_handle_pkt_event_data (WyncCtx *ctx, WyncPktEventData data);
+i32 WyncEventUtils_handle_pkt_event_data(WyncCtx *ctx, WyncPktEventData data);
 
-i32 WyncEventUtils_setup_peer_global_events (WyncCtx *ctx, u32 peer_id);
+i32 WyncEventUtils_setup_peer_global_events(WyncCtx *ctx, u32 peer_id);
 
-void WyncDelta_predicted_event_props_clear_events (WyncCtx *ctx);
+void WyncDelta_predicted_event_props_clear_events(WyncCtx *ctx);
 
 void WyncDelta_props_clear_current_delta_events(WyncCtx *ctx);
 
-void WyncDelta_system_client_send_delta_prop_acks (WyncCtx *ctx);
+void WyncDelta_system_client_send_delta_prop_acks(WyncCtx *ctx);
 
-int WyncDelta_handle_pkt_delta_prop_ack (
-	WyncCtx *ctx,
-	WyncPktDeltaPropAck pkt,
-	u16 from_nete_peer_id
-);
+int WyncDelta_handle_pkt_delta_prop_ack(
+    WyncCtx *ctx, WyncPktDeltaPropAck pkt, u16 from_nete_peer_id);
 
-int WyncDelta_merge_event_to_state_real_state (
-	WyncCtx *ctx,
-	uint prop_id,
-	uint event_id
-);
+int WyncDelta_merge_event_to_state_real_state(
+    WyncCtx *ctx, uint prop_id, uint event_id);
 
-bool WyncDelta_is_event_healthy (WyncCtx *ctx, uint event_id);
+bool WyncDelta_is_event_healthy(WyncCtx *ctx, uint event_id);
 
-void WyncWrapper_extract_rela_prop_fullsnapshot_to_tick (
-	WyncCtx *ctx, int save_on_tick
-);
+void WyncWrapper_extract_rela_prop_fullsnapshot_to_tick(
+    WyncCtx *ctx, int save_on_tick);
 
-bool WyncDelta_blueprint_exists (WyncCtx *ctx, uint delta_blueprint_id);
+bool WyncDelta_blueprint_exists(WyncCtx *ctx, uint delta_blueprint_id);
 
 typedef struct {
-	u32_DynArr *list;
+    u32_DynArr *list;
 } WyncEventUtil_EventCtx;
 
 typedef struct {
-	u32 event_amount;
-	u32 *events;
+    u32 event_amount;
+    u32 *events;
 } WyncEventUtil_EventData; // TODO: merge with WyncEventList
 
-WyncWrapper_Data WyncEventUtil_event_getter (
-	WyncWrapper_UserCtx user_ctx
-);
+WyncWrapper_Data WyncEventUtil_event_getter(WyncWrapper_UserCtx user_ctx);
 
 void WyncEventUtil_event_setter(
-	WyncWrapper_UserCtx user_ctx,
-	WyncWrapper_Data data
-);
+    WyncWrapper_UserCtx user_ctx, WyncWrapper_Data data);
 
-WyncWrapper_Data WyncEventUtil_event_get_zeroed (void);
+WyncWrapper_Data WyncEventUtil_event_get_zeroed(void);
 
 int WyncEventUtils_get_events_from_event_prop(
-	WyncProp *prop, i32 tick, WyncEventList *event_list
-);
+    WyncProp *prop, i32 tick, WyncEventList *event_list);
 
 void WyncConsumed_advance_tick(WyncCtx *ctx);
 

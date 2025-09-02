@@ -30,24 +30,18 @@ typedef WyncWrapper_Data (*WyncWrapper_Getter)(WyncWrapper_UserCtx ctx);
 typedef void (*WyncWrapper_Setter)(WyncWrapper_UserCtx, WyncWrapper_Data data);
 
 typedef WyncWrapper_Data (*WyncWrapper_LerpFunc)(
-    WyncWrapper_Data from,
-    WyncWrapper_Data to,
-    float delta
-);
+    WyncWrapper_Data from, WyncWrapper_Data to, float delta);
 
 typedef struct {
-	uint32_t event_type_id;
-	WyncWrapper_Data data;
+    uint32_t event_type_id;
+    WyncWrapper_Data data;
 } WyncEvent_EventData;
 
 /// if requires_undo is FALSE must return -1,
 /// else create an "undo event" and return the EVENT_ID
-typedef int (*WyncBlueprintHandler) (
-	WyncCtx *ctx,
-	WyncWrapper_UserCtx user_ctx,
-	WyncEvent_EventData event,
-	bool requires_undo
-);
+typedef int (*WyncBlueprintHandler)(
+    WyncCtx *ctx, WyncWrapper_UserCtx user_ctx, WyncEvent_EventData event,
+    bool requires_undo);
 
 typedef struct {
     bool spawn; // wether to spawn or to dispawn
@@ -68,8 +62,8 @@ typedef struct {
 
 /// state data type for WYNC_PROP_TYPE_EVENT
 typedef struct {
-	uint32_t event_amount;
-	uint32_t *event_ids;
+    uint32_t event_amount;
+    uint32_t *event_ids;
 } WyncEventList;
 
 /// ---------------------------------------------------------------------------
@@ -83,7 +77,7 @@ typedef struct {
 /// Sets the data limit in bytes for the current frame. Wync will limit the
 /// amount of packages it generates; entities will take turns to be synced.
 /// Beware, too much throttling might cause visual glitches.
-/// 
+///
 /// @param data_limit_bytes Maximum bytes to generate on a frame
 void WyncPacket_set_data_limit_chars_for_out_packets(
     WyncCtx *ctx, uint32_t data_limit_bytes);
@@ -105,8 +99,7 @@ void WyncClock_peer_set_current_latency(
 /// calculations.
 ///
 /// @param tps Updates per second, e.g. 30, 60.
-void WyncClock_client_set_physics_ticks_per_second(
-    WyncCtx *ctx, uint16_t tps);
+void WyncClock_client_set_physics_ticks_per_second(WyncCtx *ctx, uint16_t tps);
 
 /// Debug function. Add an artificial offset to your perceived time.
 void WyncClock_set_debug_time_offset(WyncCtx *ctx, uint64_t time_offset_ms);
@@ -131,7 +124,7 @@ uint32_t WyncClock_get_ticks(WyncCtx *ctx);
 void WyncDebug_get_info_general_text(
     WyncCtx *server_wctx, WyncCtx *client_wctx, char *lines);
 
-/// Debug function. Gets you a summary in text format of the known props for 
+/// Debug function. Gets you a summary in text format of the known props for
 /// a specified wync context.
 ///
 /// @param[out] lines Text buffer of at least 4096 bytes
@@ -151,7 +144,7 @@ void WyncDebug_get_packets_received_info_text(
 /// Feeds a network packet to this instance. Wync will read and consumed it to
 /// update it's internal state. You must free it afterwards.
 ///
-/// @param from_nete_peer_id Sender network peer id 
+/// @param from_nete_peer_id Sender network peer id
 int32_t WyncFlow_feed_packet(
     WyncCtx *ctx, uint16_t from_nete_peer_id, uint32_t data_size, void *data);
 
@@ -172,7 +165,7 @@ void WyncFlow_server_tick_end(WyncCtx *ctx);
 /// Main client logic. Call at the end of your logic frame.
 void WyncFlow_client_tick_end(WyncCtx *ctx);
 
-/// Creates a cache of packets to be sent to other peers respecting the data 
+/// Creates a cache of packets to be sent to other peers respecting the data
 /// limit set.
 void WyncFlow_gather_packets(WyncCtx *ctx);
 
@@ -180,21 +173,21 @@ void WyncFlow_gather_packets(WyncCtx *ctx);
 /// network.
 void WyncFlow_prepare_packet_iterator(WyncCtx *ctx);
 
-/// Obtains next network reliable packet for delivery. 
+/// Obtains next network reliable packet for delivery.
 ///
 /// @param[out] out_pkt Packet to be send through the Network RELIABLY.
 ///                     Must be instanced.
 /// @returns error
-/// @retval 0 OK 
+/// @retval 0 OK
 /// @retval -1 End reached
 int32_t WyncFlow_get_next_reliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
 
-/// Obtains next network unreliable packet for delivery. 
+/// Obtains next network unreliable packet for delivery.
 ///
 /// @param[out] out_pkt Packet to be send through the Network UNRELIABLY.
 ///                     Must be instanced.
 /// @returns error
-/// @retval 0 OK 
+/// @retval 0 OK
 /// @retval -1 End reached
 int32_t
 WyncFlow_get_next_unreliable_packet(WyncCtx *ctx, WyncPacketOut *out_pkt);
@@ -222,7 +215,6 @@ WyncCtx *WyncInit_create_context(void);
 int32_t WyncInput_prop_set_client_owner(
     WyncCtx *ctx, uint32_t prop_id, uint16_t client_id);
 
-
 /// ---------------------------------------------------------------------------
 /// WYNC JOIN
 /// ---------------------------------------------------------------------------
@@ -231,6 +223,7 @@ int32_t WyncInput_prop_set_client_owner(
 /// True for a server.
 bool WyncJoin_is_connected(WyncCtx *ctx);
 
+bool WyncJoin_is_client(WyncCtx *ctx);
 
 /// Whether a specified peer is connected on this server.
 ///
@@ -270,7 +263,6 @@ typedef struct {
     int32_t network_peer_id;
 } WyncPeer_ids;
 
-
 /// Gets next active peer.
 ///
 /// @param[out] Struct including both `Wync ID` and `Network ID` for Peer.
@@ -279,6 +271,11 @@ typedef struct {
 int32_t
 WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids);
 
+int32_t WyncJoin_get_wync_peer_id_from_nete_peer_id(
+    WyncCtx *ctx, uint16_t nete_peer_id, uint16_t *out_wync_peer_id);
+
+int32_t WyncJoin_get_nete_peer_id_from_wync_peer_id(
+    WyncCtx *ctx, uint16_t wync_peer_id, int32_t *out_nete_peer_id);
 
 /// ---------------------------------------------------------------------------
 /// WYNC LERP
@@ -297,7 +294,7 @@ void WyncLerp_client_set_lerp_ms(
 /// range will be applied symmetrically: How much to go in the past, and how
 /// much to go in the future.
 ///
-/// @param max_lerp_factor_symmetric 
+/// @param max_lerp_factor_symmetric
 void WyncLerp_set_max_lerp_factor_symmetric(
     WyncCtx *ctx, float max_lerp_factor_symmetric);
 
@@ -400,7 +397,7 @@ int32_t WyncThrottle_client_no_longer_sees_entity(
 /// WYNC TRACK
 /// ---------------------------------------------------------------------------
 
-/// 
+///
 int32_t WyncTrack_track_entity(
     WyncCtx *ctx, uint32_t entity_id, uint32_t entity_type_id);
 
@@ -465,71 +462,61 @@ void WyncWrapper_set_prop_callbacks(
 /// WYNC DELTA SYNC
 /// ---------------------------------------------------------------------------
 
-uint32_t WyncDelta_create_blueprint (WyncCtx *ctx);
+uint32_t WyncDelta_create_blueprint(WyncCtx *ctx);
 
 /// @returns error
-int WyncDelta_blueprint_register_event (
-	WyncCtx *ctx,
-	uint32_t delta_blueprint_id,
-	uint32_t event_type_id,
-	WyncBlueprintHandler handler
-);
+int WyncDelta_blueprint_register_event(
+    WyncCtx *ctx, uint32_t delta_blueprint_id, uint32_t event_type_id,
+    WyncBlueprintHandler handler);
 
-int WyncEventUtils_new_event_wrap_up (
-	WyncCtx *ctx,
-	uint16_t event_user_type_id,
-	uint32_t data_size,
-	void *event_data,
-	uint32_t *out_event_id
-);
+int WyncEventUtils_new_event_wrap_up(
+    WyncCtx *ctx, uint16_t event_user_type_id, uint32_t data_size,
+    void *event_data, uint32_t *out_event_id);
 
-int WyncProp_enable_relative_sync (
-	WyncCtx *ctx,
-	uint32_t entity_id,
-	uint32_t prop_id,
-	uint32_t delta_blueprint_id,
-	bool predictable
-);
+int WyncProp_enable_relative_sync(
+    WyncCtx *ctx, uint32_t entity_id, uint32_t prop_id,
+    uint32_t delta_blueprint_id, bool predictable);
 
-int WyncDelta_prop_push_event_to_current (
-	WyncCtx *ctx,
-	uint32_t prop_id,
-	uint32_t event_type_id,
-	uint32_t event_id
-);
+int WyncDelta_prop_push_event_to_current(
+    WyncCtx *ctx, uint32_t prop_id, uint32_t event_type_id, uint32_t event_id);
 
-int WyncDelta_merge_event_to_state_real_state (
-	WyncCtx *ctx,
-	uint32_t prop_id,
-	uint32_t event_id
-);
+int WyncDelta_merge_event_to_state_real_state(
+    WyncCtx *ctx, uint32_t prop_id, uint32_t event_id);
 
-int32_t WyncEventUtils_publish_global_event_as_client (
-	WyncCtx *ctx,
-	uint16_t channel,
-	uint32_t event_id
-);
+int32_t WyncEventUtils_publish_global_event_as_client(
+    WyncCtx *ctx, uint16_t channel, uint32_t event_id);
 
 int32_t WyncEventUtils_get_events_from_channel_from_peer(
-	WyncCtx *ctx,
-	uint16_t wync_peer_id,
-	uint16_t channel,
-	uint32_t tick,
-	WyncEventList *out_event_list
-);
+    WyncCtx *ctx, uint16_t wync_peer_id, uint16_t channel, uint32_t tick,
+    WyncEventList *out_event_list);
 
 int WyncEventUtils_get_event_data(
-	WyncCtx *ctx,
-	uint32_t event_id,
-	WyncEvent_EventData *out_event_data
-);
+    WyncCtx *ctx, uint32_t event_id, WyncEvent_EventData *out_event_data);
 
-int WyncConsumed_global_event_consume_tick (
-	WyncCtx *ctx,
-	uint32_t wync_peer_id,
-	uint32_t channel,
-	uint32_t tick,
-	uint32_t event_id
-);
+int WyncConsumed_global_event_consume_tick(
+    WyncCtx *ctx, uint32_t wync_peer_id, uint32_t channel, uint32_t tick,
+    uint32_t event_id);
+
+/// ---------------------------------------------------------------------------
+/// WYNC TIMEWARP
+/// ---------------------------------------------------------------------------
+
+int WyncProp_enable_timewarp(WyncCtx *ctx, uint32_t prop_id);
+
+uint32_t
+WyncTimewarp_get_peer_latency_stable(WyncCtx *ctx, uint32_t wync_peer_id);
+
+uint32_t WyncTimewarp_get_peer_lerp_ms(WyncCtx *ctx, uint32_t wync_peer_id);
+
+bool WyncTimewarp_can_we_timerwarp_to_this_tick(WyncCtx *ctx, uint32_t tick);
+
+void WyncTimewarp_cache_current_state_timewarpable_props(WyncCtx *ctx);
+
+int WyncTimewarp_warp_to_tick(WyncCtx *ctx, uint32_t tick, float delta_lerp_ms);
+
+int WyncTimewarp_warp_entity_to_tick(
+    WyncCtx *ctx, uint32_t entity_id, uint32_t tick_left, float lerp_delta_ms);
+
+void WyncTimewarp_restore_present_state (WyncCtx *ctx);
 
 #endif // !WYNC_H

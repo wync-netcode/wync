@@ -23,6 +23,7 @@ source_files = [
   './src/wync_tick_collection.c',
   './src/wync_delta_sync.c',
   './src/wync_actions_and_events_consumed.c',
+  './src/wync_timewarp.c',
 ]
 
 cc = meson.get_compiler('c')

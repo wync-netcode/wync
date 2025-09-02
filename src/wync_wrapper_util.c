@@ -159,6 +159,10 @@ void WyncWrapper_server_filter_prop_ids(WyncCtx *ctx) {
 				u32_DynArr_insert
 					(&ctx->co_filter_s.filtered_regular_timewarpable_interpolable_prop_ids, prop_id);
 			}
+			else {
+				u32_DynArr_insert
+					(&ctx->co_filter_s.filtered_regular_timewarpable_non_interpolable_prop_ids, prop_id);
+			}
 		}
 	}
 }
@@ -277,6 +281,32 @@ void WyncWrapper_extract_rela_prop_fullsnapshot_to_tick (
 			continue;
 		}
 		last_prop_id = prop_id;
+
+		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		getter = &ctx->wrapper->prop_getter[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+
+		if (*getter == NULL) continue;
+		WyncWrapper_Data data = (*getter)(*user_ctx);
+
+		WyncStore_prop_state_buffer_insert(
+			ctx, prop, save_on_tick, (WyncState){data.data_size, data.data});
+	}
+}
+
+
+// TODO: Generalize with other similar functions
+void WyncWrapper_extract_prop_snapshot_to_tick (
+	WyncCtx *ctx, int save_on_tick, uint32_t prop_amount, uint32_t* prop_ids
+) {
+	WyncProp *prop = NULL;
+	WyncWrapper_Getter *getter = NULL;
+	WyncWrapper_UserCtx *user_ctx = NULL;
+
+	// save state history per tick
+
+	for (uint i = 0; i < prop_amount; ++i) {
+		uint prop_id = prop_ids[i];
 
 		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
 		getter = &ctx->wrapper->prop_getter[prop_id];

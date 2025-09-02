@@ -185,3 +185,34 @@ int WyncProp_enable_relative_sync (
 
 	return OK;
 }
+
+
+int WyncProp_enable_timewarp (
+	WyncCtx *ctx,
+	uint prop_id
+) {
+	WyncProp *prop = WyncTrack_get_prop(ctx, prop_id);
+	if (prop == NULL) {
+		return -1;
+	}
+	if (prop->timewarp_enabled) {
+		return OK;
+	}
+	if (prop->lerp_enabled) {
+		// avoid accidental default values
+		assert(prop->co_lerp.lerp_user_data_type > 0); 
+	}
+
+	prop->timewarp_enabled = true;
+
+	prop->statebff.saved_states = WyncState_RinBuf_create
+		(ctx->max_tick_history_timewarp, (WyncState){ 0 });
+	prop->statebff.state_id_to_tick = i32_RinBuf_create
+		(ctx->max_tick_history_timewarp, -1);
+	prop->statebff.tick_to_state_id = i32_RinBuf_create
+		(ctx->max_tick_history_timewarp, -1);
+	prop->statebff.state_id_to_local_tick = i32_RinBuf_create
+		(ctx->max_tick_history_timewarp, -1); // TODO: this is only for lerp
+
+	return OK;
+}

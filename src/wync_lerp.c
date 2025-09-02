@@ -401,3 +401,68 @@ void WyncLerp_interpolate_all (
 		WyncState_free(&lerped_state_to_free);
 	}
 }
+
+
+/// timewarp, server only
+/// @param tick_left Base tick to restore state from
+void WyncLerp_reset_to_interpolated_absolute  (
+	WyncCtx *ctx,
+	uint *prop_ids,
+	uint prop_amount,
+	uint tick_left,
+	float lerp_delta_ms
+) {
+	float frame = 1000.0 / ctx->common.physic_ticks_per_second;
+	WyncState left_state;
+	WyncState right_state;
+	WyncWrapper_Data lerped_state;
+
+	WyncProp *prop = NULL;
+	WyncWrapper_Setter *setter;
+	WyncWrapper_UserCtx *user_ctx;
+	WyncWrapper_LerpFunc *lerp_func;
+
+	// then interpolate them
+
+	for (uint i = 0; i < prop_amount; ++i) {
+		uint prop_id = prop_ids[i];
+		prop = WyncTrack_get_prop_unsafe(ctx, prop_id);
+		if (prop == NULL) {
+			LOG_ERR_C(ctx, "Couldn't find prop %u", prop_id);
+			continue;
+		}
+
+		left_state = WyncState_prop_state_buffer_get(prop, tick_left);
+		right_state = WyncState_prop_state_buffer_get(prop, tick_left +1);
+		if (left_state.data_size == 0 || right_state.data_size == 0) {
+			LOG_WAR_C(ctx, "debugtimewarp, NOT FOUND one of: "
+					"tick_left %u or tick_right %u", tick_left, tick_left+1);
+			continue;
+		}
+
+		// TODO: wrap this into a function
+
+		setter = &ctx->wrapper->prop_setter[prop_id];
+		user_ctx = &ctx->wrapper->prop_user_ctx[prop_id];
+		lerp_func =
+			&ctx->wrapper->lerp_function[prop->co_lerp.lerp_user_data_type];
+
+		if (setter == NULL || user_ctx == NULL || lerp_func == NULL) {
+			LOG_ERR_C(ctx,
+					"Invalid Lerp function, Setter function or User context");
+			continue;
+		}
+
+		lerped_state = (*lerp_func) (
+			(WyncWrapper_Data) { left_state.data_size, left_state.data },
+			(WyncWrapper_Data) { right_state.data_size, right_state.data },
+			(lerp_delta_ms / frame)
+		);
+
+		(*setter)( *user_ctx, lerped_state);
+
+		WyncState lerped_state_to_free =
+			(WyncState) {lerped_state.data_size, lerped_state.data};
+		WyncState_free(&lerped_state_to_free);
+	}
+}

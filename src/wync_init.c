@@ -255,6 +255,8 @@ void wync_init_ctx_filter_s(WyncCtx *ctx) {
 	filter->filtered_regular_timewarpable_prop_ids = u32_DynArr_create();
 	filter->filtered_regular_timewarpable_interpolable_prop_ids =
 		u32_DynArr_create();
+	filter->filtered_regular_timewarpable_non_interpolable_prop_ids =
+		u32_DynArr_create();
 }
 
 
