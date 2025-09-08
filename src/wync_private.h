@@ -71,9 +71,9 @@ i32 WyncClock_server_handle_pkt_clock_req(
 void WyncClock_system_stabilize_latency(
     WyncCtx *ctx, Wync_PeerLatencyInfo *lat_info);
 
-void WyncClock_update_prediction_ticks(WyncCtx *ctx);
+void WyncClock_update_prediction_ticks(WyncCtx *ctx, bool force);
 
-i32 WyncClock_client_ask_for_clock(WyncCtx *ctx);
+i32 WyncClock_client_ask_for_clock(WyncCtx *ctx, bool force);
 
 void WyncClock_advance_ticks(WyncCtx *ctx);
 

@@ -497,6 +497,27 @@ int WyncConsumed_global_event_consume_tick(
     WyncCtx *ctx, uint32_t wync_peer_id, uint32_t channel, uint32_t tick,
     uint32_t event_id);
 
+typedef struct {
+	char name[40];
+} WyncName;
+
+bool WyncAction_already_ran_on_tick (
+	WyncCtx *ctx,
+	uint32_t predicted_tick,
+	WyncName action_id
+);
+
+void WyncAction_mark_as_ran_on_tick (
+	WyncCtx *ctx,
+	uint32_t predicted_tick,
+	WyncName action_id
+);
+
+void WyncAction_tick_history_reset (
+	WyncCtx *ctx,
+	uint32_t predicted_tick
+);
+
 /// ---------------------------------------------------------------------------
 /// WYNC TIMEWARP
 /// ---------------------------------------------------------------------------

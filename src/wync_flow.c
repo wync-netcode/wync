@@ -374,7 +374,7 @@ void WyncFlow_client_tick_end(WyncCtx *ctx) {
 	WyncWrapper_client_filter_prop_ids(ctx);
 	WyncClock_advance_ticks(ctx);
 	WyncClock_system_stabilize_latency(ctx, &ctx->common.peer_latency_info[SERVER_PEER_ID]);
-	WyncClock_update_prediction_ticks(ctx);
+	WyncClock_update_prediction_ticks(ctx, false);
 	
 	WyncWrapper_buffer_inputs(ctx);
 
@@ -403,7 +403,7 @@ void WyncFlow_gather_packets(WyncCtx *ctx) {
 		if (!ctx->common.connected) {
 			WyncJoin_service_wync_try_to_connect(ctx);  // reliable, commited
 		} else {
-			WyncClock_client_ask_for_clock(ctx);   // unreliable
+			WyncClock_client_ask_for_clock(ctx, false);   // unreliable
 			WyncDelta_system_client_send_delta_prop_acks(ctx); // unreliable
 			WyncSend_client_send_inputs(ctx); // unreliable
 			WyncEventUtils_wync_send_event_data (ctx); // reliable, commited

@@ -38,11 +38,6 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-
-typedef struct {
-	char name[40];
-} WyncName;
-
 typedef struct {
 	u32 data_size;
 	void *data;
