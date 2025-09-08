@@ -187,7 +187,7 @@ void WyncClock_system_stabilize_latency (
 }
 
 
-void WyncClock_update_prediction_ticks (WyncCtx *ctx) {
+void WyncClock_update_prediction_ticks (WyncCtx *ctx, bool force) {
 
 	Wync_PeerLatencyInfo *lat_info = &ctx->common.peer_latency_info[SERVER_PEER_ID];
 	CoTicks *co_ticks = &ctx->co_ticks;
@@ -197,7 +197,7 @@ void WyncClock_update_prediction_ticks (WyncCtx *ctx) {
 
 	// Adjust tick_offset_desired periodically to compensate for unstable ping
 	
-	if (FAST_MODULUS(ctx->common.ticks, 32) == 0) {
+	if (FAST_MODULUS(ctx->common.ticks, 32) == 0 || force) {
 
 		co_pred->tick_offset_desired = (i32)ceil(lat_info->latency_stable_ms / (1000.0 / physics_fps)) + 2;
 		
@@ -247,8 +247,8 @@ void WyncClock_update_prediction_ticks (WyncCtx *ctx) {
 }
 
 /// @returns error
-i32 WyncClock_client_ask_for_clock(WyncCtx *ctx) {
-	if (FAST_MODULUS(ctx->common.ticks, 16) != 0) return -1;
+i32 WyncClock_client_ask_for_clock(WyncCtx *ctx, bool force) {
+	if (FAST_MODULUS(ctx->common.ticks, 16) != 0 && !force) return -1;
 
 	i32 return_error = OK;
 	WyncPacketOut packet_out = { 0 };

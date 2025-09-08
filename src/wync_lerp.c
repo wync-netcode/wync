@@ -367,7 +367,8 @@ void WyncLerp_interpolate_all (
 		lerp_func =
 			&ctx->wrapper->lerp_function[prop->co_lerp.lerp_user_data_type];
 
-		if (setter_lerp == NULL || user_ctx == NULL || lerp_func == NULL) {
+		if (setter_lerp == NULL || user_ctx == NULL || lerp_func == NULL ||
+			*setter_lerp == NULL || *lerp_func == NULL) {
 			LOG_ERR_C(ctx,
 					"Invalid Lerp function, Setter function or User context");
 			continue;

@@ -34,6 +34,16 @@ i32 WyncProp_enable_interpolation (
 		return OK;
 	}
 
+	// check lerp type exists
+
+	if (ctx->wrapper->lerp_function[user_data_type] == NULL) {
+		LOG_ERR_C(ctx, "Provided data type (%u) is NOT registered for Lerping",
+				user_data_type);
+		assert(false);
+		return -2;
+	}
+
+
 	assert(user_data_type > 0); // avoid accidental default values
 	assert(setter_lerp != NULL);
 	

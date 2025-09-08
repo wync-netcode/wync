@@ -330,7 +330,7 @@ void WyncState_reset_props_to_latest_value (WyncCtx *ctx) {
 
 		if (!prop->xtrap_enabled) { continue; }
 
-		if (!prop->relative_sync_enabled) { 
+		/*if (!prop->relative_sync_enabled) { */
 
 			// regular prop
 
@@ -345,9 +345,9 @@ void WyncState_reset_props_to_latest_value (WyncCtx *ctx) {
 			ConMap_set_pair(&ctx->co_pred.entity_last_predicted_tick,
 				entity_id, last_ticks_received);
 
-		} else { // rela prop
-			// ...
-		}
+		/*} else { // rela prop*/
+			/*// ...*/
+		/*}*/
 	}
 
 	// rest state to _canonic_
