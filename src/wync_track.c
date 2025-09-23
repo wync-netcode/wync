@@ -387,7 +387,8 @@ i32 WyncTrack_wync_add_local_existing_entity (
 i32 WyncTrack_find_owned_entity_by_entity_type_and_prop_name (
 	WyncCtx *ctx,
 	u32 entity_type_to_find,
-	const char *prop_name_to_find
+	const char *prop_name_to_find,
+	u32 *out_entity_id
 ) {
 	ConMap *owned_props =
 		&ctx->co_clientauth.client_owns_prop[ctx->common.my_peer_id];
@@ -419,7 +420,8 @@ i32 WyncTrack_find_owned_entity_by_entity_type_and_prop_name (
 		if (strcmp(prop_name, prop_name_to_find) == OK
 			&& entity_type == (i32)entity_type_to_find)
 		{
-			return (i32)entity_id;
+			*out_entity_id = entity_id;
+			return OK;
 		}
 	}
 	return -1;
