@@ -151,7 +151,11 @@ void wync_init_ctx_filter_c(WyncCtx *ctx);
 
 i32 WyncInput_prop_get_peer_owner(WyncCtx *ctx, u32 prop_id, u32 *out_prop_id);
 
-i32 WyncInput_prop_set_client_owner(WyncCtx *ctx, u32 prop_id, u16 client_id);
+i32 WyncInput_prop_set_client_owner_internal(
+    WyncCtx *ctx, u32 prop_id, u16 wync_peer_id);
+
+i32 WyncInput_prop_set_client_owner(
+    WyncCtx *ctx, u32 prop_id, u16 nete_client_id);
 
 void WyncInput_system_sync_client_ownership(WyncCtx *ctx);
 
@@ -340,6 +344,9 @@ void WyncThrottle_compute_entity_sync_order(WyncCtx *ctx);
 i32 WyncThrottle_client_now_can_see_entity(
     WyncCtx *ctx, u16 client_id, u32 entity_id);
 
+int32_t WyncThrottle_client_now_can_see_entity_internal(
+    WyncCtx *ctx, uint16_t wync_client_id, uint32_t entity_id);
+
 void WyncThrottle_everyone_now_can_see_entity(WyncCtx *ctx, u32 entity_id);
 
 void WyncThrottle_entity_set_spawn_data(
@@ -407,7 +414,7 @@ WyncProp *WyncTrack_get_prop_unsafe(WyncCtx *ctx, u32 prop_id);
 i32 WyncTrack_prop_register_update_dummy(
     WyncCtx *ctx, u32 prop_id, u32 last_tick, u32 data_size, void *data);
 
-i32 WyncTrack_wync_add_local_existing_entity(
+i32 WyncTrack_wync_add_local_existing_entity_internal(
     WyncCtx *ctx, u16 wync_client_id, u32 entity_id);
 
 /// ---------------------------------------------------------------------------

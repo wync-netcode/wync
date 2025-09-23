@@ -315,7 +315,7 @@ void WyncFlow_client_setup(WyncCtx *ctx) {
 	}
 
 	// setup prob
-	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, 0);
+	WyncStat_setup_prob_for_entity_update_delay_ticks(ctx, SERVER_PEER_ID);
 
 	return;
 }

@@ -91,7 +91,8 @@ void WyncStat_setup_prob_for_entity_update_delay_ticks(
 
 	// add as local existing prop
 	if (!ctx->common.is_client) {
-		WyncTrack_wync_add_local_existing_entity(ctx, peer_id, entity_id);
+		WyncTrack_wync_add_local_existing_entity_internal(
+				ctx, peer_id, entity_id);
 	}
 }
 
@@ -120,11 +121,11 @@ static func wync_system_calculate_data_per_tick(ctx: WyncCtx):
 */
 
 void WyncStat_calculate_data_per_tick (WyncCtx *ctx) {
-	LOG_OUT_C(ctx, "debugrate, remaining %d consumed %d",
-		ctx->common.out_packets_size_remaining_chars,
-		ctx->common.out_packets_size_limit
-			- ctx->common.out_packets_size_remaining_chars
-	);
+	/*LOG_OUT_C(ctx, "debugrate, remaining %d consumed %d",*/
+		/*ctx->common.out_packets_size_remaining_chars,*/
+		/*ctx->common.out_packets_size_limit*/
+			/*- ctx->common.out_packets_size_remaining_chars*/
+	/*);*/
 
 	CoMetrics *metrics = &ctx->co_metrics;
 

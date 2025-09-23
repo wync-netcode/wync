@@ -213,7 +213,7 @@ WyncCtx *WyncInit_create_context(void);
 /// @param prop_id Prop identifier
 /// @param client_id Wync Peer identifier
 int32_t WyncInput_prop_set_client_owner(
-    WyncCtx *ctx, uint32_t prop_id, uint16_t client_id);
+    WyncCtx *ctx, uint32_t prop_id, uint16_t net_client_id);
 
 /// ---------------------------------------------------------------------------
 /// WYNC JOIN
@@ -270,12 +270,6 @@ typedef struct {
 /// @retval -1 End reached, no more peers
 int32_t
 WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids);
-
-int32_t WyncJoin_get_wync_peer_id_from_nete_peer_id(
-    WyncCtx *ctx, uint16_t nete_peer_id, uint16_t *out_wync_peer_id);
-
-int32_t WyncJoin_get_nete_peer_id_from_wync_peer_id(
-    WyncCtx *ctx, uint16_t wync_peer_id, int32_t *out_nete_peer_id);
 
 /// ---------------------------------------------------------------------------
 /// WYNC LERP
@@ -370,7 +364,7 @@ void WyncSpawn_system_spawned_props_cleanup(WyncCtx *ctx);
 /// @param client_id Wync Peer Identifier
 /// @param entity_id Wync Entity Identifier
 int32_t WyncThrottle_client_now_can_see_entity(
-    WyncCtx *ctx, uint16_t client_id, uint32_t entity_id);
+    WyncCtx *ctx, uint16_t net_client_id, uint32_t entity_id);
 
 /// (Server only) Add an entity to everyone's "vision". Will start
 /// Synchronization of this entity for all connected client peers.
@@ -420,7 +414,7 @@ int32_t WyncTrack_prop_get_entity(
     WyncCtx *ctx, uint32_t prop_id, uint32_t *out_entity_id);
 
 int32_t WyncTrack_wync_add_local_existing_entity(
-    WyncCtx *ctx, uint16_t wync_client_id, uint32_t entity_id);
+    WyncCtx *ctx, uint16_t net_client_id, uint32_t entity_id);
 
 int32_t WyncTrack_find_owned_entity_by_entity_type_and_prop_name(
     WyncCtx *ctx, uint32_t entity_type_to_find, const char *prop_name_to_find,
@@ -499,25 +493,16 @@ int WyncConsumed_global_event_consume_tick(
     uint32_t event_id);
 
 typedef struct {
-	char name[40];
+    char name[40];
 } WyncName;
 
-bool WyncAction_already_ran_on_tick (
-	WyncCtx *ctx,
-	uint32_t predicted_tick,
-	WyncName action_id
-);
+bool WyncAction_already_ran_on_tick(
+    WyncCtx *ctx, uint32_t predicted_tick, WyncName action_id);
 
-void WyncAction_mark_as_ran_on_tick (
-	WyncCtx *ctx,
-	uint32_t predicted_tick,
-	WyncName action_id
-);
+void WyncAction_mark_as_ran_on_tick(
+    WyncCtx *ctx, uint32_t predicted_tick, WyncName action_id);
 
-void WyncAction_tick_history_reset (
-	WyncCtx *ctx,
-	uint32_t predicted_tick
-);
+void WyncAction_tick_history_reset(WyncCtx *ctx, uint32_t predicted_tick);
 
 /// ---------------------------------------------------------------------------
 /// WYNC TIMEWARP
@@ -539,6 +524,6 @@ int WyncTimewarp_warp_to_tick(WyncCtx *ctx, uint32_t tick, float delta_lerp_ms);
 int WyncTimewarp_warp_entity_to_tick(
     WyncCtx *ctx, uint32_t entity_id, uint32_t tick_left, float lerp_delta_ms);
 
-void WyncTimewarp_restore_present_state (WyncCtx *ctx);
+void WyncTimewarp_restore_present_state(WyncCtx *ctx);
 
 #endif // !WYNC_H

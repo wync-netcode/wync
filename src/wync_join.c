@@ -98,9 +98,9 @@ u16 WyncJoin_peer_register (
 	Wync_ClientInfo client_info = { 0 };
 	ctx->common.client_has_info[peer_id] = client_info;
 
-	WyncThrottle_client_now_can_see_entity(
+	WyncThrottle_client_now_can_see_entity_internal(
 	ctx, peer_id, ENTITY_ID_PROB_FOR_ENTITY_UPDATE_DELAY_TICKS);
-	WyncTrack_wync_add_local_existing_entity(
+	WyncTrack_wync_add_local_existing_entity_internal(
 	ctx, peer_id, ENTITY_ID_PROB_FOR_ENTITY_UPDATE_DELAY_TICKS);
 
 	return peer_id;
@@ -270,7 +270,7 @@ i32 WyncJoin_handle_pkt_join_req (
 	i32 query_err = WyncTrack_entity_get_prop_id(
 		ctx, global_events_entity_id, "channel_0", &prop_id);
 	if (query_err == OK) {
-		WyncInput_prop_set_client_owner(ctx, prop_id, wync_client_id);
+		WyncInput_prop_set_client_owner_internal(ctx, prop_id, wync_client_id);
 	}
 
 	// queue as pending for setup
@@ -286,10 +286,10 @@ void WyncJoin_handle_pkt_res_client_info (
 	WyncCtx *ctx,
 	WyncPktResClientInfo pkt
 ) {
-	// set prop ownership
-	WyncInput_prop_set_client_owner(ctx, pkt.prop_id, pkt.peer_id);
-
 	LOG_OUT_C(ctx, "Prop %hu ownership given to client %hu", pkt.prop_id, pkt.peer_id);
+
+	// set prop ownership
+	WyncInput_prop_set_client_owner_internal(ctx, pkt.prop_id, pkt.peer_id);
 
 	// trigger refilter
 	ctx->common.was_any_prop_added_deleted = true;
@@ -322,10 +322,6 @@ void WyncJoin_pending_peers_clear (WyncCtx *ctx) {
 	u32_DynArr_clear_preserving_capacity(&ctx->co_throttling.out_peer_pending_to_setup);
 }
 
-void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx) {
-	ctx->common.active_peers_it = (i32_DynArrIterator) { 0 };
-}
-
 /// @returns Wync Peer ID that are active
 /// @retval -1 End reached, no more peers
 i32 WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids)
@@ -341,6 +337,14 @@ i32 WyncJoin_active_peers_get_next(WyncCtx *ctx, WyncPeer_ids *out_peer_ids)
 	out_peer_ids->wync_peer_id = ctx->common.active_peers_it.index;
 	out_peer_ids->network_peer_id = *ctx->common.active_peers_it.item;
 	return OK;
+}
+
+void WyncJoin_active_peers_setup_iteration(WyncCtx *ctx) {
+	ctx->common.active_peers_it = (i32_DynArrIterator) { 0 };
+
+	// skip the server (first one)
+	WyncPeer_ids ids = { 0 };
+	WyncJoin_active_peers_get_next(ctx, &ids);
 }
 
 

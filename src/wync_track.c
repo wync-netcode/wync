@@ -341,6 +341,38 @@ i32 WyncTrack_prop_register_update_dummy (
 	return OK;
 }
 
+/// @returns error
+i32 WyncTrack_wync_add_local_existing_entity_internal (
+	WyncCtx *ctx,
+	u16 wync_peer_id,
+	u32 entity_id
+) {
+	if (ctx->common.is_client) {
+		return -1;
+	}
+	if (wync_peer_id == SERVER_PEER_ID
+		|| wync_peer_id >= ctx->common.max_peers) {
+		return -2;
+	} 
+	if (!WyncTrack_is_entity_tracked(ctx, entity_id)) {
+		// entity exists
+		LOG_ERR_C(ctx, "entity (%u) isn't tracked", entity_id);
+		return -3;
+	}
+
+	ConMap *sees_entities =
+		&ctx->co_throttling.clients_sees_entities[wync_peer_id];
+	ConMap *sees_new_entities =
+		&ctx->co_throttling.clients_sees_new_entities[wync_peer_id];
+
+	// remove from new entities
+
+	ConMap_set_pair(sees_entities, entity_id, true);
+	ConMap_remove_by_key(sees_new_entities, entity_id);
+
+	return OK;
+} 
+
 /// * SERVER ONLY for now
 /// * Use it after setting up an entity and it's props
 /// * Use it to add entities that already exist on the server & client
@@ -354,33 +386,17 @@ i32 WyncTrack_prop_register_update_dummy (
 /// @returns error
 i32 WyncTrack_wync_add_local_existing_entity (
 	WyncCtx *ctx,
-	u16 wync_client_id,
+	u16 nete_client_id,
 	u32 entity_id
 ) {
-	if (ctx->common.is_client)
-		{ return -1; }
-	if (wync_client_id == SERVER_PEER_ID
-		|| wync_client_id >= ctx->common.max_peers)
-		{ return -2; } 
-	if (!WyncTrack_is_entity_tracked(ctx, entity_id)) {
-		// entity exists
-		LOG_ERR_C(ctx, "entity (%u) isn't tracked", entity_id);
-		return -3;
+	uint16_t wync_peer_id = 0;
+	if (WyncJoin_is_peer_registered(ctx, nete_client_id, &wync_peer_id) != OK){
+		LOG_ERR_C(ctx, "client %hu is not registered", nete_client_id);
+		return -1;
 	}
-
-	ConMap *sees_entities =
-		&ctx->co_throttling.clients_sees_entities[wync_client_id];
-	ConMap *sees_new_entities =
-		&ctx->co_throttling.clients_sees_new_entities[wync_client_id];
-
-	// remove from new entities
-
-	ConMap_set_pair(sees_entities, entity_id, true);
-	ConMap_remove_by_key(sees_new_entities, entity_id);
-
-	return OK;
-} 
-
+	return WyncTrack_wync_add_local_existing_entity_internal(
+			ctx, wync_peer_id, entity_id);
+}
 
 /// @returns Entity id
 /// @retval -1 Not found

@@ -137,33 +137,53 @@ void WyncThrottle_compute_entity_sync_order(WyncCtx *ctx) {
 
 
 /// @returns error
-i32 WyncThrottle_client_now_can_see_entity(
+i32 WyncThrottle_client_now_can_see_entity_internal(
 	WyncCtx *ctx,
-	u16 client_id,
+	u16 wync_peer_id,
 	u32 entity_id
 ){
+	if (wync_peer_id >= ctx->common.max_peers) {
+		return -1;
+	}
 	if (!WyncTrack_is_entity_tracked(ctx, entity_id)){
 		LOG_ERR_C(ctx, "entity (%u) isn't tracked", entity_id);
-		return -1;
+		return -2;
 	}
 
 	// already viewed
 	if (ConMap_has_key(
-		&ctx->co_throttling.clients_sees_entities[client_id], entity_id)) {
+		&ctx->co_throttling.clients_sees_entities[wync_peer_id], entity_id)) {
 		return OK;
 	}
 
-	ConMap_set_pair(&ctx->co_throttling.clients_sees_new_entities[client_id],
+	ConMap_set_pair(&ctx->co_throttling.clients_sees_new_entities[wync_peer_id],
 		entity_id, true);
 	return OK;
 }
 
+/// @returns error
+i32 WyncThrottle_client_now_can_see_entity(
+	WyncCtx *ctx,
+	u16 nete_client_id,
+	u32 entity_id
+){
+	uint16_t wync_peer_id = 0;
+	if (WyncJoin_is_peer_registered(ctx, nete_client_id, &wync_peer_id) != OK){
+		LOG_ERR_C(ctx, "client %hu is not registered", nete_client_id);
+		return -1;
+	}
+	return WyncThrottle_client_now_can_see_entity_internal(
+			ctx, wync_peer_id, entity_id);
+}
+
+
 void WyncThrottle_everyone_now_can_see_entity(WyncCtx *ctx, u32 entity_id) {
 	i32_DynArrIterator it = { .index = 1 };
 	while(i32_DynArr_iterator_get_next(&ctx->common.peers, &it) == OK) {
-		u16 peer_id = (u16)*it.item;
+		u16 nete_peer_id = (u16)*it.item;
 
-		WyncThrottle_client_now_can_see_entity(ctx, peer_id, entity_id);
+		WyncThrottle_client_now_can_see_entity(
+				ctx, nete_peer_id, entity_id);
 	}
 }
 
@@ -184,15 +204,22 @@ void WyncThrottle_entity_set_spawn_data(
 /// @returns error
 i32 WyncThrottle_client_no_longer_sees_entity(
 	WyncCtx *ctx,
-	u16 client_id,
+	u16 nete_client_id,
 	u32 entity_id
 ) {
+	uint16_t wync_peer_id = 0;
+	if (WyncJoin_is_peer_registered(ctx, nete_client_id, &wync_peer_id) != OK){
+		LOG_ERR_C(ctx, "client %hu is not registered", nete_client_id);
+		return -1;
+	}
+
 	if (!WyncTrack_is_entity_tracked(ctx, entity_id)){
 		LOG_ERR_C(ctx, "entity (%u) isn't tracked", entity_id);
 		return -1;
 	}
 
-	ConMap_set_pair(&ctx->co_throttling.clients_no_longer_sees_entities[client_id],
+	ConMap_set_pair(
+		&ctx->co_throttling.clients_no_longer_sees_entities[wync_peer_id],
 		entity_id, true);
 	return OK;
 
