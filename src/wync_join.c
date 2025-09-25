@@ -278,6 +278,9 @@ i32 WyncJoin_handle_pkt_join_req (
 	u32_DynArr_insert(
 		&ctx->co_throttling.out_peer_pending_to_setup, from_nete_peer_id);
 
+	// queue prop update
+	ctx->common.was_any_prop_added_deleted = true;
+
 	return err;
 }
 

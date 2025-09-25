@@ -5,8 +5,22 @@
 /// @returns error
 i32 WyncInput_prop_get_peer_owner(WyncCtx *ctx, u32 prop_id, u32 *out_peer_id){
 
+	// client only has info about itself
+	if (ctx->common.is_client) {
+		if (ctx->common.my_peer_id >= 0
+			&& ctx->common.my_peer_id < ctx->common.max_peers
+			&& ConMap_has_key(
+			&ctx->co_clientauth.client_owns_prop[ctx->common.my_peer_id],
+			prop_id)
+		) {
+			*out_peer_id = ctx->common.my_peer_id;
+			return OK;
+		}
+		return -1;
+	}
+
 	u32 peer_amount = (u32)i32_DynArr_get_size(&ctx->common.peers);
-	for (u16 peer_id = 1; peer_id < peer_amount; ++peer_id) {
+	for (u16 peer_id = 0; peer_id < peer_amount; ++peer_id) {
 		if (ConMap_has_key(
 				&ctx->co_clientauth.client_owns_prop[peer_id], prop_id))
 		{
@@ -14,6 +28,7 @@ i32 WyncInput_prop_get_peer_owner(WyncCtx *ctx, u32 prop_id, u32 *out_peer_id){
 			return OK;
 		}
 	}
+
 	return -1;
 }
 
