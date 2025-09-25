@@ -31,6 +31,36 @@ u64 WyncClock_get_ms(WyncCtx* ctx){
 	);
 }
 
+
+/// @returns error
+
+i32 WyncClock_client_send_clock_packet(WyncCtx *ctx, WyncPktClock packet_clock) {
+	WyncPacketOut packet_out = { 0 };
+
+	i32 return_error = WyncPacket_wrap_and_queue(
+		ctx,
+		WYNC_PKT_CLOCK,
+		&packet_clock,
+		SERVER_PEER_ID,
+		UNRELIABLE,
+		false
+	);
+	WyncPacketOut_free(&packet_out);
+
+	return return_error;
+}
+
+
+i32 WyncClock_client_ask_for_clock(WyncCtx *ctx, bool force) {
+	if (FAST_MODULUS(ctx->common.ticks, 16) != 0 && !force) return -1;
+	WyncPktClock packet_clock = {
+		.time_og = (u32)WyncClock_get_ms(ctx),
+		.tick_og = ctx->common.ticks
+	};
+	return WyncClock_client_send_clock_packet(ctx, packet_clock);
+}
+
+
 void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 
 	// see https://en.wikipedia.org/wiki/Cristian%27s_algorithm
@@ -42,7 +72,10 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	double curr_clock_offset =
 		((double)pkt.time + (curr_time - (double)pkt.time_og) / 2) - (double)curr_time;
 
-	printf("LATENCIA REAL %f\n", curr_time - (double)pkt.time_og);
+	
+	uint16_t latency = (uint16_t)ceill((curr_time - (double)pkt.time_og)/2);
+	LOG_OUT_C(ctx, "LATENCIA REAL %d\n", latency);
+	WyncClock_peer_set_current_latency(ctx, SERVER_PEER_ID, latency);
 
 	// calculate mean
 	// Note: To improve accurace modify _server clock sync_ throttling or
@@ -86,6 +119,11 @@ void WyncClock_client_handle_pkt_clock (WyncCtx *ctx, WyncPktClock pkt) {
 	WyncOffsetCollection_add_value(co_ticks, new_server_ticks_offset);
 	co_ticks->server_tick_offset = WyncOffsetCollection_get_most_common(co_ticks);
 	co_ticks->server_ticks = (u32)((i32)ctx->common.ticks + co_ticks->server_tick_offset);
+
+	// Send again for the server to make it's own calculations
+
+	pkt.second_trip = true;
+	WyncClock_client_send_clock_packet(ctx, pkt);
 }
 
 /// @returns error
@@ -107,23 +145,33 @@ i32 WyncClock_server_handle_pkt_clock_req (
 			break;
 		}
 
-		// prepare packet back
+		if (!pkt.second_trip) {
 
-		WyncPktClock packet_clock = {
-			.tick = ctx->common.ticks,
-			.tick_og = pkt.tick_og,
-			.time = WyncClock_get_ms(ctx),
-			.time_og = pkt.time_og,
-		};
+			// prepare packet back
 
-		WyncPacket_wrap_and_queue(
-			ctx,
-			WYNC_PKT_CLOCK,
-			&packet_clock,
-			wync_peer_id,
-			UNRELIABLE,
-			false
-		);
+			WyncPktClock packet_clock = {
+				.tick = ctx->common.ticks,
+				.tick_og = pkt.tick_og,
+				.time = WyncClock_get_ms(ctx),
+				.time_og = pkt.time_og,
+			};
+
+			WyncPacket_wrap_and_queue(
+				ctx,
+				WYNC_PKT_CLOCK,
+				&packet_clock,
+				wync_peer_id,
+				UNRELIABLE,
+				false
+			);
+
+		} else {
+			uint64_t curr_time = WyncClock_get_ms(ctx);
+			uint16_t latency =
+				(uint16_t)ceill(((double)curr_time - (double)pkt.time)/2);
+			LOG_OUT_C(ctx, "LATENCIA REAL %d", latency);
+			WyncClock_peer_set_current_latency(ctx, wync_peer_id, latency);
+		}
 	} while (0);
 
 	WyncPacketOut_free(&packet_out);
@@ -246,34 +294,6 @@ void WyncClock_update_prediction_ticks (WyncCtx *ctx, bool force) {
 	//WyncActions.action_tick_history_reset(ctx, co_pred.target_tick);
 }
 
-/// @returns error
-i32 WyncClock_client_ask_for_clock(WyncCtx *ctx, bool force) {
-	if (FAST_MODULUS(ctx->common.ticks, 16) != 0 && !force) return -1;
-
-	i32 return_error = OK;
-	WyncPacketOut packet_out = { 0 };
-
-	do{
-		WyncPktClock packet_clock = {
-			.time_og = (u32)WyncClock_get_ms(ctx),
-			.tick_og = ctx->common.ticks
-		};
-
-		WyncPacket_wrap_and_queue(
-			ctx,
-			WYNC_PKT_CLOCK,
-			&packet_clock,
-			SERVER_PEER_ID,
-			UNRELIABLE,
-			false
-		);
-		
-	} while (0);
-
-	WyncPacketOut_free(&packet_out);
-
-	return return_error;
-}
 
 // ==================================================
 // Private
@@ -285,10 +305,13 @@ void WyncClock_advance_ticks (WyncCtx *ctx) {
 	ctx->co_ticks.lerp_delta_accumulator_ms = 0;
 }
 
-/// NOTE: Rename to 'report'
-/// TODO: Receive nete_peer_id then convert to wync_peer_id
-/// set the latency this peer is experimenting (get it from your transport)
-/// @argument latency_ms: int. Latency in milliseconds
+/// DEPRECATED FOR FINAL USER USE
+/// Updates the latency a peer is experiencing. Periodically let Wync know
+/// the updated latency for a peer for better precision when calculating
+/// timing for Interpolation, Extrapolation, Timewarp, etc.
+///
+/// @param peer_id Wync peer identifier
+/// @param latency_ms Perceived latency for peer in milliseconds
 void WyncClock_peer_set_current_latency (WyncCtx *ctx, u16 peer_id, u16 latency_ms){
 	ctx->common.peer_latency_info[peer_id].latency_raw_latest_ms = latency_ms;
 }

@@ -291,6 +291,7 @@ typedef struct {
 	u32 tick_og; // requester's tick
 	u64 time;    // answerer's time
 	u64 time_og; // requester's time
+	bool second_trip; // final trip, indicates the server to not resend it
 } WyncPktClock;
 
 static bool WyncPktClock_serialize (
@@ -300,6 +301,8 @@ static bool WyncPktClock_serialize (
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time, sizeof(u64));
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->tick_og, sizeof(u32));
 	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->time_og, sizeof(u64));
+	NETEBUFFER_BYTES_SERIALIZE(is_reading, buffer, &pkt->second_trip,
+																sizeof(bool));
 	return true;
 }
 

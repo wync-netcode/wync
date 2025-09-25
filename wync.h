@@ -86,15 +86,6 @@ void WyncPacket_set_data_limit_chars_for_out_packets(
 /// WYNC CLOCK
 /// ---------------------------------------------------------------------------
 
-/// Updates the latency a peer is experiencing. Periodically let Wync know
-/// the updated latency for a peer for better precision when calculating
-/// timing for Interpolation, Extrapolation, Timewarp, etc.
-///
-/// @param peer_id Wync peer identifier
-/// @param latency_ms Perceived latency for peer in milliseconds
-void WyncClock_peer_set_current_latency(
-    WyncCtx *ctx, uint16_t peer_id, uint16_t latency_ms);
-
 /// Let Wync know about the physics update rate of your game for timing
 /// calculations.
 ///
