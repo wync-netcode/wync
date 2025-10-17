@@ -467,3 +467,37 @@ void WyncLerp_reset_to_interpolated_absolute  (
 		WyncState_free(&lerped_state_to_free);
 	}
 }
+
+
+
+
+/// @returns error
+int WyncLerp_debug_get_lerped_states(
+	WyncCtx *ctx, uint prop_id, WyncLerpedStates *out_states
+) {
+	WyncProp *prop = WyncTrack_get_prop(ctx, prop_id);
+	if (prop == NULL) {
+		LOG_ERR_C(ctx, "Couldn't find prop %u", prop_id);
+		return -1;
+	}
+	if (!prop->lerp_enabled) {
+		LOG_ERR_C(ctx, "Lerp not enabled for prop %u", prop_id);
+		return -1;
+	}
+	if (!prop->co_lerp.lerp_ready) {
+		return -1;
+	}
+
+	*out_states = (WyncLerpedStates) {
+		.left = (WyncWrapper_Data) {
+			.data_size = prop->co_lerp.lerp_left_state.data_size,
+			.data = prop->co_lerp.lerp_left_state.data,
+		},
+		.right = (WyncWrapper_Data) {
+			.data_size = prop->co_lerp.lerp_right_state.data_size,
+			.data = prop->co_lerp.lerp_right_state.data,
+		},
+	};
+
+	return OK;
+}

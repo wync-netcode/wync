@@ -586,7 +586,7 @@ i32 WyncEventUtils_setup_peer_global_events (WyncCtx *ctx, u32 peer_id) {
 
 	if (!ctx->common.is_client) {
 		// add as local existing prop
-		WyncTrack_wync_add_local_existing_entity(ctx, peer_id, entity_id);
+		WyncTrack_wync_add_local_existing_entity_internal(ctx, peer_id, entity_id);
 
 		// server module for consuming user events... Q: should this be server only?
 		WyncProp_enable_module_events_consumed(ctx, channel_prop_id);

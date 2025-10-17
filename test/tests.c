@@ -69,14 +69,14 @@ void util_send_packets_to (int from_net_peer_id, WyncCtx *from, WyncCtx *to)
 }
 
 void util_setup_server_and_client (void) {
-	server_gs.network_peer_id = 0;
+	server_gs.network_peer_id = 300;
 	server_gs.wctx = WyncInit_create_context();
 	WyncFlow_server_setup(server_gs.wctx);
 	WyncClock_set_debug_time_offset(server_gs.wctx, 1000);
 	WyncClock_set_ticks(server_gs.wctx, 320);
 	WyncClock_client_set_physics_ticks_per_second(server_gs.wctx, GAME_TPS);
 
-	client_gs.network_peer_id = 1;
+	client_gs.network_peer_id = 301;
 	client_gs.wctx = WyncInit_create_context();
 	WyncFlow_client_setup(client_gs.wctx);
 	WyncClock_set_debug_time_offset(client_gs.wctx, 2000);
@@ -286,8 +286,9 @@ void util_timewarp(void) {
 	uint actor_id = 2;
 	WyncProp_enable_timewarp(server_gs.wctx, actor_id);
 
-	WyncTimewarp_get_peer_latency_stable(server_gs.wctx, 1);
-	WyncTimewarp_get_peer_lerp_ms(server_gs.wctx, 1);
+	uint latency_ms, lerp_ms;
+	WyncTimewarp_get_peer_latency_stable(server_gs.wctx, 1, &latency_ms);
+	WyncTimewarp_get_peer_lerp_ms(server_gs.wctx, 1, &lerp_ms);
 	uint server_tick = WyncClock_get_ticks(server_gs.wctx);
 	WyncTimewarp_can_we_timerwarp_to_this_tick(server_gs.wctx, server_tick);
 	WyncTimewarp_cache_current_state_timewarpable_props(server_gs.wctx);
@@ -401,7 +402,7 @@ void test_snapshot (void) {
 	// ----------------------------------------------------------
 
 	WyncThrottle_client_now_can_see_entity(
-		server_gs.wctx, client_gs.wctx->common.my_peer_id, actor_id);
+		server_gs.wctx, client_gs.network_peer_id, actor_id);
 
 	// server, send spawn packet to client
 	// ----------------------------------------------------------
@@ -603,7 +604,7 @@ void test_client_authority_inputs (void) {
 	TEST_UINT(server_input_props, 1); 
 
 	WyncInput_prop_set_client_owner(
-		server_gs.wctx, input_prop_id, client_gs.wctx->common.my_peer_id);
+		server_gs.wctx, input_prop_id, client_gs.network_peer_id);
 
 	util_force_WyncWrapper_server_filter_prop_ids(server_gs.wctx);
 	server_input_props = u32_DynArr_get_size(
@@ -613,7 +614,7 @@ void test_client_authority_inputs (void) {
 	// server, let client know about it
 
 	int error = WyncThrottle_client_now_can_see_entity(
-		server_gs.wctx, client_gs.wctx->common.my_peer_id, actor_id);
+		server_gs.wctx, client_gs.network_peer_id, actor_id);
 	TEST_INT(error, OK);
 
 	WyncInput_system_sync_client_ownership(server_gs.wctx);
@@ -738,7 +739,7 @@ void test_extrapolation (void) {
 	// server, give client authority over it's input
 
 	WyncInput_prop_set_client_owner(
-		server_gs.wctx, input_prop_id, client_gs.wctx->common.my_peer_id);
+		server_gs.wctx, input_prop_id, client_gs.network_peer_id);
 
 	WyncWrapper_server_filter_prop_ids(server_gs.wctx);
 	size_t server_input_props = u32_DynArr_get_size(
@@ -748,7 +749,7 @@ void test_extrapolation (void) {
 	// server, let client know about it
 
 	int error = WyncThrottle_client_now_can_see_entity(
-		server_gs.wctx, client_gs.wctx->common.my_peer_id, actor_id);
+		server_gs.wctx, client_gs.network_peer_id, actor_id);
 	TEST_INT(error, OK);
 
 	WyncInput_system_sync_client_ownership(server_gs.wctx);
@@ -965,11 +966,11 @@ void test_lerp_canonic_state (void) {
 
 	WyncTrack_wync_add_local_existing_entity(
 			server_gs.wctx,
-			WyncJoin_get_my_wync_peer_id(client_gs.wctx),
+			client_gs.network_peer_id,
 			actor_id);
 	WyncThrottle_client_now_can_see_entity(
 		server_gs.wctx,
-		WyncJoin_get_my_wync_peer_id(client_gs.wctx),
+		client_gs.network_peer_id,
 		actor_id);
 
 	util_setup_lerp_types(client_gs.wctx);

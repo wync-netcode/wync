@@ -264,7 +264,9 @@ static int32_t PRE(ConMap_get) (CONMAP *map, KEY key, TYPE** value) {
     if (err != OK) {
         return 1;
     }
-    (*value) = &node->values[pair_index];
+    if (value != NULL) {
+        (*value) = &node->values[pair_index];
+    }
     return OK;
 }
 

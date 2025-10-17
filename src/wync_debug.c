@@ -130,7 +130,7 @@ void WyncDebug_get_prop_info_text (WyncCtx *ctx, char *lines)
 	}
 	u32_DynArr_clear_preserving_capacity(&sorted_entity_ids);
 
-	strcat(lines, "e_id  p_id  p_name_id\n");
+	strcat(lines, "e_id  p_id  owner p_name_id\n");
 
 	ConMapIterator it = { 0 };
 	while (ConMap_iterator_get_next_key(&ctx->co_track.tracked_entities, &it) == OK)
@@ -158,12 +158,29 @@ void WyncDebug_get_prop_info_text (WyncCtx *ctx, char *lines)
 			single_line[0] = 0;
 			single_line_aux[0] = 0;
 
+			uint out_wync_peer_id = 0;
+			int out_nete_peer_id = 0;
+			int found_owner =
+					WyncInput_prop_get_peer_owner(ctx, prop_id, &out_wync_peer_id);
+			if (found_owner == OK) {
+				WyncJoin_get_nete_peer_id_from_wync_peer_id(ctx,
+						(uint16_t)out_wync_peer_id, &out_nete_peer_id);
+			}
+
 			sprintf(single_line_aux, "%u       ", entity_id);
 			memcpy(single_line, single_line_aux, 6);
 			sprintf(single_line_aux, "%u       ", prop_id);
 			memcpy(single_line +6, single_line_aux, 6);
+			if (found_owner == OK) {
+				sprintf(single_line_aux, "%u(%d)       ",
+											out_wync_peer_id, out_nete_peer_id);
+				memcpy(single_line +12, single_line_aux, 6);
+			}
+			else {
+				memcpy(single_line +12, "        ", 6);
+			}
 			sprintf(single_line_aux, "%s       ", prop->name_id);
-			memcpy(single_line +12, single_line_aux, 60);
+			memcpy(single_line +18, single_line_aux, 60);
 			strcat(single_line, "\n");
 
 			strcat(lines, single_line);
@@ -187,7 +204,7 @@ void WyncDebug_get_packets_received_info_text (
 	strncat(lines, "                    ", name_length+1);
 	strncat(lines, "Tot    ", number_length);
 
-	for (u16 i = 0; i < prop_amount-1; ++i) {
+	for (u16 i = 0; i < MIN(prop_amount-1, DEBUG_PACKETS_RECEIVED_MAX-1); ++i) {
 		sprintf(single_line, "%d               ", i);
 		strncat(lines, single_line, number_length);
 	}
