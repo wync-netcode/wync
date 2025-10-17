@@ -2,14 +2,32 @@
 #include <math.h>
 
 
-uint32_t
-WyncTimewarp_get_peer_latency_stable(WyncCtx *ctx, uint32_t wync_peer_id) {
-	return ctx->common.peer_latency_info[wync_peer_id].latency_stable_ms;
+/// @param[out] out_latency_ms
+/// @returns error
+int32_t WyncTimewarp_get_peer_latency_stable(
+	WyncCtx *ctx, uint16_t nete_client_id, uint32_t *out_latency_ms
+) {
+	uint16_t wync_peer_id = 0;
+	if (WyncJoin_is_peer_registered(ctx, nete_client_id, &wync_peer_id) != OK){
+		LOG_ERR_C(ctx, "client %hu is not registered", nete_client_id);
+		return -1;
+	}
+	*out_latency_ms =
+			ctx->common.peer_latency_info[wync_peer_id].latency_stable_ms;
+	return OK;
 }
 
 
-uint32_t WyncTimewarp_get_peer_lerp_ms(WyncCtx *ctx, uint32_t wync_peer_id) {
-	return ctx->common.client_has_info[wync_peer_id].lerp_ms;
+int32_t WyncTimewarp_get_peer_lerp_ms(
+    WyncCtx *ctx, uint16_t nete_client_id, uint32_t *out_lerp_ms
+) {
+	uint16_t wync_peer_id = 0;
+	if (WyncJoin_is_peer_registered(ctx, nete_client_id, &wync_peer_id) != OK){
+		LOG_ERR_C(ctx, "client %hu is not registered", nete_client_id);
+		return -1;
+	}
+	*out_lerp_ms = ctx->common.client_has_info[wync_peer_id].lerp_ms;
+	return OK;
 }
 
 
@@ -47,6 +65,7 @@ int WyncTimewarp_warp_entity_to_tick(
 	int error = u32_DynArr_ConMap_get(
 		&ctx->co_track.entity_has_props, entity_id, &entity_props);
 	if (error != OK) {
+		LOG_ERR_C(ctx, "Couldn't find entity_id %d", entity_id);
 		return -1;
 	}
 

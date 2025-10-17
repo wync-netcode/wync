@@ -4,6 +4,8 @@ bool WyncJoin_is_connected(WyncCtx *ctx){
 	return ctx->common.connected;
 }
 
+/// FIXME: Too slow
+/// TODO: Final user shouldn't have access to wync_peer_id
 /// @param[out] out_peer_id If found
 /// @returns error
 i32 WyncJoin_is_peer_registered (WyncCtx *ctx, u16 nete_peer_id, u16 *out_wync_peer_id) {
@@ -12,7 +14,9 @@ i32 WyncJoin_is_peer_registered (WyncCtx *ctx, u16 nete_peer_id, u16 *out_wync_p
 		i32 here_nete_peer_id = *i32_DynArr_get(&ctx->common.peers, peer_id);
 		if (here_nete_peer_id == (i32)nete_peer_id)
 		{
-			*out_wync_peer_id = peer_id;
+			if (out_wync_peer_id != NULL) {
+				*out_wync_peer_id = peer_id;
+			}
 			return OK;
 		}
 	}

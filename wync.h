@@ -501,10 +501,11 @@ void WyncAction_tick_history_reset(WyncCtx *ctx, uint32_t predicted_tick);
 
 int WyncProp_enable_timewarp(WyncCtx *ctx, uint32_t prop_id);
 
-uint32_t
-WyncTimewarp_get_peer_latency_stable(WyncCtx *ctx, uint32_t wync_peer_id);
+int32_t WyncTimewarp_get_peer_latency_stable(
+    WyncCtx *ctx, uint16_t nete_client_id, uint32_t *out_latency_ms);
 
-uint32_t WyncTimewarp_get_peer_lerp_ms(WyncCtx *ctx, uint32_t wync_peer_id);
+int32_t WyncTimewarp_get_peer_lerp_ms(
+    WyncCtx *ctx, uint16_t nete_client_id, uint32_t *out_lerp_ms);
 
 bool WyncTimewarp_can_we_timerwarp_to_this_tick(WyncCtx *ctx, uint32_t tick);
 

@@ -286,8 +286,9 @@ void util_timewarp(void) {
 	uint actor_id = 2;
 	WyncProp_enable_timewarp(server_gs.wctx, actor_id);
 
-	WyncTimewarp_get_peer_latency_stable(server_gs.wctx, 1);
-	WyncTimewarp_get_peer_lerp_ms(server_gs.wctx, 1);
+	uint latency_ms, lerp_ms;
+	WyncTimewarp_get_peer_latency_stable(server_gs.wctx, 1, &latency_ms);
+	WyncTimewarp_get_peer_lerp_ms(server_gs.wctx, 1, &lerp_ms);
 	uint server_tick = WyncClock_get_ticks(server_gs.wctx);
 	WyncTimewarp_can_we_timerwarp_to_this_tick(server_gs.wctx, server_tick);
 	WyncTimewarp_cache_current_state_timewarpable_props(server_gs.wctx);

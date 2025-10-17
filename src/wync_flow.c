@@ -97,16 +97,16 @@ i32 WyncFlow_feed_packet(
 		.data = wync_pkt.data.data
 	};
 
-	switch (wync_pkt.packet_type_id) {
-		case WYNC_PKT_EVENT_DATA:
-		case WYNC_PKT_INPUTS:
-		case WYNC_PKT_PROP_SNAP:
-			break;
-		default:
-			LOG_OUT_C(ctx, "Received PKT %s",
-					GET_PKT_NAME(wync_pkt.packet_type_id));
-			break;
-	}
+	/*switch (wync_pkt.packet_type_id) {*/
+		/*case WYNC_PKT_EVENT_DATA:*/
+		/*case WYNC_PKT_INPUTS:*/
+		/*case WYNC_PKT_PROP_SNAP:*/
+			/*break;*/
+		/*default:*/
+			/*LOG_OUT_C(ctx, "Received PKT %s",*/
+					/*GET_PKT_NAME(wync_pkt.packet_type_id));*/
+			/*break;*/
+	/*}*/
 
 	switch (wync_pkt.packet_type_id) {
 		case WYNC_PKT_JOIN_REQ:
