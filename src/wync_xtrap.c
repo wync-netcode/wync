@@ -97,6 +97,9 @@ void WyncXtrap_termination (WyncCtx *ctx) {
 	ctx->co_pred.currently_on_predicted_tick = false;
 	u32_DynArr_clear_preserving_capacity(
 		&ctx->co_pred.global_entity_ids_to_predict);
+
+	// TODO: Only precompute predicted props
+	WyncLerp_precompute(ctx);
 }
 
 

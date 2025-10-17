@@ -294,6 +294,17 @@ void WyncLerp_register_lerp_type(
 
 void WyncLerp_interpolate_all(WyncCtx *ctx, float delta_lerp_fraction);
 
+typedef struct {
+    WyncWrapper_Data left;
+    WyncWrapper_Data right;
+} WyncLerpedStates;
+
+/// @param out_states Struct containing data for left and right states used for
+///                   interpolation.
+/// @returns error
+int32_t WyncLerp_debug_get_lerped_states(
+    WyncCtx *ctx, uint32_t prop_id, WyncLerpedStates *out_states);
+
 /// ---------------------------------------------------------------------------
 /// WYNC PROP
 /// ---------------------------------------------------------------------------
